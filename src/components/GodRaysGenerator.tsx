@@ -85,6 +85,7 @@ export function GodRaysGenerator() {
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
   const rafRef = React.useRef<number | null>(null);
+  const deferredConfig = React.useDeferredValue(config);
 
   const clampZoom = (v: number) =>
     Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v)) * 100) / 100;
@@ -112,7 +113,7 @@ export function GodRaysGenerator() {
     if (!canvas) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-      const scaled = scaleConfigForPreview(config);
+      const scaled = scaleConfigForPreview(deferredConfig);
       canvas.width = scaled.width;
       canvas.height = scaled.height;
       drawGodRays(canvas, scaled);
@@ -120,7 +121,7 @@ export function GodRaysGenerator() {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [config]);
+  }, [deferredConfig]);
 
   const update = React.useCallback(
     <K extends keyof GodRaysConfig>(key: K, value: GodRaysConfig[K]) => {
@@ -360,40 +361,38 @@ export function GodRaysGenerator() {
       <aside className="flex h-full flex-col overflow-hidden bg-card">
         <div className="flex-1 overflow-y-auto">
           <ControlSection title="Presets" defaultOpen={true}>
-            <div className="mt-3">
-              <div className="grid grid-cols-4 gap-2">
-                {PRESETS.map((p) => (
-                  <button
-                    key={p.key}
-                    onClick={() => applyPreset(p.key)}
-                    className="group relative h-16 overflow-hidden rounded-md border border-border text-left transition-shadow hover:shadow-lg"
-                    style={{ background: p.thumb }}
-                    title={p.label}
-                  >
-                    <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[10px] font-medium tracking-tight text-white">
-                      {p.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-3 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRandomize}
-                  className="flex-1 gap-2"
+            <div className="grid grid-cols-4 gap-2">
+              {PRESETS.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => applyPreset(p.key)}
+                  className="group relative h-16 overflow-hidden rounded-md border border-border text-left transition-shadow hover:shadow-lg"
+                  style={{ background: p.thumb }}
+                  title={p.label}
                 >
-                  <Shuffle className="h-4 w-4" /> Aleatório
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReset}
-                  className="flex-1 gap-2"
-                >
-                  <RotateCcw className="h-4 w-4" /> Reset
-                </Button>
-              </div>
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[10px] font-medium tracking-tight text-white">
+                    {p.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRandomize}
+                className="flex-1 gap-2"
+              >
+                <Shuffle className="h-4 w-4" /> Aleatório
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReset}
+                className="flex-1 gap-2"
+              >
+                <RotateCcw className="h-4 w-4" /> Reset
+              </Button>
             </div>
           </ControlSection>
 
@@ -450,7 +449,7 @@ export function GodRaysGenerator() {
               )}
             </div>
 
-            <Separator className="my-8!" />
+            <Separator />
 
             <div className="w-full flex flex-col gap-4">
               <Label>Rays colors</Label>
