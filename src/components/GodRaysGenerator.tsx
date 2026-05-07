@@ -8,6 +8,9 @@ import {
   Sparkles,
   Check,
   Copy,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import {
   drawGodRays,
@@ -32,6 +35,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ColorPicker } from "@/components/ColorPicker";
 import { ControlSection, Field } from "@/components/ControlSection";
 import { PRESETS } from "@/lib/presets";
+import { Separator } from "./ui/separator";
+import { Label } from "./ui/label";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -54,6 +59,9 @@ const BLEND_MODES: { label: string; value: BlendMode }[] = [
 ];
 
 const PREVIEW_MAX_DIMENSION = 1200;
+const MIN_ZOOM = 0.2;
+const MAX_ZOOM = 2.0;
+const ZOOM_STEP = 0.1;
 
 function scaleConfigForPreview(config: GodRaysConfig): GodRaysConfig {
   const maxDim = Math.max(config.width, config.height);
@@ -72,10 +80,31 @@ export function GodRaysGenerator() {
   const [config, setConfig] = React.useState<GodRaysConfig>(DEFAULT_CONFIG);
   const [copied, setCopied] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
+  const [zoom, setZoom] = React.useState(1);
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
   const rafRef = React.useRef<number | null>(null);
+
+  const clampZoom = (v: number) =>
+    Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v)) * 100) / 100;
+
+  const changeZoom = React.useCallback((delta: number) => {
+    setZoom((z) => clampZoom(z + delta));
+  }, []);
+
+  // Wheel zoom — must use non-passive listener to call preventDefault
+  React.useEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
+      setZoom((z) => clampZoom(z + delta));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   // ---- Render preview on config change ----
   React.useEffect(() => {
@@ -126,11 +155,7 @@ export function GodRaysGenerator() {
     const rect = canvas.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setConfig((c) => ({
-      ...c,
-      originX: Math.max(-20, Math.min(120, x)),
-      originY: Math.max(-20, Math.min(120, y)),
-    }));
+    setConfig((c) => ({ ...c, originX: x, originY: y }));
   };
 
   // ---- Exports ----
@@ -151,7 +176,10 @@ export function GodRaysGenerator() {
       const mime = type === "png" ? "image/png" : "image/jpeg";
       const blob = await exportImage(config, mime, 0.95);
       const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-      downloadBlob(blob, `god-rays_${config.width}x${config.height}_${stamp}.${type}`);
+      downloadBlob(
+        blob,
+        `god-rays_${config.width}x${config.height}_${stamp}.${type}`
+      );
     } finally {
       setExporting(null);
     }
@@ -202,7 +230,7 @@ export function GodRaysGenerator() {
   }, [containerSize, config.width, config.height]);
 
   return (
-    <div className="grid h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_440px]">
+    <div className="grid h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
       {/* ----------- LEFT: Preview ----------- */}
       <div className="flex h-full flex-col overflow-hidden border-b border-border bg-background lg:border-b-0 lg:border-r">
         <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
@@ -261,6 +289,8 @@ export function GodRaysGenerator() {
             style={{
               width: fittedSize.w ? `${fittedSize.w}px` : "0px",
               height: fittedSize.h ? `${fittedSize.h}px` : "0px",
+              transform: `scale(${zoom})`,
+              transformOrigin: "center center",
             }}
             onPointerDown={onPreviewPointerDown}
             onPointerMove={onPreviewPointerMove}
@@ -280,12 +310,47 @@ export function GodRaysGenerator() {
               }}
             />
           </div>
+
+          {/* Floating zoom controls */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
+            <button
+              onClick={() => changeZoom(-ZOOM_STEP)}
+              disabled={zoom <= MIN_ZOOM}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30"
+              title="Diminuir zoom"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setZoom(1)}
+              className="min-w-[52px] text-center text-xs font-medium tabular-nums text-foreground/80 transition-colors hover:text-foreground"
+              title="Resetar zoom"
+            >
+              {Math.round(zoom * 100)}%
+            </button>
+            <button
+              onClick={() => changeZoom(ZOOM_STEP)}
+              disabled={zoom >= MAX_ZOOM}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30"
+              title="Aumentar zoom"
+            >
+              <ZoomIn className="h-4 w-4" />
+            </button>
+            <div className="mx-1 h-4 w-px bg-border" />
+            <button
+              onClick={() => setZoom(1)}
+              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+              title="Zoom 100%"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-2 text-xs text-muted-foreground">
           <span>
             {config.width} × {config.height}px ·{" "}
-            {(config.width * config.height / 1_000_000).toFixed(2)} MP
+            {((config.width * config.height) / 1_000_000).toFixed(2)} MP
           </span>
           <span>Arraste no preview para mover a origem</span>
         </div>
@@ -293,14 +358,10 @@ export function GodRaysGenerator() {
 
       {/* ----------- RIGHT: Controls ----------- */}
       <aside className="flex h-full flex-col overflow-hidden bg-card">
-        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-          <Tabs defaultValue="presets" className="flex-1">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="presets">Presets</TabsTrigger>
-              <TabsTrigger value="actions">Ações</TabsTrigger>
-            </TabsList>
-            <TabsContent value="presets" className="mt-3">
-              <div className="grid grid-cols-2 gap-2">
+        <div className="flex-1 overflow-y-auto">
+          <ControlSection title="Presets" defaultOpen={true}>
+            <div className="mt-3">
+              <div className="grid grid-cols-4 gap-2">
                 {PRESETS.map((p) => (
                   <button
                     key={p.key}
@@ -315,78 +376,115 @@ export function GodRaysGenerator() {
                   </button>
                 ))}
               </div>
-            </TabsContent>
-            <TabsContent value="actions" className="mt-3 flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRandomize}
-                className="flex-1 gap-2"
-              >
-                <Shuffle className="h-4 w-4" /> Aleatório
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="flex-1 gap-2"
-              >
-                <RotateCcw className="h-4 w-4" /> Reset
-              </Button>
-            </TabsContent>
-          </Tabs>
-        </div>
+              <div className="mt-3 flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRandomize}
+                  className="flex-1 gap-2"
+                >
+                  <Shuffle className="h-4 w-4" /> Aleatório
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="flex-1 gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" /> Reset
+                </Button>
+              </div>
+            </div>
+          </ControlSection>
 
-        <div className="flex-1 overflow-y-auto">
-          {/* DIMENSÕES */}
-          <ControlSection title="Dimensões" description="Tamanho final da imagem">
-            <Field label="Preset">
-              <Select
-                onValueChange={(v) => {
-                  const p = DIMENSION_PRESETS[parseInt(v, 10)];
-                  if (p) setConfig((c) => ({ ...c, width: p.w, height: p.h }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha um preset…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DIMENSION_PRESETS.map((p, i) => (
-                    <SelectItem key={p.label} value={String(i)}>
-                      {p.label} — {p.w}×{p.h}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Largura" unit="px" value={config.width}>
-                <Input
-                  type="number"
-                  min={64}
-                  max={8000}
-                  value={config.width}
-                  onChange={(e) =>
-                    update("width", clampNum(e.target.value, 64, 8000))
-                  }
+          {/* CORES */}
+          <ControlSection title="Cores">
+            {/* BACKGROUND */}
+            <div className="w-full flex flex-col gap-4">
+              <Label>Background</Label>
+              <Field label="Tipo">
+                <Select
+                  value={config.bgType}
+                  onValueChange={(v) => update("bgType", v as BackgroundType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="transparent">Transparente</SelectItem>
+                    <SelectItem value="solid">Cor sólida</SelectItem>
+                    <SelectItem value="gradient">Gradiente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              {config.bgType !== "transparent" && (
+                <Field label="Cor">
+                  <ColorPicker
+                    value={config.bgColor}
+                    onChange={(v) => update("bgColor", v)}
+                  />
+                </Field>
+              )}
+              {config.bgType === "gradient" && (
+                <>
+                  <Field label="Cor 2">
+                    <ColorPicker
+                      value={config.bgColor2}
+                      onChange={(v) => update("bgColor2", v)}
+                    />
+                  </Field>
+                  <Field
+                    label="Ângulo do gradiente"
+                    value={config.bgGradientAngle.toFixed(0)}
+                    unit="°"
+                  >
+                    <Slider
+                      min={0}
+                      max={360}
+                      step={1}
+                      value={[config.bgGradientAngle]}
+                      onValueChange={([v]) => update("bgGradientAngle", v)}
+                    />
+                  </Field>
+                </>
+              )}
+            </div>
+
+            <Separator className="my-8!" />
+
+            <div className="w-full flex flex-col gap-4">
+              <Label>Rays colors</Label>
+
+              <Field label="Cor inicial (origem)">
+                <ColorPicker
+                  value={config.colorStart}
+                  onChange={(v) => update("colorStart", v)}
                 />
               </Field>
-              <Field label="Altura" unit="px" value={config.height}>
-                <Input
-                  type="number"
-                  min={64}
-                  max={8000}
-                  value={config.height}
-                  onChange={(e) =>
-                    update("height", clampNum(e.target.value, 64, 8000))
-                  }
+
+              <Field label="Cor final (ponta)">
+                <ColorPicker
+                  value={config.colorEnd}
+                  onChange={(v) => update("colorEnd", v)}
                 />
               </Field>
+
+              <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground/80">
+                <input
+                  type="checkbox"
+                  checked={config.fadeToTransparent}
+                  onChange={(e) =>
+                    update("fadeToTransparent", e.target.checked)
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+                Desvanecer para transparente na ponta
+              </label>
             </div>
           </ControlSection>
 
           {/* RAIOS */}
-          <ControlSection title="Raios" description="Quantidade, formato e blend">
+          <ControlSection title="Raios">
             <Field label="Quantidade" value={config.rayCount}>
               <Slider
                 min={1}
@@ -396,7 +494,11 @@ export function GodRaysGenerator() {
                 onValueChange={([v]) => update("rayCount", v)}
               />
             </Field>
-            <Field label="Largura base" unit="px" value={config.rayWidth.toFixed(0)}>
+            <Field
+              label="Largura base"
+              unit="px"
+              value={config.rayWidth.toFixed(0)}
+            >
               <Slider
                 min={1}
                 max={400}
@@ -431,7 +533,11 @@ export function GodRaysGenerator() {
                 onValueChange={([v]) => update("rayLength", v)}
               />
             </Field>
-            <Field label="Opacidade" value={(config.opacity * 100).toFixed(0)} unit="%">
+            <Field
+              label="Opacidade"
+              value={(config.opacity * 100).toFixed(0)}
+              unit="%"
+            >
               <Slider
                 min={0}
                 max={1}
@@ -460,7 +566,7 @@ export function GodRaysGenerator() {
           </ControlSection>
 
           {/* DIREÇÃO */}
-          <ControlSection title="Direção e origem" description="Para onde os raios apontam">
+          <ControlSection title="Direção e origem">
             <Field
               label="Direção"
               value={config.direction.toFixed(0)}
@@ -475,7 +581,11 @@ export function GodRaysGenerator() {
                 onValueChange={([v]) => update("direction", v)}
               />
             </Field>
-            <Field label="Abertura (spread)" value={config.spread.toFixed(0)} unit="°">
+            <Field
+              label="Abertura (spread)"
+              value={config.spread.toFixed(0)}
+              unit="°"
+            >
               <Slider
                 min={0}
                 max={360}
@@ -485,111 +595,30 @@ export function GodRaysGenerator() {
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Origem X" value={config.originX.toFixed(0)} unit="%">
-                <Slider
-                  min={-20}
-                  max={120}
-                  step={1}
-                  value={[config.originX]}
-                  onValueChange={([v]) => update("originX", v)}
+              <Field label="Origem X" unit="%">
+                <Input
+                  type="number"
+                  value={config.originX.toFixed(0)}
+                  onChange={(e) => update("originX", Number(e.target.value))}
                 />
               </Field>
-              <Field label="Origem Y" value={config.originY.toFixed(0)} unit="%">
-                <Slider
-                  min={-20}
-                  max={120}
-                  step={1}
-                  value={[config.originY]}
-                  onValueChange={([v]) => update("originY", v)}
+              <Field label="Origem Y" unit="%">
+                <Input
+                  type="number"
+                  value={config.originY.toFixed(0)}
+                  onChange={(e) => update("originY", Number(e.target.value))}
                 />
               </Field>
             </div>
           </ControlSection>
 
-          {/* CORES */}
-          <ControlSection title="Cores dos raios">
-            <Field label="Cor inicial (origem)">
-              <ColorPicker
-                value={config.colorStart}
-                onChange={(v) => update("colorStart", v)}
-              />
-            </Field>
-            <Field label="Cor final (ponta)">
-              <ColorPicker
-                value={config.colorEnd}
-                onChange={(v) => update("colorEnd", v)}
-              />
-            </Field>
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground/80">
-              <input
-                type="checkbox"
-                checked={config.fadeToTransparent}
-                onChange={(e) =>
-                  update("fadeToTransparent", e.target.checked)
-                }
-                className="h-4 w-4 accent-primary"
-              />
-              Desvanecer para transparente na ponta
-            </label>
-          </ControlSection>
-
-          {/* BACKGROUND */}
-          <ControlSection title="Background">
-            <Field label="Tipo">
-              <Select
-                value={config.bgType}
-                onValueChange={(v) => update("bgType", v as BackgroundType)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="transparent">Transparente</SelectItem>
-                  <SelectItem value="solid">Cor sólida</SelectItem>
-                  <SelectItem value="gradient">Gradiente</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            {config.bgType !== "transparent" && (
-              <Field label="Cor">
-                <ColorPicker
-                  value={config.bgColor}
-                  onChange={(v) => update("bgColor", v)}
-                />
-              </Field>
-            )}
-            {config.bgType === "gradient" && (
-              <>
-                <Field label="Cor 2">
-                  <ColorPicker
-                    value={config.bgColor2}
-                    onChange={(v) => update("bgColor2", v)}
-                  />
-                </Field>
-                <Field
-                  label="Ângulo do gradiente"
-                  value={config.bgGradientAngle.toFixed(0)}
-                  unit="°"
-                >
-                  <Slider
-                    min={0}
-                    max={360}
-                    step={1}
-                    value={[config.bgGradientAngle]}
-                    onValueChange={([v]) => update("bgGradientAngle", v)}
-                  />
-                </Field>
-              </>
-            )}
-          </ControlSection>
-
           {/* HALO */}
-          <ControlSection
-            title="Halo"
-            description="Brilho radial na origem"
-            defaultOpen={false}
-          >
-            <Field label="Intensidade" value={(config.halo * 100).toFixed(0)} unit="%">
+          <ControlSection title="Halo" defaultOpen={false}>
+            <Field
+              label="Intensidade"
+              value={(config.halo * 100).toFixed(0)}
+              unit="%"
+            >
               <Slider
                 min={0}
                 max={1}
@@ -598,48 +627,17 @@ export function GodRaysGenerator() {
                 onValueChange={([v]) => update("halo", v)}
               />
             </Field>
-            <Field label="Tamanho" value={(config.haloSize * 100).toFixed(0)} unit="%">
+            <Field
+              label="Tamanho"
+              value={(config.haloSize * 100).toFixed(0)}
+              unit="%"
+            >
               <Slider
                 min={0.05}
                 max={1.5}
                 step={0.01}
                 value={[config.haloSize]}
                 onValueChange={([v]) => update("haloSize", v)}
-              />
-            </Field>
-          </ControlSection>
-
-          {/* EFEITOS */}
-          <ControlSection title="Efeitos" description="Blur, ruído e grão">
-            <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
-              <Slider
-                min={0}
-                max={80}
-                step={0.5}
-                value={[config.blur]}
-                onValueChange={([v]) => update("blur", v)}
-              />
-            </Field>
-            <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={[config.noise]}
-                onValueChange={([v]) => update("noise", v)}
-              />
-            </Field>
-            <Field
-              label="Tamanho do grão"
-              value={config.grainSize.toFixed(0)}
-              unit="px"
-            >
-              <Slider
-                min={1}
-                max={6}
-                step={1}
-                value={[config.grainSize]}
-                onValueChange={([v]) => update("grainSize", v)}
               />
             </Field>
           </ControlSection>
@@ -678,6 +676,93 @@ export function GodRaysGenerator() {
               >
                 <Shuffle className="h-4 w-4" />
               </Button>
+            </div>
+          </ControlSection>
+
+          {/* EFEITOS */}
+          <ControlSection title="Efeitos">
+            <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
+              <Slider
+                min={0}
+                max={80}
+                step={0.5}
+                value={[config.blur]}
+                onValueChange={([v]) => update("blur", v)}
+              />
+            </Field>
+            <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
+              <Slider
+                min={0}
+                max={100}
+                step={1}
+                value={[config.noise]}
+                onValueChange={([v]) => update("noise", v)}
+              />
+            </Field>
+            <Field
+              label="Tamanho do grão"
+              value={config.grainSize.toFixed(0)}
+              unit="px"
+            >
+              <Slider
+                min={1}
+                max={6}
+                step={1}
+                value={[config.grainSize]}
+                onValueChange={([v]) => update("grainSize", v)}
+              />
+            </Field>
+          </ControlSection>
+
+          {/* DIMENSÕES */}
+          <ControlSection title="Dimensões">
+            <Field label="Preset">
+              <Select
+                defaultValue={String(
+                  DIMENSION_PRESETS.findIndex(
+                    (p) => p.w === 1920 && p.h === 1080
+                  )
+                )}
+                onValueChange={(v) => {
+                  const p = DIMENSION_PRESETS[parseInt(v, 10)];
+                  if (p) setConfig((c) => ({ ...c, width: p.w, height: p.h }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {DIMENSION_PRESETS.map((p, i) => (
+                    <SelectItem key={p.label} value={String(i)}>
+                      {p.label} — {p.w}×{p.h}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Largura" unit="px" value={config.width}>
+                <Input
+                  type="number"
+                  min={64}
+                  max={8000}
+                  value={config.width}
+                  onChange={(e) =>
+                    update("width", clampNum(e.target.value, 64, 8000))
+                  }
+                />
+              </Field>
+              <Field label="Altura" unit="px" value={config.height}>
+                <Input
+                  type="number"
+                  min={64}
+                  max={8000}
+                  value={config.height}
+                  onChange={(e) =>
+                    update("height", clampNum(e.target.value, 64, 8000))
+                  }
+                />
+              </Field>
             </div>
           </ControlSection>
 

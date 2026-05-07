@@ -21,7 +21,7 @@ export function ControlSection({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/40"
+        className={cn("flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/40", open && "bg-accent/40")}
       >
         <div>
           <div className="text-sm font-semibold tracking-tight">{title}</div>
@@ -36,7 +36,7 @@ export function ControlSection({
           )}
         />
       </button>
-      {open && <div className="space-y-4 px-4 pb-4">{children}</div>}
+      {open && <div className={cn("space-y-4 px-4 py-4", open && "bg-accent/20")}>{children}</div>}
     </div>
   );
 }
