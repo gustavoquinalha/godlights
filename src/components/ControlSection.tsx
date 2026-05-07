@@ -11,32 +11,29 @@ interface ControlSectionProps {
 
 export function ControlSection({
   title,
-  description,
   defaultOpen = true,
   children,
 }: ControlSectionProps) {
   const [open, setOpen] = React.useState(defaultOpen);
   return (
-    <div className="border-b border-border/60 last:border-0">
+    <div className="px-3 py-1">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={cn("flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-accent/40", open && "bg-accent/40")}
+        className="group flex w-full items-center gap-2 py-2.5"
       >
-        <div>
-          <div className="text-sm font-semibold tracking-tight">{title}</div>
-          {description && (
-            <div className="text-xs text-muted-foreground">{description}</div>
-          )}
-        </div>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform",
-            open && "rotate-180"
-          )}
-        />
+        <div className="h-px flex-1 bg-border" />
+        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-foreground">
+          {title}
+          <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+        </span>
+        <div className="h-px flex-1 bg-border" />
       </button>
-      {open && <div className={cn("space-y-4 px-4 py-4", open && "bg-accent/20")}>{children}</div>}
+      {open && (
+        <div className="mb-3 space-y-5 rounded-xl border border-border/60 bg-white p-4 shadow-sm dark:bg-white/[0.04]">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -53,21 +50,16 @@ export function Field({ label, hint, value, unit, children }: FieldProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
-        <label className="text-xs font-medium text-foreground/80">
-          {label}
-        </label>
+        <label className="text-sm font-medium text-foreground/90">{label}</label>
         {value !== undefined && (
           <span className="font-mono text-xs text-muted-foreground">
-            {value}
-            {unit ?? ""}
+            {value}{unit ?? ""}
           </span>
         )}
       </div>
       {children}
       {hint && (
-        <div className="text-[11px] leading-snug text-muted-foreground">
-          {hint}
-        </div>
+        <p className="text-[11px] leading-snug text-muted-foreground">{hint}</p>
       )}
     </div>
   );

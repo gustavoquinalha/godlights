@@ -16,16 +16,12 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
         <button
           type="button"
           className={cn(
-            "flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-2 text-sm shadow-sm transition-colors hover:bg-accent",
+            "h-10 w-10 rounded-full border-2 border-border shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             className
           )}
-        >
-          <span
-            className="h-5 w-5 shrink-0 rounded border border-border"
-            style={{ background: value }}
-          />
-          <span className="font-mono uppercase tracking-wider">{value}</span>
-        </button>
+          style={{ background: value }}
+          title={value}
+        />
       </PopoverTrigger>
       <PopoverContent className="w-[232px] p-3" align="start">
         <HexColorPicker color={value} onChange={onChange} />

@@ -25,6 +25,7 @@ export interface GodRaysConfig {
   rayLength: number; // 0..2 multiplier on canvas diagonal
   opacity: number; // 0..1
   blendMode: BlendMode;
+  haloBlendMode: BlendMode;
 
   // Direction
   direction: number; // degrees, compass style: 0 = up, 90 = right, 180 = down, 270 = left
@@ -33,6 +34,10 @@ export interface GodRaysConfig {
   // Origin (in % of canvas)
   originX: number; // 0..100
   originY: number; // 0..100
+
+  // Halo origin (independent, in % of canvas)
+  haloOriginX: number;
+  haloOriginY: number;
 
   // Colors
   colorStart: string; // hex, color at origin
@@ -48,6 +53,7 @@ export interface GodRaysConfig {
   // Halo (soft glow at origin)
   halo: number; // 0..1 intensity
   haloSize: number; // 0..1 fraction of canvas diagonal
+  haloColor: string; // hex
 
   // Effects
   blur: number; // px gaussian blur applied to rays
@@ -69,12 +75,16 @@ export const DEFAULT_CONFIG: GodRaysConfig = {
   rayLength: 1.4,
   opacity: 0.6,
   blendMode: "lighter",
+  haloBlendMode: "lighter",
 
   direction: 200,
   spread: 60,
 
   originX: 50,
   originY: 0,
+
+  haloOriginX: 50,
+  haloOriginY: 0,
 
   colorStart: "#ffd28a",
   colorEnd: "#ffd28a",
@@ -87,6 +97,7 @@ export const DEFAULT_CONFIG: GodRaysConfig = {
 
   halo: 0.5,
   haloSize: 0.25,
+  haloColor: "#ffd28a",
 
   blur: 8,
   noise: 8,
@@ -174,19 +185,21 @@ export function drawGodRays(
   const baseAngle = compassToCanvas(config.direction);
   const spread = (config.spread * Math.PI) / 180;
 
-  // 3. Halo (radial glow at origin) drawn before rays
+  // 3. Halo (radial glow at its own origin) drawn before rays
   if (config.halo > 0) {
     ctx.save();
-    ctx.globalCompositeOperation = config.blendMode;
+    ctx.globalCompositeOperation = config.haloBlendMode;
+    const hox = (config.haloOriginX / 100) * width;
+    const hoy = (config.haloOriginY / 100) * height;
     const haloR = Math.hypot(width, height) * config.haloSize;
-    const haloG = ctx.createRadialGradient(ox, oy, 0, ox, oy, haloR);
-    const c = hexToRgb(config.colorStart);
+    const haloG = ctx.createRadialGradient(hox, hoy, 0, hox, hoy, haloR);
+    const c = hexToRgb(config.haloColor);
     haloG.addColorStop(0, rgba(c, config.halo));
     haloG.addColorStop(0.5, rgba(c, config.halo * 0.4));
     haloG.addColorStop(1, rgba(c, 0));
     ctx.fillStyle = haloG;
     ctx.beginPath();
-    ctx.arc(ox, oy, haloR, 0, Math.PI * 2);
+    ctx.arc(hox, hoy, haloR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }

@@ -11,6 +11,10 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  Move,
+  Sun,
+  Moon,
+  ChevronRight,
 } from "lucide-react";
 import {
   drawGodRays,
@@ -34,9 +38,9 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ColorPicker } from "@/components/ColorPicker";
 import { ControlSection, Field } from "@/components/ControlSection";
-import { PRESETS } from "@/lib/presets";
-import { Separator } from "./ui/separator";
-import { Label } from "./ui/label";
+import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -76,11 +80,28 @@ function scaleConfigForPreview(config: GodRaysConfig): GodRaysConfig {
   };
 }
 
+function useTheme() {
+  const [dark, setDark] = React.useState(() =>
+    document.documentElement.classList.contains("dark")
+  );
+  const toggle = React.useCallback(() => {
+    setDark((d) => {
+      document.documentElement.classList.toggle("dark", !d);
+      return !d;
+    });
+  }, []);
+  return { dark, toggle };
+}
+
+type LayerView = "layers" | "rays" | "halo" | "background";
+
 export function GodRaysGenerator() {
+  const { dark, toggle: toggleTheme } = useTheme();
   const [config, setConfig] = React.useState<GodRaysConfig>(DEFAULT_CONFIG);
   const [copied, setCopied] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
+  const [layerView, setLayerView] = React.useState<LayerView>("layers");
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
@@ -130,33 +151,52 @@ export function GodRaysGenerator() {
     []
   );
 
-  // ---- Drag origin point ----
-  const draggingRef = React.useRef(false);
-  const onPreviewPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    draggingRef.current = true;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    handleOriginUpdate(e);
-  };
-  const onPreviewPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!draggingRef.current) return;
-    handleOriginUpdate(e);
-  };
-  const onPreviewPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    draggingRef.current = false;
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
-  const handleOriginUpdate = (e: React.PointerEvent<HTMLDivElement>) => {
-    const wrapper = previewWrapperRef.current;
+  // ---- Drag handles (rays / halo independent) ----
+  type DragHandle = "rays" | "halo";
+  const [draggingHandle, setDraggingHandle] = React.useState<DragHandle | null>(null);
+  const dragStartRef = React.useRef<{
+    pctX: number; pctY: number; originX: number; originY: number;
+  } | null>(null);
+
+  const canvasPct = (e: React.PointerEvent) => {
     const canvas = previewCanvasRef.current;
-    if (!wrapper || !canvas) return;
+    if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setConfig((c) => ({ ...c, originX: x, originY: y }));
+    return {
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    };
+  };
+
+  const onOverlayPointerDown = (handle: DragHandle) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    setDraggingHandle(handle);
+    setLayerView(handle);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const pos = canvasPct(e);
+    if (!pos) return;
+    dragStartRef.current = {
+      pctX: pos.x,
+      pctY: pos.y,
+      originX: handle === "rays" ? config.originX : config.haloOriginX,
+      originY: handle === "rays" ? config.originY : config.haloOriginY,
+    };
+  };
+
+  const onOverlayPointerMove = (handle: DragHandle) => (e: React.PointerEvent) => {
+    if (!dragStartRef.current) return;
+    const pos = canvasPct(e);
+    if (!pos) return;
+    const newX = dragStartRef.current.originX + (pos.x - dragStartRef.current.pctX);
+    const newY = dragStartRef.current.originY + (pos.y - dragStartRef.current.pctY);
+    if (handle === "rays") setConfig((c) => ({ ...c, originX: newX, originY: newY }));
+    else setConfig((c) => ({ ...c, haloOriginX: newX, haloOriginY: newY }));
+  };
+
+  const onOverlayPointerUp = (_handle: DragHandle) => (e: React.PointerEvent) => {
+    setDraggingHandle(null);
+    dragStartRef.current = null;
+    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
   };
 
   // ---- Exports ----
@@ -193,13 +233,37 @@ export function GodRaysGenerator() {
     window.setTimeout(() => setCopied(false), 1800);
   };
 
+  const handleCopyPresetJson = async () => {
+    const COLOR_KEYS: (keyof GodRaysConfig)[] = [
+      "colorStart", "colorEnd", "fadeToTransparent",
+      "haloColor",
+      "bgType", "bgColor", "bgColor2", "bgGradientAngle",
+    ];
+    const RAYS_KEYS: (keyof GodRaysConfig)[] = [
+      "rayCount", "rayWidth", "divergence", "rayLength", "opacity",
+      "blendMode", "direction", "spread", "originX", "originY",
+      "haloBlendMode", "halo", "haloSize", "haloOriginX", "haloOriginY",
+      "blur", "noise", "grainSize", "randomness", "seed",
+    ];
+    const pick = (keys: (keyof GodRaysConfig)[]) =>
+      Object.fromEntries(keys.map((k) => [k, config[k]]));
+    await navigator.clipboard.writeText(JSON.stringify({ color: pick(COLOR_KEYS), rays: pick(RAYS_KEYS) }, null, 2));
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
   const handleRandomize = () => {
     setConfig((c) => ({ ...c, seed: Math.floor(Math.random() * 1_000_000) }));
   };
   const handleReset = () => setConfig(DEFAULT_CONFIG);
   const applyPreset = (key: string) => {
     const preset = PRESETS.find((p) => p.key === key);
-    if (preset) setConfig({ ...DEFAULT_CONFIG, ...preset.config });
+    if (!preset) return;
+    if (preset.category === "color") {
+      setConfig((c) => ({ ...c, ...preset.config }));
+    } else {
+      setConfig((c) => ({ ...DEFAULT_CONFIG, ...preset.config, colorStart: c.colorStart, colorEnd: c.colorEnd, haloColor: c.haloColor, bgType: c.bgType, bgColor: c.bgColor, bgColor2: c.bgColor2, bgGradientAngle: c.bgGradientAngle }));
+    }
   };
 
   // Compute responsive preview size (largest box of given AR fitting available area)
@@ -230,33 +294,185 @@ export function GodRaysGenerator() {
     return { w, h };
   }, [containerSize, config.width, config.height]);
 
+  // Bounding box of the rays cone in display pixels
+  const raysBBox = React.useMemo(() => {
+    const { w, h } = fittedSize;
+    if (!w || !h) return null;
+    const ox = (config.originX / 100) * w;
+    const oy = (config.originY / 100) * h;
+    const baseAngle = ((config.direction - 90) * Math.PI) / 180;
+    const spreadRad = (config.spread * Math.PI) / 180;
+    const maxLen = Math.hypot(w, h) * config.rayLength;
+    const pts: [number, number][] = [[ox, oy]];
+    const steps = 64;
+    for (let i = 0; i <= steps; i++) {
+      const angle = baseAngle - spreadRad / 2 + spreadRad * (i / steps);
+      pts.push([ox + Math.cos(angle) * maxLen, oy + Math.sin(angle) * maxLen]);
+    }
+    const xs = pts.map((p) => p[0]);
+    const ys = pts.map((p) => p[1]);
+    const x = Math.min(...xs);
+    const y = Math.min(...ys);
+    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
+  }, [fittedSize, config.originX, config.originY, config.direction, config.spread, config.rayLength]);
+
+  // Bounding circle of the halo in display pixels
+  const haloBCircle = React.useMemo(() => {
+    const { w, h } = fittedSize;
+    if (!w || !h) return null;
+    const r = Math.hypot(w, h) * config.haloSize;
+    return {
+      cx: (config.haloOriginX / 100) * w,
+      cy: (config.haloOriginY / 100) * h,
+      r,
+    };
+  }, [fittedSize, config.haloOriginX, config.haloOriginY, config.haloSize]);
+
+  // Hit-test click on canvas — Figma-style layer selection
+  const onCanvasClick = React.useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    const canvas = previewCanvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * fittedSize.w;
+    const py = ((e.clientY - rect.top) / rect.height) * fittedSize.h;
+
+    // Rays (rendered on top — check first)
+    if (raysBBox && px >= raysBBox.x && px <= raysBBox.x + raysBBox.w && py >= raysBBox.y && py <= raysBBox.y + raysBBox.h) {
+      setLayerView("rays");
+      return;
+    }
+    // Halo
+    if (haloBCircle && Math.hypot(px - haloBCircle.cx, py - haloBCircle.cy) <= haloBCircle.r) {
+      setLayerView("halo");
+      return;
+    }
+    setLayerView("layers");
+  }, [fittedSize, raysBBox, haloBCircle]);
+
   return (
-    <div className="grid h-screen grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] xl:grid-cols-[minmax(0,1fr)_340px]">
-      {/* ----------- LEFT: Preview ----------- */}
-      <div className="flex h-full flex-col overflow-hidden border-b border-border bg-background lg:border-b-0 lg:border-r">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3">
+    <div className="grid h-screen grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] xl:grid-cols-[300px_minmax(0,1fr)_300px]">
+      {/* ----------- LEFT SIDEBAR ----------- */}
+      <aside className="flex h-full flex-col overflow-hidden border-r border-border bg-card">
+        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-300" />
-            <span className="text-sm font-semibold tracking-tight">
-              Rays Generator
-            </span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              · god rays / light rays
-            </span>
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            <span className="text-sm font-semibold tracking-tight">Rays Generator</span>
           </div>
+          <button
+            onClick={toggleTheme}
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            title={dark ? "Modo claro" : "Modo escuro"}
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <ControlSection title="Presets" defaultOpen={true}>
+            <div className="space-y-3">
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Cores</p>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {COLOR_PRESETS.map((p) => (
+                    <Tooltip key={p.key}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => applyPreset(p.key)}
+                          className="aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md"
+                          style={{ background: p.thumb }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{p.label}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rays / Halo</p>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {RAYS_PRESETS.map((p) => (
+                    <Tooltip key={p.key}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => applyPreset(p.key)}
+                          className="aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md"
+                          style={{ background: p.thumb }}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{p.label}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleRandomize} className="flex-1 gap-2">
+                <Shuffle className="h-4 w-4" /> Aleatório
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleReset} className="flex-1 gap-2">
+                <RotateCcw className="h-4 w-4" /> Reset
+              </Button>
+            </div>
+          </ControlSection>
+
+          <ControlSection title="Efeitos">
+            <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
+              <Slider min={0} max={80} step={0.5} value={[config.blur]} onValueChange={([v]) => update("blur", v)} />
+            </Field>
+            <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
+              <Slider min={0} max={100} step={1} value={[config.noise]} onValueChange={([v]) => update("noise", v)} />
+            </Field>
+            <Field label="Tamanho do grão" value={config.grainSize.toFixed(0)} unit="px">
+              <Slider min={1} max={6} step={1} value={[config.grainSize]} onValueChange={([v]) => update("grainSize", v)} />
+            </Field>
+          </ControlSection>
+
+          <ControlSection title="Dimensões">
+            <Field label="Preset">
+              <Select
+                defaultValue={String(DIMENSION_PRESETS.findIndex((p) => p.w === 1920 && p.h === 1080))}
+                onValueChange={(v) => {
+                  const p = DIMENSION_PRESETS[parseInt(v, 10)];
+                  if (p) setConfig((c) => ({ ...c, width: p.w, height: p.h }));
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DIMENSION_PRESETS.map((p, i) => (
+                    <SelectItem key={p.label} value={String(i)}>{p.label} — {p.w}×{p.h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Largura" unit="px" value={config.width}>
+                <Input type="number" min={64} max={8000} value={config.width} onChange={(e) => update("width", clampNum(e.target.value, 64, 8000))} />
+              </Field>
+              <Field label="Altura" unit="px" value={config.height}>
+                <Input type="number" min={64} max={8000} value={config.height} onChange={(e) => update("height", clampNum(e.target.value, 64, 8000))} />
+              </Field>
+            </div>
+          </ControlSection>
+
+        </div>
+      </aside>
+
+      {/* ----------- CENTER: Preview ----------- */}
+      <div className="flex h-full flex-col overflow-hidden bg-background">
+        <div className="flex items-center justify-end gap-3 border-b border-border px-5 py-3">
           <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" variant="outline" onClick={handleCopyPresetJson} className="gap-2">
+              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+              {copied ? "Copiado" : "Copiar JSON"}
+            </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={handleCopyCss}
               className="gap-2"
             >
-              {copied ? (
-                <Check className="h-4 w-4 text-emerald-400" />
-              ) : (
-                <Code2 className="h-4 w-4" />
-              )}
-              {copied ? "Copiado" : "Copiar CSS"}
+              <Code2 className="h-4 w-4" />
+              Copiar CSS
             </Button>
             <Button
               size="sm"
@@ -283,37 +499,103 @@ export function GodRaysGenerator() {
         <div
           ref={previewContainerRef}
           className="relative flex flex-1 items-center justify-center overflow-hidden bg-checker"
+          onClick={() => setLayerView("layers")}
         >
           <div
             ref={previewWrapperRef}
             className="relative select-none"
+            onClick={onCanvasClick}
             style={{
               width: fittedSize.w ? `${fittedSize.w}px` : "0px",
               height: fittedSize.h ? `${fittedSize.h}px` : "0px",
               transform: `scale(${zoom})`,
               transformOrigin: "center center",
             }}
-            onPointerDown={onPreviewPointerDown}
-            onPointerMove={onPreviewPointerMove}
-            onPointerUp={onPreviewPointerUp}
-            onPointerCancel={onPreviewPointerUp}
           >
             <canvas
               ref={previewCanvasRef}
               className="block h-full w-full rounded-md shadow-2xl ring-1 ring-border"
             />
-            {/* Origin marker */}
-            <div
-              className="pointer-events-none absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-lg ring-2 ring-black/40 mix-blend-difference"
-              style={{
-                left: `${config.originX}%`,
-                top: `${config.originY}%`,
-              }}
-            />
+
+            {/* Rays bounding box — fits the actual cone */}
+            {layerView === "rays" && raysBBox && (
+              <div
+                className={cn(
+                  "absolute",
+                  draggingHandle === "rays" ? "cursor-grabbing" : "cursor-grab"
+                )}
+                style={{ left: raysBBox.x, top: raysBBox.y, width: raysBBox.w, height: raysBBox.h }}
+                onPointerDown={onOverlayPointerDown("rays")}
+                onPointerMove={onOverlayPointerMove("rays")}
+                onPointerUp={onOverlayPointerUp("rays")}
+                onPointerCancel={onOverlayPointerUp("rays")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
+                <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  Rays
+                </span>
+                <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
+                <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
+                {/* Origin crosshair — visual only */}
+                <div
+                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: (config.originX / 100) * fittedSize.w - raysBBox.x,
+                    top: (config.originY / 100) * fittedSize.h - raysBBox.y,
+                  }}
+                >
+                  <div className="relative h-6 w-6">
+                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-blue-400" />
+                    <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-blue-400" />
+                    <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-400 bg-blue-950/80" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Halo bounding circle — fits the actual glow radius */}
+            {layerView === "halo" && haloBCircle && (
+              <div
+                className={cn(
+                  "absolute",
+                  draggingHandle === "halo" ? "cursor-grabbing" : "cursor-grab"
+                )}
+                style={{
+                  left: haloBCircle.cx - haloBCircle.r,
+                  top: haloBCircle.cy - haloBCircle.r,
+                  width: haloBCircle.r * 2,
+                  height: haloBCircle.r * 2,
+                }}
+                onPointerDown={onOverlayPointerDown("halo")}
+                onPointerMove={onOverlayPointerMove("halo")}
+                onPointerUp={onOverlayPointerUp("halo")}
+                onPointerCancel={onOverlayPointerUp("halo")}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
+                <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                  Halo
+                </span>
+                {/* Origin crosshair — visual only */}
+                <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                  <div className="relative h-6 w-6">
+                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-amber-400" />
+                    <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-amber-400" />
+                    <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 bg-amber-950/80" />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Floating zoom controls */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => changeZoom(-ZOOM_STEP)}
               disabled={zoom <= MIN_ZOOM}
@@ -357,58 +639,231 @@ export function GodRaysGenerator() {
         </div>
       </div>
 
-      {/* ----------- RIGHT: Controls ----------- */}
-      <aside className="flex h-full flex-col overflow-hidden bg-card">
-        <div className="flex-1 overflow-y-auto">
-          <ControlSection title="Presets" defaultOpen={true}>
-            <div className="grid grid-cols-4 gap-2">
-              {PRESETS.map((p) => (
-                <button
-                  key={p.key}
-                  onClick={() => applyPreset(p.key)}
-                  className="group relative h-16 overflow-hidden rounded-md border border-border text-left transition-shadow hover:shadow-lg"
-                  style={{ background: p.thumb }}
-                  title={p.label}
-                >
-                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-[10px] font-medium tracking-tight text-white">
-                    {p.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRandomize}
-                className="flex-1 gap-2"
-              >
-                <Shuffle className="h-4 w-4" /> Aleatório
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="flex-1 gap-2"
-              >
-                <RotateCcw className="h-4 w-4" /> Reset
-              </Button>
-            </div>
-          </ControlSection>
+      {/* ----------- RIGHT SIDEBAR: Layers ----------- */}
+      <aside className="flex h-full flex-col overflow-hidden border-l border-border bg-card">
 
-          {/* CORES */}
-          <ControlSection title="Cores">
-            {/* BACKGROUND */}
-            <div className="w-full flex flex-col gap-4">
-              <Label>Background</Label>
+        {/* Header */}
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          {layerView !== "layers" && (
+            <button
+              onClick={() => setLayerView("layers")}
+              className="mr-1 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <RotateCcw className="h-3 w-3 rotate-90" />
+              Camadas
+            </button>
+          )}
+          <span className="text-sm font-semibold tracking-tight">
+            {layerView === "layers" && "Camadas"}
+            {layerView === "rays" && "Rays"}
+            {layerView === "halo" && "Halo"}
+            {layerView === "background" && "Background"}
+          </span>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+
+          {/* LAYERS LIST */}
+          {layerView === "layers" && (
+            <div className="p-3 space-y-2">
+              {/* Rays layer */}
+              <button
+                onClick={() => setLayerView("rays")}
+                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:border-blue-400/40 hover:shadow-md dark:bg-white/[0.04]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
+                  <Move className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">Rays</div>
+                  <div className="text-xs text-muted-foreground">
+                    {config.rayCount} raios · {Math.round(config.opacity * 100)}% opac.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-6 w-10 rounded-md border border-border/40"
+                    style={{ background: `linear-gradient(to right, ${config.colorStart}, ${config.fadeToTransparent ? "transparent" : config.colorEnd})` }}
+                  />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </button>
+
+              {/* Halo layer */}
+              <button
+                onClick={() => setLayerView("halo")}
+                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:border-amber-400/40 hover:shadow-md dark:bg-white/[0.04]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
+                  <Move className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">Halo</div>
+                  <div className="text-xs text-muted-foreground">
+                    {Math.round(config.halo * 100)}% intensidade
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    className="h-6 w-6 rounded-full border border-border/40"
+                    style={{ background: config.haloColor }}
+                  />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </button>
+
+              {/* Background layer */}
+              <button
+                onClick={() => setLayerView("background")}
+                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:shadow-md dark:bg-white/[0.04]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                  <ImageIcon className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold">Background</div>
+                  <div className="text-xs text-muted-foreground capitalize">{config.bgType}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {config.bgType === "gradient" ? (
+                    <div
+                      className="h-6 w-10 rounded-md border border-border/40"
+                      style={{ background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})` }}
+                    />
+                  ) : config.bgType === "solid" ? (
+                    <div className="h-6 w-6 rounded-full border border-border/40" style={{ background: config.bgColor }} />
+                  ) : (
+                    <div className="h-6 w-6 rounded-full border border-border/40 bg-checker" />
+                  )}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* RAYS PROPERTIES */}
+          {layerView === "rays" && (
+            <>
+              <ControlSection title="Cores">
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-center gap-1.5">
+                    <ColorPicker value={config.colorStart} onChange={(v) => update("colorStart", v)} />
+                    <span className="text-[11px] text-muted-foreground">Início</span>
+                  </div>
+                  <div
+                    className="h-9 flex-1 rounded-lg border border-border/40"
+                    style={{ background: `linear-gradient(to right, ${config.colorStart}, ${config.fadeToTransparent ? "transparent" : config.colorEnd})` }}
+                  />
+                  <div className="flex flex-col items-center gap-1.5">
+                    <ColorPicker value={config.colorEnd} onChange={(v) => update("colorEnd", v)} />
+                    <span className="text-[11px] text-muted-foreground">Fim</span>
+                  </div>
+                </div>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
+                  <input type="checkbox" checked={config.fadeToTransparent} onChange={(e) => update("fadeToTransparent", e.target.checked)} className="h-4 w-4 accent-primary" />
+                  Desvanecer para transparente
+                </label>
+              </ControlSection>
+
+              <ControlSection title="Forma">
+                <Field label="Quantidade" value={config.rayCount}>
+                  <Slider min={1} max={200} step={1} value={[config.rayCount]} onValueChange={([v]) => update("rayCount", v)} />
+                </Field>
+                <Field label="Largura base" unit="px" value={config.rayWidth.toFixed(0)}>
+                  <Slider min={1} max={400} step={1} value={[config.rayWidth]} onValueChange={([v]) => update("rayWidth", v)} />
+                </Field>
+                <Field label="Divergência" value={config.divergence.toFixed(2)} hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham">
+                  <Slider min={0.1} max={5} step={0.05} value={[config.divergence]} onValueChange={([v]) => update("divergence", v)} />
+                </Field>
+                <Field label="Comprimento" value={config.rayLength.toFixed(2)} unit="× diag">
+                  <Slider min={0.2} max={2.5} step={0.05} value={[config.rayLength]} onValueChange={([v]) => update("rayLength", v)} />
+                </Field>
+                <Field label="Opacidade" value={(config.opacity * 100).toFixed(0)} unit="%">
+                  <Slider min={0} max={1} step={0.01} value={[config.opacity]} onValueChange={([v]) => update("opacity", v)} />
+                </Field>
+                <Field label="Blend mode">
+                  <Select value={config.blendMode} onValueChange={(v) => update("blendMode", v as BlendMode)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {BLEND_MODES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </ControlSection>
+
+              <ControlSection title="Direção e origem">
+                <Field label="Direção" value={config.direction.toFixed(0)} unit="°" hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda">
+                  <Slider min={0} max={360} step={1} value={[config.direction]} onValueChange={([v]) => update("direction", v)} />
+                </Field>
+                <Field label="Abertura (spread)" value={config.spread.toFixed(0)} unit="°">
+                  <Slider min={0} max={360} step={1} value={[config.spread]} onValueChange={([v]) => update("spread", v)} />
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Origem X" unit="%">
+                    <Input type="number" value={config.originX.toFixed(0)} onChange={(e) => update("originX", Number(e.target.value))} />
+                  </Field>
+                  <Field label="Origem Y" unit="%">
+                    <Input type="number" value={config.originY.toFixed(0)} onChange={(e) => update("originY", Number(e.target.value))} />
+                  </Field>
+                </div>
+              </ControlSection>
+
+              <ControlSection title="Aleatoriedade" defaultOpen={true}>
+                <Field label="Variação" value={config.randomness.toFixed(0)} unit="%" hint="Jitter na largura, comprimento e ângulo de cada raio">
+                  <Slider min={0} max={100} step={1} value={[config.randomness]} onValueChange={([v]) => update("randomness", v)} />
+                </Field>
+                <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                  <Field label="Seed" value={config.seed}>
+                    <Input type="number" value={config.seed} onChange={(e) => update("seed", clampNum(e.target.value, 0, 1_000_000))} />
+                  </Field>
+                  <Button variant="outline" size="icon" onClick={handleRandomize} title="Sortear nova seed">
+                    <Shuffle className="h-4 w-4" />
+                  </Button>
+                </div>
+              </ControlSection>
+            </>
+          )}
+
+          {/* HALO PROPERTIES */}
+          {layerView === "halo" && (
+            <ControlSection title="Halo">
+              <Field label="Cor">
+                <div className="flex items-center gap-3">
+                  <ColorPicker value={config.haloColor} onChange={(v) => update("haloColor", v)} />
+                  <span className="font-mono text-xs text-muted-foreground">{config.haloColor}</span>
+                </div>
+              </Field>
+              <Field label="Intensidade" value={(config.halo * 100).toFixed(0)} unit="%">
+                <Slider min={0} max={1} step={0.01} value={[config.halo]} onValueChange={([v]) => update("halo", v)} />
+              </Field>
+              <Field label="Tamanho" value={(config.haloSize * 100).toFixed(0)} unit="%">
+                <Slider min={0.05} max={1.5} step={0.01} value={[config.haloSize]} onValueChange={([v]) => update("haloSize", v)} />
+              </Field>
+              <Field label="Blend mode">
+                <Select value={config.haloBlendMode} onValueChange={(v) => update("haloBlendMode", v as BlendMode)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BLEND_MODES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Origem X" unit="%">
+                  <Input type="number" value={config.haloOriginX.toFixed(0)} onChange={(e) => update("haloOriginX", Number(e.target.value))} />
+                </Field>
+                <Field label="Origem Y" unit="%">
+                  <Input type="number" value={config.haloOriginY.toFixed(0)} onChange={(e) => update("haloOriginY", Number(e.target.value))} />
+                </Field>
+              </div>
+            </ControlSection>
+          )}
+
+          {/* BACKGROUND PROPERTIES */}
+          {layerView === "background" && (
+            <ControlSection title="Background">
               <Field label="Tipo">
-                <Select
-                  value={config.bgType}
-                  onValueChange={(v) => update("bgType", v as BackgroundType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                <Select value={config.bgType} onValueChange={(v) => update("bgType", v as BackgroundType)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="transparent">Transparente</SelectItem>
                     <SelectItem value="solid">Cor sólida</SelectItem>
@@ -416,373 +871,33 @@ export function GodRaysGenerator() {
                   </SelectContent>
                 </Select>
               </Field>
-              {config.bgType !== "transparent" && (
-                <Field label="Cor">
-                  <ColorPicker
-                    value={config.bgColor}
-                    onChange={(v) => update("bgColor", v)}
-                  />
-                </Field>
+              {config.bgType === "solid" && (
+                <div className="flex items-center gap-3">
+                  <ColorPicker value={config.bgColor} onChange={(v) => update("bgColor", v)} />
+                  <span className="font-mono text-xs text-muted-foreground">{config.bgColor}</span>
+                </div>
               )}
               {config.bgType === "gradient" && (
                 <>
-                  <Field label="Cor 2">
-                    <ColorPicker
-                      value={config.bgColor2}
-                      onChange={(v) => update("bgColor2", v)}
-                    />
-                  </Field>
-                  <Field
-                    label="Ângulo do gradiente"
-                    value={config.bgGradientAngle.toFixed(0)}
-                    unit="°"
-                  >
-                    <Slider
-                      min={0}
-                      max={360}
-                      step={1}
-                      value={[config.bgGradientAngle]}
-                      onValueChange={([v]) => update("bgGradientAngle", v)}
-                    />
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <ColorPicker value={config.bgColor} onChange={(v) => update("bgColor", v)} />
+                      <span className="text-[11px] text-muted-foreground">Início</span>
+                    </div>
+                    <div className="h-9 flex-1 rounded-lg border border-border/40" style={{ background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})` }} />
+                    <div className="flex flex-col items-center gap-1.5">
+                      <ColorPicker value={config.bgColor2} onChange={(v) => update("bgColor2", v)} />
+                      <span className="text-[11px] text-muted-foreground">Fim</span>
+                    </div>
+                  </div>
+                  <Field label="Ângulo" value={config.bgGradientAngle.toFixed(0)} unit="°">
+                    <Slider min={0} max={360} step={1} value={[config.bgGradientAngle]} onValueChange={([v]) => update("bgGradientAngle", v)} />
                   </Field>
                 </>
               )}
-            </div>
+            </ControlSection>
+          )}
 
-            <Separator />
-
-            <div className="w-full flex flex-col gap-4">
-              <Label>Rays colors</Label>
-
-              <Field label="Cor inicial (origem)">
-                <ColorPicker
-                  value={config.colorStart}
-                  onChange={(v) => update("colorStart", v)}
-                />
-              </Field>
-
-              <Field label="Cor final (ponta)">
-                <ColorPicker
-                  value={config.colorEnd}
-                  onChange={(v) => update("colorEnd", v)}
-                />
-              </Field>
-
-              <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground/80">
-                <input
-                  type="checkbox"
-                  checked={config.fadeToTransparent}
-                  onChange={(e) =>
-                    update("fadeToTransparent", e.target.checked)
-                  }
-                  className="h-4 w-4 accent-primary"
-                />
-                Desvanecer para transparente na ponta
-              </label>
-            </div>
-          </ControlSection>
-
-          {/* RAIOS */}
-          <ControlSection title="Raios">
-            <Field label="Quantidade" value={config.rayCount}>
-              <Slider
-                min={1}
-                max={200}
-                step={1}
-                value={[config.rayCount]}
-                onValueChange={([v]) => update("rayCount", v)}
-              />
-            </Field>
-            <Field
-              label="Largura base"
-              unit="px"
-              value={config.rayWidth.toFixed(0)}
-            >
-              <Slider
-                min={1}
-                max={400}
-                step={1}
-                value={[config.rayWidth]}
-                onValueChange={([v]) => update("rayWidth", v)}
-              />
-            </Field>
-            <Field
-              label="Divergência"
-              value={config.divergence.toFixed(2)}
-              hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
-            >
-              <Slider
-                min={0.1}
-                max={5}
-                step={0.05}
-                value={[config.divergence]}
-                onValueChange={([v]) => update("divergence", v)}
-              />
-            </Field>
-            <Field
-              label="Comprimento"
-              value={config.rayLength.toFixed(2)}
-              unit="× diag"
-            >
-              <Slider
-                min={0.2}
-                max={2.5}
-                step={0.05}
-                value={[config.rayLength]}
-                onValueChange={([v]) => update("rayLength", v)}
-              />
-            </Field>
-            <Field
-              label="Opacidade"
-              value={(config.opacity * 100).toFixed(0)}
-              unit="%"
-            >
-              <Slider
-                min={0}
-                max={1}
-                step={0.01}
-                value={[config.opacity]}
-                onValueChange={([v]) => update("opacity", v)}
-              />
-            </Field>
-            <Field label="Blend mode">
-              <Select
-                value={config.blendMode}
-                onValueChange={(v) => update("blendMode", v as BlendMode)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BLEND_MODES.map((b) => (
-                    <SelectItem key={b.value} value={b.value}>
-                      {b.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-          </ControlSection>
-
-          {/* DIREÇÃO */}
-          <ControlSection title="Direção e origem">
-            <Field
-              label="Direção"
-              value={config.direction.toFixed(0)}
-              unit="°"
-              hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
-            >
-              <Slider
-                min={0}
-                max={360}
-                step={1}
-                value={[config.direction]}
-                onValueChange={([v]) => update("direction", v)}
-              />
-            </Field>
-            <Field
-              label="Abertura (spread)"
-              value={config.spread.toFixed(0)}
-              unit="°"
-            >
-              <Slider
-                min={0}
-                max={360}
-                step={1}
-                value={[config.spread]}
-                onValueChange={([v]) => update("spread", v)}
-              />
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Origem X" unit="%">
-                <Input
-                  type="number"
-                  value={config.originX.toFixed(0)}
-                  onChange={(e) => update("originX", Number(e.target.value))}
-                />
-              </Field>
-              <Field label="Origem Y" unit="%">
-                <Input
-                  type="number"
-                  value={config.originY.toFixed(0)}
-                  onChange={(e) => update("originY", Number(e.target.value))}
-                />
-              </Field>
-            </div>
-          </ControlSection>
-
-          {/* HALO */}
-          <ControlSection title="Halo" defaultOpen={false}>
-            <Field
-              label="Intensidade"
-              value={(config.halo * 100).toFixed(0)}
-              unit="%"
-            >
-              <Slider
-                min={0}
-                max={1}
-                step={0.01}
-                value={[config.halo]}
-                onValueChange={([v]) => update("halo", v)}
-              />
-            </Field>
-            <Field
-              label="Tamanho"
-              value={(config.haloSize * 100).toFixed(0)}
-              unit="%"
-            >
-              <Slider
-                min={0.05}
-                max={1.5}
-                step={0.01}
-                value={[config.haloSize]}
-                onValueChange={([v]) => update("haloSize", v)}
-              />
-            </Field>
-          </ControlSection>
-
-          {/* ALEATORIEDADE */}
-          <ControlSection title="Aleatoriedade" defaultOpen={false}>
-            <Field
-              label="Variação"
-              value={config.randomness.toFixed(0)}
-              unit="%"
-              hint="Jitter na largura, comprimento e ângulo de cada raio"
-            >
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={[config.randomness]}
-                onValueChange={([v]) => update("randomness", v)}
-              />
-            </Field>
-            <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-              <Field label="Seed" value={config.seed}>
-                <Input
-                  type="number"
-                  value={config.seed}
-                  onChange={(e) =>
-                    update("seed", clampNum(e.target.value, 0, 1_000_000))
-                  }
-                />
-              </Field>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleRandomize}
-                title="Sortear nova seed"
-              >
-                <Shuffle className="h-4 w-4" />
-              </Button>
-            </div>
-          </ControlSection>
-
-          {/* EFEITOS */}
-          <ControlSection title="Efeitos">
-            <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
-              <Slider
-                min={0}
-                max={80}
-                step={0.5}
-                value={[config.blur]}
-                onValueChange={([v]) => update("blur", v)}
-              />
-            </Field>
-            <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
-              <Slider
-                min={0}
-                max={100}
-                step={1}
-                value={[config.noise]}
-                onValueChange={([v]) => update("noise", v)}
-              />
-            </Field>
-            <Field
-              label="Tamanho do grão"
-              value={config.grainSize.toFixed(0)}
-              unit="px"
-            >
-              <Slider
-                min={1}
-                max={6}
-                step={1}
-                value={[config.grainSize]}
-                onValueChange={([v]) => update("grainSize", v)}
-              />
-            </Field>
-          </ControlSection>
-
-          {/* DIMENSÕES */}
-          <ControlSection title="Dimensões">
-            <Field label="Preset">
-              <Select
-                defaultValue={String(
-                  DIMENSION_PRESETS.findIndex(
-                    (p) => p.w === 1920 && p.h === 1080
-                  )
-                )}
-                onValueChange={(v) => {
-                  const p = DIMENSION_PRESETS[parseInt(v, 10)];
-                  if (p) setConfig((c) => ({ ...c, width: p.w, height: p.h }));
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DIMENSION_PRESETS.map((p, i) => (
-                    <SelectItem key={p.label} value={String(i)}>
-                      {p.label} — {p.w}×{p.h}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Largura" unit="px" value={config.width}>
-                <Input
-                  type="number"
-                  min={64}
-                  max={8000}
-                  value={config.width}
-                  onChange={(e) =>
-                    update("width", clampNum(e.target.value, 64, 8000))
-                  }
-                />
-              </Field>
-              <Field label="Altura" unit="px" value={config.height}>
-                <Input
-                  type="number"
-                  min={64}
-                  max={8000}
-                  value={config.height}
-                  onChange={(e) =>
-                    update("height", clampNum(e.target.value, 64, 8000))
-                  }
-                />
-              </Field>
-            </div>
-          </ControlSection>
-
-          {/* COPIAR JSON */}
-          <ControlSection title="Configuração" defaultOpen={false}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-2"
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  JSON.stringify(config, null, 2)
-                );
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1800);
-              }}
-            >
-              <Copy className="h-4 w-4" />
-              Copiar JSON do preset
-            </Button>
-          </ControlSection>
         </div>
       </aside>
     </div>
