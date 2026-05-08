@@ -67,7 +67,7 @@ import {
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import {
   Tooltip,
