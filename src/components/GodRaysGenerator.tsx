@@ -8,6 +8,7 @@ import {
   Sparkles,
   Check,
   Copy,
+  CopyPlus,
   ZoomIn,
   ZoomOut,
   Maximize2,
@@ -62,7 +63,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
-import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
+import { COLOR_PRESETS, RAYS_PRESETS, PRESETS, SCENE_PRESETS } from "@/lib/presets";
 import {
   Tooltip,
   TooltipTrigger,
@@ -249,6 +250,9 @@ export function GodRaysGenerator() {
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     "r_side_glow"
   );
+  const [activeScenePreset, setActiveScenePreset] = React.useState<
+    string | null
+  >(null);
 
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
@@ -333,6 +337,29 @@ export function GodRaysGenerator() {
     },
     []
   );
+
+  const duplicateLayer = React.useCallback((id: string) => {
+    const newId = `${id.split("-")[0]}-${Date.now()}`;
+    setScene((s) => {
+      const idx = s.layers.findIndex((l) => l.id === id);
+      if (idx < 0) return s;
+      const original = s.layers[idx];
+      const copy: Layer = {
+        ...original,
+        id: newId,
+        ...(original.type !== "background" && {
+          name: `${original.name} (cópia)`,
+          seed: original.type === "rays"
+            ? Math.floor(Math.random() * 1_000_000)
+            : undefined,
+        }),
+      } as Layer;
+      const layers = [...s.layers];
+      layers.splice(idx + 1, 0, copy);
+      return { ...s, layers };
+    });
+    setSelectedLayerId(newId);
+  }, []);
 
   const removeLayer = React.useCallback((id: string) => {
     setScene((s) => ({ ...s, layers: s.layers.filter((l) => l.id !== id) }));
@@ -530,10 +557,39 @@ export function GodRaysGenerator() {
     if (preset.category === "color") {
       setScene((s) => applyColorPreset(s, preset.config));
       setActiveColorPreset(key);
+      setActiveScenePreset(null);
     } else {
       setScene((s) => applyRaysPreset(s, preset.config));
       setActiveRaysPreset(key);
+      setActiveScenePreset(null);
     }
+  };
+
+  const applyScenePreset = (key: string) => {
+    const preset = SCENE_PRESETS.find((p) => p.key === key);
+    if (!preset) return;
+    // Preserve current colors — apply only structure from the preset
+    const curRay = scene.layers.find((l) => l.type === "rays") as RayLayer | undefined;
+    const curHalo = scene.layers.find((l) => l.type === "halo") as HaloLayer | undefined;
+    const curBg = scene.layers.find((l) => l.type === "background") as BackgroundLayer;
+    const layers = preset.scene.layers.map((layer) => {
+      if (layer.type === "background") return { ...curBg };
+      if (layer.type === "rays")
+        return {
+          ...layer,
+          colorStart: curRay?.colorStart ?? layer.colorStart,
+          colorEnd: curRay?.colorEnd ?? layer.colorEnd,
+          fadeToTransparent: curRay?.fadeToTransparent ?? layer.fadeToTransparent,
+        };
+      if (layer.type === "halo")
+        return { ...layer, color: curHalo?.color ?? layer.color };
+      return layer;
+    }) as Layer[];
+    setScene({ ...preset.scene, layers });
+    setSelectedLayerId(null);
+    setActiveScenePreset(key);
+    setActiveColorPreset(null);
+    setActiveRaysPreset(null);
   };
 
   // ── Fitted canvas size ────────────────────────────────────────────────────
@@ -675,6 +731,22 @@ export function GodRaysGenerator() {
                             className={cn(
                               "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeRaysPreset === p.key &&
+                                "ring-2 ring-sidebar-ring"
+                            )}
+                            style={{ background: p.thumb }}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>{p.label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                    {SCENE_PRESETS.map((p) => (
+                      <Tooltip key={p.key}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => applyScenePreset(p.key)}
+                            className={cn(
+                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              activeScenePreset === p.key &&
                                 "ring-2 ring-sidebar-ring"
                             )}
                             style={{ background: p.thumb }}
@@ -1184,6 +1256,18 @@ export function GodRaysGenerator() {
                             title="Mover para baixo"
                           >
                             <ArrowDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              duplicateLayer(layer.id);
+                            }}
+                            title="Duplicar camada"
+                          >
+                            <CopyPlus className="h-3 w-3" />
                           </Button>
                           <Button
                             variant="ghost"
