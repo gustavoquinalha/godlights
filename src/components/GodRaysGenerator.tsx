@@ -1634,23 +1634,6 @@ export function GodRaysGenerator() {
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Dice: randomize color + rays */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center rounded-full border border-border bg-background/80 px-1 py-1 shadow-lg backdrop-blur-sm">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleRandomizeAll}
-                    className="h-7 w-7 rounded-full"
-                  >
-                    <Dices className="size-3.5" />
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Randomizar</TooltipContent>
-            </Tooltip>
-
             {/* Zoom controls */}
             <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
               <Button
@@ -1658,7 +1641,7 @@ export function GodRaysGenerator() {
                 size="icon"
                 onClick={() => changeZoom(-ZOOM_STEP)}
                 disabled={zoom <= MIN_ZOOM}
-                className="h-7 w-7 rounded-full"
+                className="h-7 w-7 rounded-full hidden md:flex"
                 title="Diminuir zoom"
               >
                 <ZoomOut className="size-3" />
@@ -1676,7 +1659,7 @@ export function GodRaysGenerator() {
                 size="icon"
                 onClick={() => changeZoom(ZOOM_STEP)}
                 disabled={zoom >= MAX_ZOOM}
-                className="h-7 w-7 rounded-full"
+                className="h-7 w-7 rounded-full hidden md:flex"
                 title="Aumentar zoom"
               >
                 <ZoomIn className="size-3" />
@@ -1692,6 +1675,20 @@ export function GodRaysGenerator() {
                 <Maximize2 className="h-3.5 w-3.5" />
               </Button>
             </div>
+
+            {/* Dice: randomize color + rays */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={handleRandomizeAll}
+                  className="h-7 w-7 rounded-full"
+                >
+                  <Dices className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Randomizar</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -1763,7 +1760,7 @@ export function GodRaysGenerator() {
           <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button size="icon" onClick={handleSaveSlot}>
+                <Button size="icon-xs" onClick={handleSaveSlot}>
                   <SaveIcon className="size-3" />
                 </Button>
               </TooltipTrigger>
@@ -1775,7 +1772,7 @@ export function GodRaysGenerator() {
                 <TooltipTrigger asChild>
                   <AlertDialogTrigger asChild>
                     <Button
-                      size="icon"
+                      size="icon-xs"
                       variant="outline"
                       disabled={saves.length === 0}
                     >
