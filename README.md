@@ -1,4 +1,4 @@
-# Rays Generator
+# Godlights
 
 Gerador de **god rays / light rays** em React + Vite + Tailwind + shadcn/ui, inspirado no MagicPattern, com mais controles e exportação para PNG, JPG e CSS.
 

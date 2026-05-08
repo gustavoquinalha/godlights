@@ -1022,7 +1022,7 @@ export function GodRaysGenerator() {
             <div className="flex items-center gap-2">
               <Sparkles className="size-3 text-amber-400" />
               <span className="text-sm font-semibold tracking-tight">
-                Rays Generator
+                Godlights
               </span>
             </div>
             <Button
