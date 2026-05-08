@@ -15,14 +15,25 @@ import {
   Sun,
   Moon,
   ChevronLeft,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
-  drawGodRays,
-  exportImage,
-  buildCssSnippet,
-  DEFAULT_CONFIG,
-  type GodRaysConfig,
+  drawScene,
+  exportScene,
+  buildSceneCssSnippet,
+  DEFAULT_SCENE,
+  DEFAULT_RAY_LAYER,
+  DEFAULT_HALO_LAYER,
+  type SceneConfig,
+  type Layer,
+  type RayLayer,
+  type HaloLayer,
+  type BackgroundLayer,
   type BackgroundType,
+  type GodRaysConfig,
 } from "@/lib/godrays";
 import { OriginCrosshair } from "@/components/OriginCrosshair";
 import { BlendModeSelect } from "@/components/BlendModeSelect";
@@ -47,9 +58,6 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
@@ -78,18 +86,125 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2.0;
 const ZOOM_STEP = 0.1;
 
-function scaleConfigForPreview(config: GodRaysConfig): GodRaysConfig {
-  const maxDim = Math.max(config.width, config.height);
-  if (maxDim <= PREVIEW_MAX_DIMENSION) return config;
-  const ratio = PREVIEW_MAX_DIMENSION / maxDim;
+// ── Preset helpers ─────────────────────────────────────────────────────────
+
+function applyColorPreset(
+  scene: SceneConfig,
+  flat: Partial<GodRaysConfig>
+): SceneConfig {
   return {
-    ...config,
-    width: Math.round(config.width * ratio),
-    height: Math.round(config.height * ratio),
-    rayWidth: config.rayWidth * ratio,
-    blur: config.blur * ratio,
+    ...scene,
+    layers: scene.layers.map((layer) => {
+      if (layer.type === "rays") {
+        return {
+          ...layer,
+          ...(flat.colorStart !== undefined && { colorStart: flat.colorStart }),
+          ...(flat.colorEnd !== undefined && { colorEnd: flat.colorEnd }),
+          ...(flat.fadeToTransparent !== undefined && {
+            fadeToTransparent: flat.fadeToTransparent,
+          }),
+        };
+      }
+      if (layer.type === "halo") {
+        return {
+          ...layer,
+          ...(flat.haloColor !== undefined && { color: flat.haloColor }),
+        };
+      }
+      if (layer.type === "background") {
+        return {
+          ...layer,
+          ...(flat.bgType !== undefined && { bgType: flat.bgType }),
+          ...(flat.bgColor !== undefined && { bgColor: flat.bgColor }),
+          ...(flat.bgColor2 !== undefined && { bgColor2: flat.bgColor2 }),
+          ...(flat.bgGradientAngle !== undefined && {
+            bgGradientAngle: flat.bgGradientAngle,
+          }),
+        };
+      }
+      return layer;
+    }) as Layer[],
   };
 }
+
+function applyRaysPreset(
+  scene: SceneConfig,
+  flat: Partial<GodRaysConfig>
+): SceneConfig {
+  let firstRaysDone = false;
+  let firstHaloDone = false;
+  return {
+    ...scene,
+    noise: flat.noise ?? DEFAULT_SCENE.noise,
+    grainSize: flat.grainSize ?? DEFAULT_SCENE.grainSize,
+    layers: scene.layers.map((layer) => {
+      if (layer.type === "rays" && !firstRaysDone) {
+        firstRaysDone = true;
+        return {
+          ...DEFAULT_RAY_LAYER,
+          id: layer.id,
+          name: layer.name,
+          colorStart: layer.colorStart,
+          colorEnd: layer.colorEnd,
+          fadeToTransparent: layer.fadeToTransparent,
+          ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
+          ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
+          ...(flat.divergence !== undefined && { divergence: flat.divergence }),
+          ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
+          ...(flat.opacity !== undefined && { opacity: flat.opacity }),
+          ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
+          ...(flat.direction !== undefined && { direction: flat.direction }),
+          ...(flat.spread !== undefined && { spread: flat.spread }),
+          ...(flat.originX !== undefined && { originX: flat.originX }),
+          ...(flat.originY !== undefined && { originY: flat.originY }),
+          ...(flat.blur !== undefined && { blur: flat.blur }),
+          ...(flat.randomness !== undefined && { randomness: flat.randomness }),
+          ...(flat.seed !== undefined && { seed: flat.seed }),
+        } as RayLayer;
+      }
+      if (layer.type === "halo" && !firstHaloDone) {
+        firstHaloDone = true;
+        return {
+          ...DEFAULT_HALO_LAYER,
+          id: layer.id,
+          name: layer.name,
+          color: layer.color,
+          ...(flat.halo !== undefined && { intensity: flat.halo }),
+          ...(flat.haloSize !== undefined && { size: flat.haloSize }),
+          ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
+          ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
+          ...(flat.haloBlendMode !== undefined && {
+            blendMode: flat.haloBlendMode,
+          }),
+        } as HaloLayer;
+      }
+      return layer;
+    }) as Layer[],
+  };
+}
+
+function scaleSceneForPreview(scene: SceneConfig): SceneConfig {
+  const maxDim = Math.max(scene.width, scene.height);
+  if (maxDim <= PREVIEW_MAX_DIMENSION) return scene;
+  const ratio = PREVIEW_MAX_DIMENSION / maxDim;
+  return {
+    ...scene,
+    width: Math.round(scene.width * ratio),
+    height: Math.round(scene.height * ratio),
+    layers: scene.layers.map((layer) => {
+      if (layer.type === "rays") {
+        return {
+          ...layer,
+          rayWidth: layer.rayWidth * ratio,
+          blur: layer.blur * ratio,
+        };
+      }
+      return layer;
+    }) as Layer[],
+  };
+}
+
+// ── Theme hook ─────────────────────────────────────────────────────────────
 
 function useTheme() {
   const [dark, setDark] = React.useState(() =>
@@ -104,44 +219,147 @@ function useTheme() {
   return { dark, toggle };
 }
 
-type LayerView = "layers" | "rays" | "halo" | "background";
+// ── Component ──────────────────────────────────────────────────────────────
 
 export function GodRaysGenerator() {
   const { dark, toggle: toggleTheme } = useTheme();
-  const [config, setConfig] = React.useState<GodRaysConfig>(() => {
+
+  const [scene, setScene] = React.useState<SceneConfig>(() => {
     const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_ember");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
-    let cfg = { ...DEFAULT_CONFIG, ...(colorPreset?.config ?? {}) };
-    if (raysPreset)
-      cfg = {
-        ...DEFAULT_CONFIG,
-        ...raysPreset.config,
-        colorStart: cfg.colorStart,
-        colorEnd: cfg.colorEnd,
-        haloColor: cfg.haloColor,
-        bgType: cfg.bgType,
-        bgColor: cfg.bgColor,
-        bgColor2: cfg.bgColor2,
-        bgGradientAngle: cfg.bgGradientAngle,
-      };
-    return cfg;
+    let s: SceneConfig = {
+      ...DEFAULT_SCENE,
+      layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
+    };
+    if (colorPreset) s = applyColorPreset(s, colorPreset.config);
+    if (raysPreset) s = applyRaysPreset(s, raysPreset.config);
+    return s;
   });
+
+  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
+    null
+  );
   const [copiedJson, setCopiedJson] = React.useState(false);
   const [copiedCss, setCopiedCss] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
-  const [layerView, setLayerView] = React.useState<LayerView>("layers");
   const [activeColorPreset, setActiveColorPreset] = React.useState<
     string | null
   >("c_ember");
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     "r_side_glow"
   );
+
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
   const rafRef = React.useRef<number | null>(null);
-  const deferredConfig = React.useDeferredValue(config);
+  const deferredScene = React.useDeferredValue(scene);
+
+  // ── Derived layer state ──────────────────────────────────────────────────
+
+  const selectedLayer =
+    scene.layers.find((l) => l.id === selectedLayerId) ?? null;
+  const selectedRayLayer =
+    selectedLayer?.type === "rays" ? (selectedLayer as RayLayer) : null;
+  const selectedHaloLayer =
+    selectedLayer?.type === "halo" ? (selectedLayer as HaloLayer) : null;
+  const selectedBgLayer =
+    selectedLayer?.type === "background"
+      ? (selectedLayer as BackgroundLayer)
+      : null;
+
+  const bgLayer = scene.layers.find(
+    (l) => l.type === "background"
+  ) as BackgroundLayer;
+  const nonBgLayers = scene.layers.filter(
+    (l) => l.type !== "background"
+  ) as (RayLayer | HaloLayer)[];
+
+  // ── Layer management ─────────────────────────────────────────────────────
+
+  const updateLayer = React.useCallback(
+    (id: string, changes: Partial<Record<string, unknown>>) => {
+      setScene((s) => ({
+        ...s,
+        layers: s.layers.map((l) =>
+          l.id === id ? ({ ...l, ...changes } as Layer) : l
+        ),
+      }));
+    },
+    []
+  );
+
+  const updateScene = React.useCallback(
+    (changes: Partial<Pick<SceneConfig, "width" | "height" | "noise" | "grainSize">>) => {
+      setScene((s) => ({ ...s, ...changes }));
+    },
+    []
+  );
+
+  const addLayer = React.useCallback(
+    (type: "rays" | "halo") => {
+      const id = `${type}-${Date.now()}`;
+      setScene((s) => {
+        const count = s.layers.filter((l) => l.type === type).length;
+        const name =
+          type === "rays" ? `Rays ${count + 1}` : `Halo ${count + 1}`;
+        const firstOfType = s.layers.find((l) => l.type === type);
+        const newLayer: Layer =
+          type === "rays"
+            ? {
+                id,
+                name,
+                ...DEFAULT_RAY_LAYER,
+                colorStart:
+                  (firstOfType as RayLayer | undefined)?.colorStart ??
+                  DEFAULT_RAY_LAYER.colorStart,
+                colorEnd:
+                  (firstOfType as RayLayer | undefined)?.colorEnd ??
+                  DEFAULT_RAY_LAYER.colorEnd,
+                seed: Math.floor(Math.random() * 1_000_000),
+              }
+            : {
+                id,
+                name,
+                ...DEFAULT_HALO_LAYER,
+                color:
+                  (firstOfType as HaloLayer | undefined)?.color ??
+                  DEFAULT_HALO_LAYER.color,
+              };
+        return { ...s, layers: [...s.layers, newLayer] };
+      });
+      setSelectedLayerId(id);
+    },
+    []
+  );
+
+  const removeLayer = React.useCallback((id: string) => {
+    setScene((s) => ({ ...s, layers: s.layers.filter((l) => l.id !== id) }));
+    setSelectedLayerId((prev) => (prev === id ? null : prev));
+  }, []);
+
+  const moveLayerUp = React.useCallback((id: string) => {
+    setScene((s) => {
+      const layers = [...s.layers];
+      const idx = layers.findIndex((l) => l.id === id);
+      if (idx < 0 || idx >= layers.length - 1) return s;
+      [layers[idx], layers[idx + 1]] = [layers[idx + 1], layers[idx]];
+      return { ...s, layers };
+    });
+  }, []);
+
+  const moveLayerDown = React.useCallback((id: string) => {
+    setScene((s) => {
+      const layers = [...s.layers];
+      const idx = layers.findIndex((l) => l.id === id);
+      if (idx <= 1) return s;
+      [layers[idx], layers[idx - 1]] = [layers[idx - 1], layers[idx]];
+      return { ...s, layers };
+    });
+  }, []);
+
+  // ── Zoom ──────────────────────────────────────────────────────────────────
 
   const clampZoom = (v: number) =>
     Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v)) * 100) / 100;
@@ -162,32 +380,26 @@ export function GodRaysGenerator() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // ── Canvas render ─────────────────────────────────────────────────────────
+
   React.useEffect(() => {
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-      const scaled = scaleConfigForPreview(deferredConfig);
+      const scaled = scaleSceneForPreview(deferredScene);
       canvas.width = scaled.width;
       canvas.height = scaled.height;
-      drawGodRays(canvas, scaled);
+      drawScene(canvas, scaled);
     });
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [deferredConfig]);
+  }, [deferredScene]);
 
-  const update = React.useCallback(
-    <K extends keyof GodRaysConfig>(key: K, value: GodRaysConfig[K]) => {
-      setConfig((c) => ({ ...c, [key]: value }));
-    },
-    []
-  );
+  // ── Drag to move origin ───────────────────────────────────────────────────
 
-  type DragHandle = "rays" | "halo";
-  const [draggingHandle, setDraggingHandle] = React.useState<DragHandle | null>(
-    null
-  );
+  const [isDragging, setIsDragging] = React.useState(false);
   const dragStartRef = React.useRef<{
     pctX: number;
     pctY: number;
@@ -205,46 +417,43 @@ export function GodRaysGenerator() {
     };
   };
 
-  const onOverlayPointerDown =
-    (handle: DragHandle) => (e: React.PointerEvent) => {
-      e.stopPropagation();
-      setDraggingHandle(handle);
-      setLayerView(handle);
-      e.currentTarget.setPointerCapture(e.pointerId);
-      const pos = canvasPct(e);
-      if (!pos) return;
-      dragStartRef.current = {
-        pctX: pos.x,
-        pctY: pos.y,
-        originX: handle === "rays" ? config.originX : config.haloOriginX,
-        originY: handle === "rays" ? config.originY : config.haloOriginY,
-      };
+  const onOverlayPointerDown = (e: React.PointerEvent) => {
+    if (!selectedLayer) return;
+    e.stopPropagation();
+    setIsDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const pos = canvasPct(e);
+    if (!pos) return;
+    dragStartRef.current = {
+      pctX: pos.x,
+      pctY: pos.y,
+      originX: selectedLayer.type !== "background" ? selectedLayer.originX : 0,
+      originY: selectedLayer.type !== "background" ? selectedLayer.originY : 0,
     };
+  };
 
-  const onOverlayPointerMove =
-    (handle: DragHandle) => (e: React.PointerEvent) => {
-      if (!dragStartRef.current) return;
-      const pos = canvasPct(e);
-      if (!pos) return;
-      const newX =
-        dragStartRef.current.originX + (pos.x - dragStartRef.current.pctX);
-      const newY =
-        dragStartRef.current.originY + (pos.y - dragStartRef.current.pctY);
-      if (handle === "rays")
-        setConfig((c) => ({ ...c, originX: newX, originY: newY }));
-      else setConfig((c) => ({ ...c, haloOriginX: newX, haloOriginY: newY }));
-    };
+  const onOverlayPointerMove = (e: React.PointerEvent) => {
+    if (!dragStartRef.current || !selectedLayer) return;
+    const pos = canvasPct(e);
+    if (!pos) return;
+    const newX =
+      dragStartRef.current.originX + (pos.x - dragStartRef.current.pctX);
+    const newY =
+      dragStartRef.current.originY + (pos.y - dragStartRef.current.pctY);
+    updateLayer(selectedLayer.id, { originX: newX, originY: newY });
+  };
 
-  const onOverlayPointerUp =
-    (_handle: DragHandle) => (e: React.PointerEvent) => {
-      setDraggingHandle(null);
-      dragStartRef.current = null;
-      try {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {
-        /* ignore */
-      }
-    };
+  const onOverlayPointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    dragStartRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // ── Export & clipboard ────────────────────────────────────────────────────
 
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -261,11 +470,11 @@ export function GodRaysGenerator() {
     setExporting(type);
     try {
       const mime = type === "png" ? "image/png" : "image/jpeg";
-      const blob = await exportImage(config, mime, 0.95);
+      const blob = await exportScene(scene, mime, 0.95);
       const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
       downloadBlob(
         blob,
-        `god-rays_${config.width}x${config.height}_${stamp}.${type}`
+        `god-rays_${scene.width}x${scene.height}_${stamp}.${type}`
       );
     } finally {
       setExporting(null);
@@ -273,88 +482,61 @@ export function GodRaysGenerator() {
   };
 
   const handleCopyCss = async () => {
-    const snippet = await buildCssSnippet(config);
+    const snippet = await buildSceneCssSnippet(scene);
     await navigator.clipboard.writeText(snippet);
     setCopiedCss(true);
     window.setTimeout(() => setCopiedCss(false), 1800);
   };
 
   const handleCopyPresetJson = async () => {
-    const COLOR_KEYS: (keyof GodRaysConfig)[] = [
-      "colorStart",
-      "colorEnd",
-      "fadeToTransparent",
-      "haloColor",
-      "bgType",
-      "bgColor",
-      "bgColor2",
-      "bgGradientAngle",
-    ];
-    const RAYS_KEYS: (keyof GodRaysConfig)[] = [
-      "rayCount",
-      "rayWidth",
-      "divergence",
-      "rayLength",
-      "opacity",
-      "blendMode",
-      "direction",
-      "spread",
-      "originX",
-      "originY",
-      "haloBlendMode",
-      "halo",
-      "haloSize",
-      "haloOriginX",
-      "haloOriginY",
-      "blur",
-      "noise",
-      "grainSize",
-      "randomness",
-      "seed",
-    ];
-    const pick = (keys: (keyof GodRaysConfig)[]) =>
-      Object.fromEntries(keys.map((k) => [k, config[k]]));
-    await navigator.clipboard.writeText(
-      JSON.stringify(
-        { color: pick(COLOR_KEYS), rays: pick(RAYS_KEYS) },
-        null,
-        2
-      )
-    );
+    await navigator.clipboard.writeText(JSON.stringify(scene, null, 2));
     setCopiedJson(true);
     window.setTimeout(() => setCopiedJson(false), 1800);
   };
 
+  // ── Presets & randomize ───────────────────────────────────────────────────
+
   const handleRandomize = () => {
-    setConfig((c) => ({ ...c, seed: Math.floor(Math.random() * 1_000_000) }));
+    if (selectedRayLayer) {
+      updateLayer(selectedRayLayer.id, {
+        seed: Math.floor(Math.random() * 1_000_000),
+      });
+    } else {
+      setScene((s) => ({
+        ...s,
+        layers: s.layers.map((l) =>
+          l.type === "rays"
+            ? { ...l, seed: Math.floor(Math.random() * 1_000_000) }
+            : l
+        ) as Layer[],
+      }));
+    }
     setActiveRaysPreset(null);
   };
+
   const handleReset = () => {
-    setConfig(DEFAULT_CONFIG);
+    setScene({
+      ...DEFAULT_SCENE,
+      layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
+    });
+    setSelectedLayerId(null);
     setActiveColorPreset(null);
     setActiveRaysPreset(null);
   };
+
   const applyPreset = (key: string) => {
     const preset = PRESETS.find((p) => p.key === key);
     if (!preset) return;
     if (preset.category === "color") {
-      setConfig((c) => ({ ...c, ...preset.config }));
+      setScene((s) => applyColorPreset(s, preset.config));
+      setActiveColorPreset(key);
     } else {
-      setConfig((c) => ({
-        ...DEFAULT_CONFIG,
-        ...preset.config,
-        colorStart: c.colorStart,
-        colorEnd: c.colorEnd,
-        haloColor: c.haloColor,
-        bgType: c.bgType,
-        bgColor: c.bgColor,
-        bgColor2: c.bgColor2,
-        bgGradientAngle: c.bgGradientAngle,
-      }));
+      setScene((s) => applyRaysPreset(s, preset.config));
+      setActiveRaysPreset(key);
     }
-    if (preset.category === "color") setActiveColorPreset(key);
-    else setActiveRaysPreset(key);
   };
+
+  // ── Fitted canvas size ────────────────────────────────────────────────────
 
   const [containerSize, setContainerSize] = React.useState({ w: 0, h: 0 });
   React.useEffect(() => {
@@ -373,7 +555,7 @@ export function GodRaysGenerator() {
     const aw = Math.max(0, containerSize.w - padding * 2);
     const ah = Math.max(0, containerSize.h - padding * 2);
     if (aw === 0 || ah === 0) return { w: 0, h: 0 };
-    const ar = config.width / config.height;
+    const ar = scene.width / scene.height;
     let w = aw;
     let h = w / ar;
     if (h > ah) {
@@ -381,16 +563,19 @@ export function GodRaysGenerator() {
       w = h * ar;
     }
     return { w, h };
-  }, [containerSize, config.width, config.height]);
+  }, [containerSize, scene.width, scene.height]);
+
+  // ── Canvas overlays ───────────────────────────────────────────────────────
 
   const raysBBox = React.useMemo(() => {
+    if (!selectedRayLayer) return null;
     const { w, h } = fittedSize;
     if (!w || !h) return null;
-    const ox = (config.originX / 100) * w;
-    const oy = (config.originY / 100) * h;
-    const baseAngle = ((config.direction - 90) * Math.PI) / 180;
-    const spreadRad = (config.spread * Math.PI) / 180;
-    const maxLen = Math.hypot(w, h) * config.rayLength;
+    const ox = (selectedRayLayer.originX / 100) * w;
+    const oy = (selectedRayLayer.originY / 100) * h;
+    const baseAngle = ((selectedRayLayer.direction - 90) * Math.PI) / 180;
+    const spreadRad = (selectedRayLayer.spread * Math.PI) / 180;
+    const maxLen = Math.hypot(w, h) * selectedRayLayer.rayLength;
     const pts: [number, number][] = [[ox, oy]];
     const steps = 64;
     for (let i = 0; i <= steps; i++) {
@@ -402,56 +587,23 @@ export function GodRaysGenerator() {
     const x = Math.min(...xs);
     const y = Math.min(...ys);
     return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-  }, [
-    fittedSize,
-    config.originX,
-    config.originY,
-    config.direction,
-    config.spread,
-    config.rayLength,
-  ]);
+  }, [fittedSize, selectedRayLayer]);
 
   const haloBCircle = React.useMemo(() => {
+    if (!selectedHaloLayer) return null;
     const { w, h } = fittedSize;
     if (!w || !h) return null;
-    const r = Math.hypot(w, h) * config.haloSize;
+    const r = Math.hypot(w, h) * selectedHaloLayer.size;
     return {
-      cx: (config.haloOriginX / 100) * w,
-      cy: (config.haloOriginY / 100) * h,
+      cx: (selectedHaloLayer.originX / 100) * w,
+      cy: (selectedHaloLayer.originY / 100) * h,
       r,
     };
-  }, [fittedSize, config.haloOriginX, config.haloOriginY, config.haloSize]);
+  }, [fittedSize, selectedHaloLayer]);
 
-  const onCanvasClick = React.useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      const canvas = previewCanvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const px = ((e.clientX - rect.left) / rect.width) * fittedSize.w;
-      const py = ((e.clientY - rect.top) / rect.height) * fittedSize.h;
-
-      if (
-        raysBBox &&
-        px >= raysBBox.x &&
-        px <= raysBBox.x + raysBBox.w &&
-        py >= raysBBox.y &&
-        py <= raysBBox.y + raysBBox.h
-      ) {
-        setLayerView("rays");
-        return;
-      }
-      if (
-        haloBCircle &&
-        Math.hypot(px - haloBCircle.cx, py - haloBCircle.cy) <= haloBCircle.r
-      ) {
-        setLayerView("halo");
-        return;
-      }
-      setLayerView("layers");
-    },
-    [fittedSize, raysBBox, haloBCircle]
-  );
+  // ─────────────────────────────────────────────────────────────────────────
+  // JSX
+  // ─────────────────────────────────────────────────────────────────────────
 
   return (
     <SidebarProvider className="h-svh">
@@ -557,40 +709,31 @@ export function GodRaysGenerator() {
 
           <SidebarSeparator />
 
-          {/* EFFECTS */}
+          {/* EFFECTS (global) */}
           <SidebarGroup>
-            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
+            <SidebarGroupLabel>Efeitos globais</SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="space-y-4 px-2 pb-2">
-                <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
-                  <Slider
-                    min={0}
-                    max={80}
-                    step={0.5}
-                    value={[config.blur]}
-                    onValueChange={([v]) => update("blur", v)}
-                  />
-                </Field>
-                <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
+                <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
                     max={100}
                     step={1}
-                    value={[config.noise]}
-                    onValueChange={([v]) => update("noise", v)}
+                    value={[scene.noise]}
+                    onValueChange={([v]) => updateScene({ noise: v })}
                   />
                 </Field>
                 <Field
                   label="Tamanho do grão"
-                  value={config.grainSize.toFixed(0)}
+                  value={scene.grainSize.toFixed(0)}
                   unit="px"
                 >
                   <Slider
                     min={1}
                     max={6}
                     step={1}
-                    value={[config.grainSize]}
-                    onValueChange={([v]) => update("grainSize", v)}
+                    value={[scene.grainSize]}
+                    onValueChange={([v]) => updateScene({ grainSize: v })}
                   />
                 </Field>
               </div>
@@ -613,8 +756,7 @@ export function GodRaysGenerator() {
                     )}
                     onValueChange={(v) => {
                       const p = DIMENSION_PRESETS[parseInt(v, 10)];
-                      if (p)
-                        setConfig((c) => ({ ...c, width: p.w, height: p.h }));
+                      if (p) updateScene({ width: p.w, height: p.h });
                     }}
                   >
                     <SelectTrigger>
@@ -630,25 +772,29 @@ export function GodRaysGenerator() {
                   </Select>
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Largura" unit="px" value={config.width}>
+                  <Field label="Largura" unit="px" value={scene.width}>
                     <Input
                       type="number"
                       min={64}
                       max={8000}
-                      value={config.width}
+                      value={scene.width}
                       onChange={(e) =>
-                        update("width", clampNum(e.target.value, 64, 8000))
+                        updateScene({
+                          width: clampNum(e.target.value, 64, 8000),
+                        })
                       }
                     />
                   </Field>
-                  <Field label="Altura" unit="px" value={config.height}>
+                  <Field label="Altura" unit="px" value={scene.height}>
                     <Input
                       type="number"
                       min={64}
                       max={8000}
-                      value={config.height}
+                      value={scene.height}
                       onChange={(e) =>
-                        update("height", clampNum(e.target.value, 64, 8000))
+                        updateScene({
+                          height: clampNum(e.target.value, 64, 8000),
+                        })
                       }
                     />
                   </Field>
@@ -712,12 +858,11 @@ export function GodRaysGenerator() {
         <div
           ref={previewContainerRef}
           className="relative flex flex-1 items-center justify-center overflow-hidden bg-checker"
-          onClick={() => setLayerView("layers")}
+          onClick={() => setSelectedLayerId(null)}
         >
           <div
             ref={previewWrapperRef}
             className="relative select-none"
-            onClick={onCanvasClick}
             style={{
               width: fittedSize.w ? `${fittedSize.w}px` : "0px",
               height: fittedSize.h ? `${fittedSize.h}px` : "0px",
@@ -730,11 +875,12 @@ export function GodRaysGenerator() {
               className="block h-full w-full rounded-md shadow-2xl ring-1 ring-border"
             />
 
-            {layerView === "rays" && raysBBox && (
+            {/* Rays overlay */}
+            {selectedRayLayer && raysBBox && (
               <div
                 className={cn(
                   "absolute",
-                  draggingHandle === "rays" ? "cursor-grabbing" : "cursor-grab"
+                  isDragging ? "cursor-grabbing" : "cursor-grab"
                 )}
                 style={{
                   left: raysBBox.x,
@@ -742,15 +888,15 @@ export function GodRaysGenerator() {
                   width: raysBBox.w,
                   height: raysBBox.h,
                 }}
-                onPointerDown={onOverlayPointerDown("rays")}
-                onPointerMove={onOverlayPointerMove("rays")}
-                onPointerUp={onOverlayPointerUp("rays")}
-                onPointerCancel={onOverlayPointerUp("rays")}
+                onPointerDown={onOverlayPointerDown}
+                onPointerMove={onOverlayPointerMove}
+                onPointerUp={onOverlayPointerUp}
+                onPointerCancel={onOverlayPointerUp}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
                 <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  Rays
+                  {selectedRayLayer.name}
                 </span>
                 <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
                 <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
@@ -759,18 +905,23 @@ export function GodRaysGenerator() {
                 <OriginCrosshair
                   color="blue"
                   style={{
-                    left: (config.originX / 100) * fittedSize.w - raysBBox.x,
-                    top: (config.originY / 100) * fittedSize.h - raysBBox.y,
+                    left:
+                      (selectedRayLayer.originX / 100) * fittedSize.w -
+                      raysBBox.x,
+                    top:
+                      (selectedRayLayer.originY / 100) * fittedSize.h -
+                      raysBBox.y,
                   }}
                 />
               </div>
             )}
 
-            {layerView === "halo" && haloBCircle && (
+            {/* Halo overlay */}
+            {selectedHaloLayer && haloBCircle && (
               <div
                 className={cn(
                   "absolute",
-                  draggingHandle === "halo" ? "cursor-grabbing" : "cursor-grab"
+                  isDragging ? "cursor-grabbing" : "cursor-grab"
                 )}
                 style={{
                   left: haloBCircle.cx - haloBCircle.r,
@@ -778,17 +929,20 @@ export function GodRaysGenerator() {
                   width: haloBCircle.r * 2,
                   height: haloBCircle.r * 2,
                 }}
-                onPointerDown={onOverlayPointerDown("halo")}
-                onPointerMove={onOverlayPointerMove("halo")}
-                onPointerUp={onOverlayPointerUp("halo")}
-                onPointerCancel={onOverlayPointerUp("halo")}
+                onPointerDown={onOverlayPointerDown}
+                onPointerMove={onOverlayPointerMove}
+                onPointerUp={onOverlayPointerUp}
+                onPointerCancel={onOverlayPointerUp}
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
                 <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
-                  Halo
+                  {selectedHaloLayer.name}
                 </span>
-                <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
+                <OriginCrosshair
+                  color="amber"
+                  className="left-1/2 top-1/2"
+                />
               </div>
             )}
           </div>
@@ -841,8 +995,8 @@ export function GodRaysGenerator() {
 
         <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
           <span>
-            {config.width} × {config.height}px ·{" "}
-            {((config.width * config.height) / 1_000_000).toFixed(2)} MP
+            {scene.width} × {scene.height}px ·{" "}
+            {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
           </span>
           <span>Arraste no preview para mover a origem</span>
         </div>
@@ -850,129 +1004,252 @@ export function GodRaysGenerator() {
 
       {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
       <Sidebar side="right">
-        <SidebarHeader>
-          <div className="flex items-center gap-1">
-            {layerView !== "layers" && (
+        {/* Header */}
+        <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+          {selectedLayerId === null ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-widest text-sidebar-foreground/40">
+                  Painel
+                </p>
+                <h2 className="text-base font-bold tracking-tight">Camadas</h2>
+              </div>
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sidebar-primary/10 text-xs font-semibold text-sidebar-primary">
+                {nonBgLayers.length + 1}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={() => setLayerView("layers")}
+                className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                onClick={() => setSelectedLayerId(null)}
                 title="Voltar para camadas"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-            )}
-            <span className="text-sm font-semibold tracking-tight">
-              {layerView === "layers" && "Camadas"}
-              {layerView === "rays" && "Rays"}
-              {layerView === "halo" && "Halo"}
-              {layerView === "background" && "Background"}
-            </span>
-          </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-widest text-sidebar-foreground/40">
+                  Camada
+                </p>
+                <h2 className="text-sm font-bold tracking-tight">
+                  {selectedLayer?.type === "rays" && (selectedLayer as RayLayer).name}
+                  {selectedLayer?.type === "halo" && (selectedLayer as HaloLayer).name}
+                  {selectedLayer?.type === "background" && "Background"}
+                </h2>
+              </div>
+            </div>
+          )}
         </SidebarHeader>
 
         <SidebarContent>
-          {/* LAYERS LIST */}
-          {layerView === "layers" && (
-            <div className="flex flex-col gap-2 p-3">
-              {/* Rays Card */}
-              <button
-                onClick={() => setLayerView("rays")}
-                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
-                      <Move className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-sm font-semibold">Rays</span>
-                  </div>
-                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
-                </div>
-                <div
-                  className="mb-3 h-10 w-full rounded-lg border border-sidebar-border/40"
-                  style={{
-                    background: `linear-gradient(135deg, ${config.colorStart}, ${
-                      config.fadeToTransparent ? "transparent" : config.colorEnd
-                    })`,
-                  }}
-                />
-                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50">
-                  <span>{config.rayCount} raios</span>
-                  <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                  <span>{Math.round(config.opacity * 100)}% opacidade</span>
-                </div>
-              </button>
-
-              {/* Halo Card */}
-              <button
-                onClick={() => setLayerView("halo")}
-                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
-                      <Sparkles className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-sm font-semibold">Halo</span>
-                  </div>
-                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
-                </div>
-                <div className="mb-3 flex h-10 w-full items-center justify-center rounded-lg border border-sidebar-border/40 overflow-hidden"
-                  style={{ background: `radial-gradient(ellipse at center, ${config.haloColor} 0%, transparent 70%)` }}
-                />
-                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50">
-                  <span>{Math.round(config.halo * 100)}% intensidade</span>
-                  <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                  <span style={{ color: config.haloColor }} className="font-mono uppercase">{config.haloColor}</span>
-                </div>
-              </button>
-
-              {/* Background Card */}
-              <button
-                onClick={() => setLayerView("background")}
-                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
-                      <ImageIcon className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-sm font-semibold">Background</span>
-                  </div>
-                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
-                </div>
-                <div
-                  className="mb-3 h-10 w-full rounded-lg border border-sidebar-border/40"
-                  style={{
-                    background:
-                      config.bgType === "gradient"
-                        ? `linear-gradient(135deg, ${config.bgColor}, ${config.bgColor2})`
-                        : config.bgType === "solid"
-                        ? config.bgColor
-                        : undefined,
-                  }}
+          {/* ── LAYERS LIST ──────────────────────────────────────────── */}
+          {selectedLayerId === null && (
+            <div className="flex flex-col">
+              {/* Add layer buttons */}
+              <div className="flex gap-2 border-b border-sidebar-border p-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => addLayer("rays")}
                 >
-                  {config.bgType === "transparent" && (
-                    <div className="h-full w-full rounded-lg bg-checker" />
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50 capitalize">
-                  <span>{config.bgType}</span>
-                  {config.bgType !== "transparent" && (
-                    <>
-                      <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                      <span className="font-mono uppercase">{config.bgColor}</span>
-                    </>
-                  )}
-                </div>
-              </button>
+                  <Plus className="h-3.5 w-3.5" /> Rays
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  onClick={() => addLayer("halo")}
+                >
+                  <Plus className="h-3.5 w-3.5" /> Halo
+                </Button>
+              </div>
+
+              {/* Layer cards */}
+              <div className="flex flex-col gap-2 p-3">
+                {/* Non-background layers in reverse visual order (top of stack first) */}
+                {[...nonBgLayers].reverse().map((layer) => {
+                  const arrayIdx = scene.layers.findIndex(
+                    (l) => l.id === layer.id
+                  );
+                  const canMoveUp = arrayIdx < scene.layers.length - 1;
+                  const canMoveDown = arrayIdx > 1;
+
+                  return (
+                    <div
+                      key={layer.id}
+                      className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
+                    >
+                      {/* Clickable area */}
+                      <button
+                        className="w-full p-3 text-left"
+                        onClick={() => setSelectedLayerId(layer.id)}
+                      >
+                        <div className="mb-2.5 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                              {layer.type === "rays" ? (
+                                <Move className="h-3.5 w-3.5" />
+                              ) : (
+                                <Sparkles className="h-3.5 w-3.5" />
+                              )}
+                            </div>
+                            <span className="text-sm font-semibold">
+                              {layer.name}
+                            </span>
+                          </div>
+                          <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                        </div>
+
+                        {/* Color preview */}
+                        {layer.type === "rays" && (
+                          <div
+                            className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                            style={{
+                              background: `linear-gradient(135deg, ${layer.colorStart}, ${
+                                layer.fadeToTransparent
+                                  ? "transparent"
+                                  : layer.colorEnd
+                              })`,
+                            }}
+                          />
+                        )}
+                        {layer.type === "halo" && (
+                          <div
+                            className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                            style={{
+                              background: `radial-gradient(ellipse at center, ${layer.color} 0%, transparent 70%)`,
+                            }}
+                          />
+                        )}
+
+                        {/* Metadata */}
+                        <div className="flex items-center gap-2 text-[11px] text-sidebar-foreground/50">
+                          {layer.type === "rays" && (
+                            <>
+                              <span>{layer.rayCount} raios</span>
+                              <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                              <span>
+                                {Math.round(layer.opacity * 100)}% opac.
+                              </span>
+                            </>
+                          )}
+                          {layer.type === "halo" && (
+                            <>
+                              <span>
+                                {Math.round(layer.intensity * 100)}% intens.
+                              </span>
+                              <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                              <span
+                                className="font-mono uppercase"
+                                style={{ color: layer.color }}
+                              >
+                                {layer.color}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Layer controls */}
+                      <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
+                        <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
+                          {layer.type}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                            disabled={!canMoveUp}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveLayerUp(layer.id);
+                            }}
+                            title="Mover para cima"
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                            disabled={!canMoveDown}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              moveLayerDown(layer.id);
+                            }}
+                            title="Mover para baixo"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeLayer(layer.id);
+                            }}
+                            title="Remover camada"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Background card (always at bottom, no move/delete) */}
+                <button
+                  className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
+                  onClick={() => setSelectedLayerId("background")}
+                >
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                        <ImageIcon className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-sm font-semibold">Background</span>
+                    </div>
+                    <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                  </div>
+                  <div
+                    className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                    style={{
+                      background:
+                        bgLayer.bgType === "gradient"
+                          ? `linear-gradient(135deg, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`
+                          : bgLayer.bgType === "solid"
+                          ? bgLayer.bgColor
+                          : undefined,
+                    }}
+                  >
+                    {bgLayer.bgType === "transparent" && (
+                      <div className="h-full w-full rounded-lg bg-checker" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-sidebar-foreground/50 capitalize">
+                    <span>{bgLayer.bgType}</span>
+                    {bgLayer.bgType !== "transparent" && (
+                      <>
+                        <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                        <span className="font-mono uppercase">
+                          {bgLayer.bgColor}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </button>
+              </div>
             </div>
           )}
 
-          {/* RAYS PROPERTIES */}
-          {layerView === "rays" && (
+          {/* ── RAYS PROPERTIES ──────────────────────────────────────── */}
+          {selectedRayLayer && (
             <>
               <SidebarGroup>
                 <SidebarGroupLabel>Cores</SidebarGroupLabel>
@@ -981,8 +1258,10 @@ export function GodRaysGenerator() {
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col items-center gap-1.5">
                         <ColorPicker
-                          value={config.colorStart}
-                          onChange={(v) => update("colorStart", v)}
+                          value={selectedRayLayer.colorStart}
+                          onChange={(v) =>
+                            updateLayer(selectedRayLayer.id, { colorStart: v })
+                          }
                         />
                         <span className="text-[11px] text-sidebar-foreground/60">
                           Início
@@ -992,18 +1271,20 @@ export function GodRaysGenerator() {
                         className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
                         style={{
                           background: `linear-gradient(to right, ${
-                            config.colorStart
+                            selectedRayLayer.colorStart
                           }, ${
-                            config.fadeToTransparent
+                            selectedRayLayer.fadeToTransparent
                               ? "transparent"
-                              : config.colorEnd
+                              : selectedRayLayer.colorEnd
                           })`,
                         }}
                       />
                       <div className="flex flex-col items-center gap-1.5">
                         <ColorPicker
-                          value={config.colorEnd}
-                          onChange={(v) => update("colorEnd", v)}
+                          value={selectedRayLayer.colorEnd}
+                          onChange={(v) =>
+                            updateLayer(selectedRayLayer.id, { colorEnd: v })
+                          }
                         />
                         <span className="text-[11px] text-sidebar-foreground/60">
                           Fim
@@ -1012,9 +1293,11 @@ export function GodRaysGenerator() {
                     </div>
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
                       <Checkbox
-                        checked={config.fadeToTransparent}
+                        checked={selectedRayLayer.fadeToTransparent}
                         onCheckedChange={(v) =>
-                          update("fadeToTransparent", v === true)
+                          updateLayer(selectedRayLayer.id, {
+                            fadeToTransparent: v === true,
+                          })
                         }
                       />
                       Desvanecer para transparente
@@ -1029,71 +1312,98 @@ export function GodRaysGenerator() {
                 <SidebarGroupLabel>Forma</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <div className="space-y-4 px-2 pb-2">
-                    <Field label="Quantidade" value={config.rayCount}>
+                    <Field label="Quantidade" value={selectedRayLayer.rayCount}>
                       <Slider
                         min={1}
                         max={200}
                         step={1}
-                        value={[config.rayCount]}
-                        onValueChange={([v]) => update("rayCount", v)}
+                        value={[selectedRayLayer.rayCount]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { rayCount: v })
+                        }
                       />
                     </Field>
                     <Field
                       label="Largura base"
                       unit="px"
-                      value={config.rayWidth.toFixed(0)}
+                      value={selectedRayLayer.rayWidth.toFixed(0)}
                     >
                       <Slider
                         min={1}
                         max={400}
                         step={1}
-                        value={[config.rayWidth]}
-                        onValueChange={([v]) => update("rayWidth", v)}
+                        value={[selectedRayLayer.rayWidth]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { rayWidth: v })
+                        }
                       />
                     </Field>
                     <Field
                       label="Divergência"
-                      value={config.divergence.toFixed(2)}
+                      value={selectedRayLayer.divergence.toFixed(2)}
                       hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
                     >
                       <Slider
                         min={0.1}
                         max={5}
                         step={0.05}
-                        value={[config.divergence]}
-                        onValueChange={([v]) => update("divergence", v)}
+                        value={[selectedRayLayer.divergence]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { divergence: v })
+                        }
                       />
                     </Field>
                     <Field
                       label="Comprimento"
-                      value={config.rayLength.toFixed(2)}
+                      value={selectedRayLayer.rayLength.toFixed(2)}
                       unit="× diag"
                     >
                       <Slider
                         min={0.2}
                         max={2.5}
                         step={0.05}
-                        value={[config.rayLength]}
-                        onValueChange={([v]) => update("rayLength", v)}
+                        value={[selectedRayLayer.rayLength]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { rayLength: v })
+                        }
                       />
                     </Field>
                     <Field
                       label="Opacidade"
-                      value={(config.opacity * 100).toFixed(0)}
+                      value={(selectedRayLayer.opacity * 100).toFixed(0)}
                       unit="%"
                     >
                       <Slider
                         min={0}
                         max={1}
                         step={0.01}
-                        value={[config.opacity]}
-                        onValueChange={([v]) => update("opacity", v)}
+                        value={[selectedRayLayer.opacity]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { opacity: v })
+                        }
+                      />
+                    </Field>
+                    <Field
+                      label="Blur"
+                      value={selectedRayLayer.blur.toFixed(1)}
+                      unit="px"
+                    >
+                      <Slider
+                        min={0}
+                        max={80}
+                        step={0.5}
+                        value={[selectedRayLayer.blur]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { blur: v })
+                        }
                       />
                     </Field>
                     <Field label="Blend mode">
                       <BlendModeSelect
-                        value={config.blendMode}
-                        onChange={(v) => update("blendMode", v)}
+                        value={selectedRayLayer.blendMode}
+                        onChange={(v) =>
+                          updateLayer(selectedRayLayer.id, { blendMode: v })
+                        }
                       />
                     </Field>
                   </div>
@@ -1108,7 +1418,7 @@ export function GodRaysGenerator() {
                   <div className="space-y-4 px-2 pb-2">
                     <Field
                       label="Direção"
-                      value={config.direction.toFixed(0)}
+                      value={selectedRayLayer.direction.toFixed(0)}
                       unit="°"
                       hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
                     >
@@ -1116,28 +1426,36 @@ export function GodRaysGenerator() {
                         min={0}
                         max={360}
                         step={1}
-                        value={[config.direction]}
-                        onValueChange={([v]) => update("direction", v)}
+                        value={[selectedRayLayer.direction]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { direction: v })
+                        }
                       />
                     </Field>
                     <Field
                       label="Abertura (spread)"
-                      value={config.spread.toFixed(0)}
+                      value={selectedRayLayer.spread.toFixed(0)}
                       unit="°"
                     >
                       <Slider
                         min={0}
                         max={360}
                         step={1}
-                        value={[config.spread]}
-                        onValueChange={([v]) => update("spread", v)}
+                        value={[selectedRayLayer.spread]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { spread: v })
+                        }
                       />
                     </Field>
                     <OriginInputs
-                      x={config.originX}
-                      y={config.originY}
-                      onXChange={(v) => update("originX", v)}
-                      onYChange={(v) => update("originY", v)}
+                      x={selectedRayLayer.originX}
+                      y={selectedRayLayer.originY}
+                      onXChange={(v) =>
+                        updateLayer(selectedRayLayer.id, { originX: v })
+                      }
+                      onYChange={(v) =>
+                        updateLayer(selectedRayLayer.id, { originY: v })
+                      }
                     />
                   </div>
                 </SidebarGroupContent>
@@ -1151,7 +1469,7 @@ export function GodRaysGenerator() {
                   <div className="space-y-4 px-2 pb-2">
                     <Field
                       label="Variação"
-                      value={config.randomness.toFixed(0)}
+                      value={selectedRayLayer.randomness.toFixed(0)}
                       unit="%"
                       hint="Jitter na largura, comprimento e ângulo de cada raio"
                     >
@@ -1159,20 +1477,21 @@ export function GodRaysGenerator() {
                         min={0}
                         max={100}
                         step={1}
-                        value={[config.randomness]}
-                        onValueChange={([v]) => update("randomness", v)}
+                        value={[selectedRayLayer.randomness]}
+                        onValueChange={([v]) =>
+                          updateLayer(selectedRayLayer.id, { randomness: v })
+                        }
                       />
                     </Field>
                     <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-                      <Field label="Seed" value={config.seed}>
+                      <Field label="Seed" value={selectedRayLayer.seed}>
                         <Input
                           type="number"
-                          value={config.seed}
+                          value={selectedRayLayer.seed}
                           onChange={(e) =>
-                            update(
-                              "seed",
-                              clampNum(e.target.value, 0, 1_000_000)
-                            )
+                            updateLayer(selectedRayLayer.id, {
+                              seed: clampNum(e.target.value, 0, 1_000_000),
+                            })
                           }
                         />
                       </Field>
@@ -1191,8 +1510,8 @@ export function GodRaysGenerator() {
             </>
           )}
 
-          {/* HALO PROPERTIES */}
-          {layerView === "halo" && (
+          {/* ── HALO PROPERTIES ──────────────────────────────────────── */}
+          {selectedHaloLayer && (
             <SidebarGroup>
               <SidebarGroupLabel>Halo</SidebarGroupLabel>
               <SidebarGroupContent>
@@ -1200,100 +1519,114 @@ export function GodRaysGenerator() {
                   <Field label="Cor">
                     <div className="flex items-center gap-3">
                       <ColorPicker
-                        value={config.haloColor}
-                        onChange={(v) => update("haloColor", v)}
+                        value={selectedHaloLayer.color}
+                        onChange={(v) =>
+                          updateLayer(selectedHaloLayer.id, { color: v })
+                        }
                       />
                       <span className="font-mono text-xs text-sidebar-foreground/60">
-                        {config.haloColor}
+                        {selectedHaloLayer.color}
                       </span>
                     </div>
                   </Field>
                   <Field
                     label="Intensidade"
-                    value={(config.halo * 100).toFixed(0)}
+                    value={(selectedHaloLayer.intensity * 100).toFixed(0)}
                     unit="%"
                   >
                     <Slider
                       min={0}
                       max={1}
                       step={0.01}
-                      value={[config.halo]}
-                      onValueChange={([v]) => update("halo", v)}
+                      value={[selectedHaloLayer.intensity]}
+                      onValueChange={([v]) =>
+                        updateLayer(selectedHaloLayer.id, { intensity: v })
+                      }
                     />
                   </Field>
                   <Field
                     label="Tamanho"
-                    value={(config.haloSize * 100).toFixed(0)}
+                    value={(selectedHaloLayer.size * 100).toFixed(0)}
                     unit="%"
                   >
                     <Slider
                       min={0.05}
                       max={1.5}
                       step={0.01}
-                      value={[config.haloSize]}
-                      onValueChange={([v]) => update("haloSize", v)}
+                      value={[selectedHaloLayer.size]}
+                      onValueChange={([v]) =>
+                        updateLayer(selectedHaloLayer.id, { size: v })
+                      }
                     />
                   </Field>
                   <Field label="Blend mode">
                     <BlendModeSelect
-                      value={config.haloBlendMode}
-                      onChange={(v) => update("haloBlendMode", v)}
+                      value={selectedHaloLayer.blendMode}
+                      onChange={(v) =>
+                        updateLayer(selectedHaloLayer.id, { blendMode: v })
+                      }
                     />
                   </Field>
                   <OriginInputs
-                    x={config.haloOriginX}
-                    y={config.haloOriginY}
-                    onXChange={(v) => update("haloOriginX", v)}
-                    onYChange={(v) => update("haloOriginY", v)}
+                    x={selectedHaloLayer.originX}
+                    y={selectedHaloLayer.originY}
+                    onXChange={(v) =>
+                      updateLayer(selectedHaloLayer.id, { originX: v })
+                    }
+                    onYChange={(v) =>
+                      updateLayer(selectedHaloLayer.id, { originY: v })
+                    }
                   />
                 </div>
               </SidebarGroupContent>
             </SidebarGroup>
           )}
 
-          {/* BACKGROUND PROPERTIES */}
-          {layerView === "background" && (
+          {/* ── BACKGROUND PROPERTIES ────────────────────────────────── */}
+          {selectedBgLayer && (
             <SidebarGroup>
               <SidebarGroupLabel>Background</SidebarGroupLabel>
               <SidebarGroupContent>
                 <div className="space-y-4 px-2 pb-2">
                   <Field label="Tipo">
                     <Select
-                      value={config.bgType}
+                      value={selectedBgLayer.bgType}
                       onValueChange={(v) =>
-                        update("bgType", v as BackgroundType)
+                        updateLayer("background", { bgType: v as BackgroundType })
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="transparent">
-                          Transparente
-                        </SelectItem>
+                        <SelectItem value="transparent">Transparente</SelectItem>
                         <SelectItem value="solid">Cor sólida</SelectItem>
                         <SelectItem value="gradient">Gradiente</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
-                  {config.bgType === "solid" && (
+                  {selectedBgLayer.bgType === "solid" && (
                     <div className="flex items-center gap-3">
                       <ColorPicker
-                        value={config.bgColor}
-                        onChange={(v) => update("bgColor", v)}
+                        value={selectedBgLayer.bgColor}
+                        onChange={(v) =>
+                          updateLayer("background", { bgColor: v })
+                        }
                       />
                       <span className="font-mono text-xs text-sidebar-foreground/60">
-                        {config.bgColor}
+                        {selectedBgLayer.bgColor}
                       </span>
                     </div>
                   )}
-                  {config.bgType === "gradient" && (
+                  {selectedBgLayer.bgType === "gradient" && (
                     <>
                       <div className="flex items-center gap-3">
                         <div className="flex flex-col items-center gap-1.5">
                           <ColorPicker
-                            value={config.bgColor}
-                            onChange={(v) => update("bgColor", v)}
+                            value={selectedBgLayer.bgColor}
+                            onChange={(v) =>
+                              updateLayer("background", { bgColor: v })
+                            }
                           />
                           <span className="text-[11px] text-sidebar-foreground/60">
                             Início
@@ -1302,13 +1635,15 @@ export function GodRaysGenerator() {
                         <div
                           className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
                           style={{
-                            background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})`,
+                            background: `linear-gradient(to right, ${selectedBgLayer.bgColor}, ${selectedBgLayer.bgColor2})`,
                           }}
                         />
                         <div className="flex flex-col items-center gap-1.5">
                           <ColorPicker
-                            value={config.bgColor2}
-                            onChange={(v) => update("bgColor2", v)}
+                            value={selectedBgLayer.bgColor2}
+                            onChange={(v) =>
+                              updateLayer("background", { bgColor2: v })
+                            }
                           />
                           <span className="text-[11px] text-sidebar-foreground/60">
                             Fim
@@ -1317,15 +1652,17 @@ export function GodRaysGenerator() {
                       </div>
                       <Field
                         label="Ângulo"
-                        value={config.bgGradientAngle.toFixed(0)}
+                        value={selectedBgLayer.bgGradientAngle.toFixed(0)}
                         unit="°"
                       >
                         <Slider
                           min={0}
                           max={360}
                           step={1}
-                          value={[config.bgGradientAngle]}
-                          onValueChange={([v]) => update("bgGradientAngle", v)}
+                          value={[selectedBgLayer.bgGradientAngle]}
+                          onValueChange={([v]) =>
+                            updateLayer("background", { bgGradientAngle: v })
+                          }
                         />
                       </Field>
                     </>

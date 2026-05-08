@@ -1,6 +1,6 @@
 /**
  * God Rays / Light Rays rendering engine
- * Renders configurable volumetric light rays to a 2D canvas.
+ * Supports multiple independent ray and halo layers per scene.
  */
 
 export type BlendMode =
@@ -22,62 +22,153 @@ export const BLEND_MODES: { label: string; value: BlendMode }[] = [
 
 export type BackgroundType = "transparent" | "solid" | "gradient";
 
-export interface GodRaysConfig {
-  // Canvas / output
+// ── Layer types ────────────────────────────────────────────────────────────
+
+export interface RayLayer {
+  id: string;
+  type: "rays";
+  name: string;
+  direction: number;
+  spread: number;
+  originX: number;
+  originY: number;
+  rayCount: number;
+  rayWidth: number;
+  divergence: number;
+  rayLength: number;
+  opacity: number;
+  blendMode: BlendMode;
+  colorStart: string;
+  colorEnd: string;
+  fadeToTransparent: boolean;
+  blur: number;
+  randomness: number;
+  seed: number;
+}
+
+export interface HaloLayer {
+  id: string;
+  type: "halo";
+  name: string;
+  originX: number;
+  originY: number;
+  intensity: number;
+  size: number;
+  color: string;
+  blendMode: BlendMode;
+}
+
+export interface BackgroundLayer {
+  id: "background";
+  type: "background";
+  bgType: BackgroundType;
+  bgColor: string;
+  bgColor2: string;
+  bgGradientAngle: number;
+}
+
+export type Layer = RayLayer | HaloLayer | BackgroundLayer;
+
+export interface SceneConfig {
   width: number;
   height: number;
+  noise: number;
+  grainSize: number;
+  /** Ordered back-to-front. BackgroundLayer is always at index 0. */
+  layers: Layer[];
+}
 
-  // Rays
-  rayCount: number; // total number of rays
-  rayWidth: number; // base width (px) at origin
-  divergence: number; // 0..n, how much wider rays get at the far end (1 = same, 2 = doubles)
-  rayLength: number; // 0..2 multiplier on canvas diagonal
-  opacity: number; // 0..1
+// ── Defaults ───────────────────────────────────────────────────────────────
+
+export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
+  type: "rays",
+  direction: 200,
+  spread: 60,
+  originX: 50,
+  originY: 0,
+  rayCount: 24,
+  rayWidth: 60,
+  divergence: 1.6,
+  rayLength: 1.4,
+  opacity: 0.6,
+  blendMode: "lighter",
+  colorStart: "#ffd28a",
+  colorEnd: "#ffd28a",
+  fadeToTransparent: true,
+  blur: 8,
+  randomness: 30,
+  seed: 1337,
+};
+
+export const DEFAULT_HALO_LAYER: Omit<HaloLayer, "id" | "name"> = {
+  type: "halo",
+  originX: 50,
+  originY: 0,
+  intensity: 0.5,
+  size: 0.25,
+  color: "#ffd28a",
+  blendMode: "lighter",
+};
+
+export const DEFAULT_BACKGROUND_LAYER: BackgroundLayer = {
+  id: "background",
+  type: "background",
+  bgType: "gradient",
+  bgColor: "#0b1024",
+  bgColor2: "#1a1340",
+  bgGradientAngle: 180,
+};
+
+export const DEFAULT_SCENE: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 8,
+  grainSize: 1,
+  layers: [
+    { ...DEFAULT_BACKGROUND_LAYER },
+    { id: "halo-1", name: "Halo", ...DEFAULT_HALO_LAYER },
+    { id: "rays-1", name: "Rays", ...DEFAULT_RAY_LAYER },
+  ],
+};
+
+// ── Legacy flat config (kept for presets.ts compatibility) ─────────────────
+
+export interface GodRaysConfig {
+  width: number;
+  height: number;
+  rayCount: number;
+  rayWidth: number;
+  divergence: number;
+  rayLength: number;
+  opacity: number;
   blendMode: BlendMode;
   haloBlendMode: BlendMode;
-
-  // Direction
-  direction: number; // degrees, compass style: 0 = up, 90 = right, 180 = down, 270 = left
-  spread: number; // degrees, total cone angle the rays fan out across
-
-  // Origin (in % of canvas)
-  originX: number; // 0..100
-  originY: number; // 0..100
-
-  // Halo origin (independent, in % of canvas)
+  direction: number;
+  spread: number;
+  originX: number;
+  originY: number;
   haloOriginX: number;
   haloOriginY: number;
-
-  // Colors
-  colorStart: string; // hex, color at origin
-  colorEnd: string; // hex, color at far end (typically same hue with 0 alpha)
-  fadeToTransparent: boolean; // if true colorEnd alpha = 0, otherwise full opacity
-
-  // Background
+  colorStart: string;
+  colorEnd: string;
+  fadeToTransparent: boolean;
   bgType: BackgroundType;
-  bgColor: string; // hex
-  bgColor2: string; // hex (for gradient)
-  bgGradientAngle: number; // degrees
-
-  // Halo (soft glow at origin)
-  halo: number; // 0..1 intensity
-  haloSize: number; // 0..1 fraction of canvas diagonal
-  haloColor: string; // hex
-
-  // Effects
-  blur: number; // px gaussian blur applied to rays
-  noise: number; // 0..100 film grain amount
-  grainSize: number; // 1..4 size of each grain "pixel"
-
-  // Randomness
-  randomness: number; // 0..100 jitter on width / length / angle
-  seed: number; // PRNG seed
+  bgColor: string;
+  bgColor2: string;
+  bgGradientAngle: number;
+  halo: number;
+  haloSize: number;
+  haloColor: string;
+  blur: number;
+  noise: number;
+  grainSize: number;
+  randomness: number;
+  seed: number;
 }
 
 export const DEFAULT_CONFIG: GodRaysConfig = {
   width: 1920,
   height: 1080,
-
   rayCount: 24,
   rayWidth: 60,
   divergence: 1.6,
@@ -85,33 +176,25 @@ export const DEFAULT_CONFIG: GodRaysConfig = {
   opacity: 0.6,
   blendMode: "lighter",
   haloBlendMode: "lighter",
-
   direction: 200,
   spread: 60,
-
   originX: 50,
   originY: 0,
-
   haloOriginX: 50,
   haloOriginY: 0,
-
   colorStart: "#ffd28a",
   colorEnd: "#ffd28a",
   fadeToTransparent: true,
-
   bgType: "gradient",
   bgColor: "#0b1024",
   bgColor2: "#1a1340",
   bgGradientAngle: 180,
-
   halo: 0.5,
   haloSize: 0.25,
   haloColor: "#ffd28a",
-
   blur: 8,
   noise: 8,
   grainSize: 1,
-
   randomness: 30,
   seed: 1337,
 };
@@ -150,95 +233,94 @@ function rgba(c: { r: number; g: number; b: number }, a: number) {
   return `rgba(${c.r},${c.g},${c.b},${a})`;
 }
 
-/** Convert compass degrees (0 = up) to canvas radians (0 = right). */
 function compassToCanvas(deg: number) {
   return ((deg - 90) * Math.PI) / 180;
 }
 
-/* ----------------- main render ----------------- */
+/* ----------------- layer renderers ----------------- */
 
-export function drawGodRays(
-  canvas: HTMLCanvasElement,
-  config: GodRaysConfig
-): void {
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
-  const { width, height } = canvas;
-
-  // 1. Clear and paint background
+function renderBackground(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layer: BackgroundLayer
+) {
   ctx.save();
   ctx.globalCompositeOperation = "source-over";
-  ctx.clearRect(0, 0, width, height);
-
-  if (config.bgType === "solid") {
-    ctx.fillStyle = config.bgColor;
+  if (layer.bgType === "solid") {
+    ctx.fillStyle = layer.bgColor;
     ctx.fillRect(0, 0, width, height);
-  } else if (config.bgType === "gradient") {
-    const a = (config.bgGradientAngle * Math.PI) / 180;
+  } else if (layer.bgType === "gradient") {
+    const a = (layer.bgGradientAngle * Math.PI) / 180;
     const cx = width / 2;
     const cy = height / 2;
     const half = Math.hypot(width, height) / 2;
     const dx = Math.cos(a) * half;
     const dy = Math.sin(a) * half;
     const g = ctx.createLinearGradient(cx - dx, cy - dy, cx + dx, cy + dy);
-    g.addColorStop(0, config.bgColor);
-    g.addColorStop(1, config.bgColor2);
+    g.addColorStop(0, layer.bgColor);
+    g.addColorStop(1, layer.bgColor2);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, width, height);
   }
   ctx.restore();
+}
 
-  // 2. Origin + direction
-  const ox = (config.originX / 100) * width;
-  const oy = (config.originY / 100) * height;
-  const baseAngle = compassToCanvas(config.direction);
-  const spread = (config.spread * Math.PI) / 180;
-
-  // 3. Halo (radial glow at its own origin) drawn before rays
-  if (config.halo > 0) {
-    ctx.save();
-    ctx.globalCompositeOperation = config.haloBlendMode;
-    const hox = (config.haloOriginX / 100) * width;
-    const hoy = (config.haloOriginY / 100) * height;
-    const haloR = Math.hypot(width, height) * config.haloSize;
-    const haloG = ctx.createRadialGradient(hox, hoy, 0, hox, hoy, haloR);
-    const c = hexToRgb(config.haloColor);
-    haloG.addColorStop(0, rgba(c, config.halo));
-    haloG.addColorStop(0.5, rgba(c, config.halo * 0.4));
-    haloG.addColorStop(1, rgba(c, 0));
-    ctx.fillStyle = haloG;
-    ctx.beginPath();
-    ctx.arc(hox, hoy, haloR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // 4. Rays
+function renderHalo(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layer: HaloLayer
+) {
+  if (layer.intensity <= 0) return;
   ctx.save();
-  ctx.globalCompositeOperation = config.blendMode;
-  if (config.blur > 0) ctx.filter = `blur(${config.blur}px)`;
+  ctx.globalCompositeOperation = layer.blendMode;
+  const hox = (layer.originX / 100) * width;
+  const hoy = (layer.originY / 100) * height;
+  const haloR = Math.hypot(width, height) * layer.size;
+  const haloG = ctx.createRadialGradient(hox, hoy, 0, hox, hoy, haloR);
+  const c = hexToRgb(layer.color);
+  haloG.addColorStop(0, rgba(c, layer.intensity));
+  haloG.addColorStop(0.5, rgba(c, layer.intensity * 0.4));
+  haloG.addColorStop(1, rgba(c, 0));
+  ctx.fillStyle = haloG;
+  ctx.beginPath();
+  ctx.arc(hox, hoy, haloR, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
-  const colorStart = hexToRgb(config.colorStart);
-  const colorEnd = hexToRgb(config.colorEnd);
+function renderRays(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layer: RayLayer
+) {
+  ctx.save();
+  ctx.globalCompositeOperation = layer.blendMode;
+  if (layer.blur > 0) ctx.filter = `blur(${layer.blur}px)`;
+
+  const ox = (layer.originX / 100) * width;
+  const oy = (layer.originY / 100) * height;
+  const baseAngle = compassToCanvas(layer.direction);
+  const spread = (layer.spread * Math.PI) / 180;
+
+  const colorStart = hexToRgb(layer.colorStart);
+  const colorEnd = hexToRgb(layer.colorEnd);
   const diag = Math.hypot(width, height);
-  const maxLen = diag * config.rayLength;
+  const maxLen = diag * layer.rayLength;
 
-  const rng = mulberry32(config.seed);
+  const rng = mulberry32(layer.seed);
 
-  for (let i = 0; i < config.rayCount; i++) {
-    const t =
-      config.rayCount === 1 ? 0.5 : i / (config.rayCount - 1);
-
-    const widthVar = 1 - rng() * (config.randomness / 100);
-    const lenVar = 1 - rng() * (config.randomness / 100) * 0.6;
-    const slot =
-      config.rayCount > 1 ? spread / (config.rayCount - 1) : spread;
-    const jitter = (rng() - 0.5) * (config.randomness / 100) * slot;
-
+  for (let i = 0; i < layer.rayCount; i++) {
+    const t = layer.rayCount === 1 ? 0.5 : i / (layer.rayCount - 1);
+    const widthVar = 1 - rng() * (layer.randomness / 100);
+    const lenVar = 1 - rng() * (layer.randomness / 100) * 0.6;
+    const slot = layer.rayCount > 1 ? spread / (layer.rayCount - 1) : spread;
+    const jitter = (rng() - 0.5) * (layer.randomness / 100) * slot;
     const angle = baseAngle - spread / 2 + spread * t + jitter;
-
-    const w0 = Math.max(1, config.rayWidth * widthVar);
-    const w1 = Math.max(1, w0 * config.divergence);
+    const w0 = Math.max(1, layer.rayWidth * widthVar);
+    const w1 = Math.max(1, w0 * layer.divergence);
     const len = Math.max(50, maxLen * lenVar);
 
     ctx.save();
@@ -246,10 +328,10 @@ export function drawGodRays(
     ctx.rotate(angle);
 
     const grad = ctx.createLinearGradient(0, 0, len, 0);
-    grad.addColorStop(0, rgba(colorStart, config.opacity));
+    grad.addColorStop(0, rgba(colorStart, layer.opacity));
     grad.addColorStop(
       1,
-      rgba(colorEnd, config.fadeToTransparent ? 0 : config.opacity)
+      rgba(colorEnd, layer.fadeToTransparent ? 0 : layer.opacity)
     );
     ctx.fillStyle = grad;
 
@@ -260,16 +342,86 @@ export function drawGodRays(
     ctx.lineTo(0, w0 / 2);
     ctx.closePath();
     ctx.fill();
-
     ctx.restore();
   }
 
   ctx.restore();
+}
 
-  // 5. Film grain / noise (last so it sits on top)
-  if (config.noise > 0) {
-    addGrain(ctx, width, height, config.noise, config.grainSize);
+/* ----------------- main scene render ----------------- */
+
+export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig): void {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const { width, height } = canvas;
+
+  ctx.clearRect(0, 0, width, height);
+
+  for (const layer of scene.layers) {
+    if (layer.type === "background") renderBackground(ctx, width, height, layer);
+    else if (layer.type === "halo") renderHalo(ctx, width, height, layer);
+    else if (layer.type === "rays") renderRays(ctx, width, height, layer);
   }
+
+  if (scene.noise > 0) {
+    addGrain(ctx, width, height, scene.noise, scene.grainSize);
+  }
+}
+
+/* ----------------- legacy single-pass render (kept for drawGodRays callers) --- */
+
+export function drawGodRays(
+  canvas: HTMLCanvasElement,
+  config: GodRaysConfig
+): void {
+  drawScene(canvas, {
+    width: config.width,
+    height: config.height,
+    noise: config.noise,
+    grainSize: config.grainSize,
+    layers: [
+      {
+        id: "background",
+        type: "background",
+        bgType: config.bgType,
+        bgColor: config.bgColor,
+        bgColor2: config.bgColor2,
+        bgGradientAngle: config.bgGradientAngle,
+      },
+      {
+        id: "halo-legacy",
+        type: "halo",
+        name: "Halo",
+        originX: config.haloOriginX,
+        originY: config.haloOriginY,
+        intensity: config.halo,
+        size: config.haloSize,
+        color: config.haloColor,
+        blendMode: config.haloBlendMode,
+      },
+      {
+        id: "rays-legacy",
+        type: "rays",
+        name: "Rays",
+        direction: config.direction,
+        spread: config.spread,
+        originX: config.originX,
+        originY: config.originY,
+        rayCount: config.rayCount,
+        rayWidth: config.rayWidth,
+        divergence: config.divergence,
+        rayLength: config.rayLength,
+        opacity: config.opacity,
+        blendMode: config.blendMode,
+        colorStart: config.colorStart,
+        colorEnd: config.colorEnd,
+        fadeToTransparent: config.fadeToTransparent,
+        blur: config.blur,
+        randomness: config.randomness,
+        seed: config.seed,
+      },
+    ],
+  });
 }
 
 function addGrain(
@@ -317,6 +469,37 @@ function clamp255(v: number) {
 
 /* ----------------- export helpers ----------------- */
 
+export async function exportScene(
+  scene: SceneConfig,
+  type: "image/png" | "image/jpeg",
+  quality = 0.95
+): Promise<Blob> {
+  const off = document.createElement("canvas");
+  off.width = scene.width;
+  off.height = scene.height;
+  drawScene(off, scene);
+  return new Promise<Blob>((resolve, reject) => {
+    off.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Falha ao gerar imagem"));
+      },
+      type,
+      quality
+    );
+  });
+}
+
+export async function buildSceneCssSnippet(scene: SceneConfig): Promise<string> {
+  const off = document.createElement("canvas");
+  off.width = scene.width;
+  off.height = scene.height;
+  drawScene(off, scene);
+  const dataUrl = off.toDataURL("image/png");
+  return `background-image: url("${dataUrl}");\nbackground-size: cover;\nbackground-position: center;\nbackground-repeat: no-repeat;`;
+}
+
+// kept for backward-compat callers
 export async function exportImage(
   config: GodRaysConfig,
   type: "image/png" | "image/jpeg",
@@ -326,8 +509,7 @@ export async function exportImage(
   off.width = config.width;
   off.height = config.height;
   drawGodRays(off, config);
-
-  return await new Promise<Blob>((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     off.toBlob(
       (blob) => {
         if (blob) resolve(blob);
@@ -351,9 +533,7 @@ export async function exportDataURL(
   return off.toDataURL(type, quality);
 }
 
-export async function buildCssSnippet(
-  config: GodRaysConfig
-): Promise<string> {
+export async function buildCssSnippet(config: GodRaysConfig): Promise<string> {
   const dataUrl = await exportDataURL(config, "image/png");
   return `background-image: url("${dataUrl}");\nbackground-size: cover;\nbackground-position: center;\nbackground-repeat: no-repeat;`;
 }
