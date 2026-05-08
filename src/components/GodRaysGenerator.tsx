@@ -231,7 +231,7 @@ export function GodRaysGenerator() {
   const { dark, toggle: toggleTheme } = useTheme();
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
-    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_ember");
+    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
@@ -251,7 +251,7 @@ export function GodRaysGenerator() {
   const [zoom, setZoom] = React.useState(1);
   const [activeColorPreset, setActiveColorPreset] = React.useState<
     string | null
-  >("c_ember");
+  >("c_contentnow");
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     "r_side_glow"
   );
@@ -637,39 +637,39 @@ export function GodRaysGenerator() {
 
   // ── Canvas overlays ───────────────────────────────────────────────────────
 
-  const raysBBox = React.useMemo(() => {
-    if (!selectedRayLayer) return null;
+  const layerBounds = React.useMemo(() => {
     const { w, h } = fittedSize;
-    if (!w || !h) return null;
-    const ox = (selectedRayLayer.originX / 100) * w;
-    const oy = (selectedRayLayer.originY / 100) * h;
-    const baseAngle = ((selectedRayLayer.direction - 90) * Math.PI) / 180;
-    const spreadRad = (selectedRayLayer.spread * Math.PI) / 180;
-    const maxLen = Math.hypot(w, h) * selectedRayLayer.rayLength;
-    const pts: [number, number][] = [[ox, oy]];
-    const steps = 64;
-    for (let i = 0; i <= steps; i++) {
-      const angle = baseAngle - spreadRad / 2 + spreadRad * (i / steps);
-      pts.push([ox + Math.cos(angle) * maxLen, oy + Math.sin(angle) * maxLen]);
+    if (!w || !h) return new Map<string, { type: "rays" | "halo"; bbox: { x: number; y: number; w: number; h: number } }>();
+    const map = new Map<string, { type: "rays" | "halo"; bbox: { x: number; y: number; w: number; h: number } }>();
+    for (const layer of nonBgLayers) {
+      if (layer.type === "rays") {
+        const ox = (layer.originX / 100) * w;
+        const oy = (layer.originY / 100) * h;
+        const baseAngle = ((layer.direction - 90) * Math.PI) / 180;
+        const spreadRad = (layer.spread * Math.PI) / 180;
+        const maxLen = Math.hypot(w, h) * layer.rayLength;
+        const pts: [number, number][] = [[ox, oy]];
+        for (let i = 0; i <= 64; i++) {
+          const angle = baseAngle - spreadRad / 2 + spreadRad * (i / 64);
+          pts.push([ox + Math.cos(angle) * maxLen, oy + Math.sin(angle) * maxLen]);
+        }
+        const xs = pts.map((p) => p[0]);
+        const ys = pts.map((p) => p[1]);
+        const x = Math.min(...xs);
+        const y = Math.min(...ys);
+        map.set(layer.id, { type: "rays", bbox: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y } });
+      } else if (layer.type === "halo") {
+        const r = Math.hypot(w, h) * layer.size;
+        const cx = (layer.originX / 100) * w;
+        const cy = (layer.originY / 100) * h;
+        map.set(layer.id, { type: "halo", bbox: { x: cx - r, y: cy - r, w: r * 2, h: r * 2 } });
+      }
     }
-    const xs = pts.map((p) => p[0]);
-    const ys = pts.map((p) => p[1]);
-    const x = Math.min(...xs);
-    const y = Math.min(...ys);
-    return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-  }, [fittedSize, selectedRayLayer]);
+    return map;
+  }, [fittedSize, nonBgLayers]);
 
-  const haloBCircle = React.useMemo(() => {
-    if (!selectedHaloLayer) return null;
-    const { w, h } = fittedSize;
-    if (!w || !h) return null;
-    const r = Math.hypot(w, h) * selectedHaloLayer.size;
-    return {
-      cx: (selectedHaloLayer.originX / 100) * w,
-      cy: (selectedHaloLayer.originY / 100) * h,
-      r,
-    };
-  }, [fittedSize, selectedHaloLayer]);
+  const selectedBounds = selectedLayerId ? layerBounds.get(selectedLayerId) ?? null : null;
+  const raysBBox = selectedRayLayer && selectedBounds ? selectedBounds.bbox : null;
 
   // ─────────────────────────────────────────────────────────────────────────
   // JSX
@@ -945,73 +945,99 @@ export function GodRaysGenerator() {
               className="block h-full w-full rounded-md shadow-2xl ring-1 ring-border"
             />
 
-            {/* Rays overlay */}
-            {selectedRayLayer && raysBBox && (
-              <div
-                className={cn(
-                  "absolute",
-                  isDragging ? "cursor-grabbing" : "cursor-grab"
-                )}
-                style={{
-                  left: raysBBox.x,
-                  top: raysBBox.y,
-                  width: raysBBox.w,
-                  height: raysBBox.h,
-                }}
-                onPointerDown={onOverlayPointerDown}
-                onPointerMove={onOverlayPointerMove}
-                onPointerUp={onOverlayPointerUp}
-                onPointerCancel={onOverlayPointerUp}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
-                <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  {selectedRayLayer.name}
-                </span>
-                <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
-                <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
-                <OriginCrosshair
-                  color="blue"
-                  style={{
-                    left:
-                      (selectedRayLayer.originX / 100) * fittedSize.w -
-                      raysBBox.x,
-                    top:
-                      (selectedRayLayer.originY / 100) * fittedSize.h -
-                      raysBBox.y,
-                  }}
-                />
-              </div>
-            )}
+            {/* Hit areas for all non-background layers */}
+            {nonBgLayers.map((layer) => {
+              const bounds = layerBounds.get(layer.id);
+              if (!bounds) return null;
+              const isSelected = layer.id === selectedLayerId;
+              const isRay = layer.type === "rays";
 
-            {/* Halo overlay */}
-            {selectedHaloLayer && haloBCircle && (
-              <div
-                className={cn(
-                  "absolute",
-                  isDragging ? "cursor-grabbing" : "cursor-grab"
-                )}
-                style={{
-                  left: haloBCircle.cx - haloBCircle.r,
-                  top: haloBCircle.cy - haloBCircle.r,
-                  width: haloBCircle.r * 2,
-                  height: haloBCircle.r * 2,
-                }}
-                onPointerDown={onOverlayPointerDown}
-                onPointerMove={onOverlayPointerMove}
-                onPointerUp={onOverlayPointerUp}
-                onPointerCancel={onOverlayPointerUp}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
-                <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
-                  {selectedHaloLayer.name}
-                </span>
-                <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
-              </div>
-            )}
+              if (isSelected) {
+                // Full drag overlay for selected layer
+                return (
+                  <div
+                    key={layer.id}
+                    className={cn(
+                      "absolute",
+                      isDragging ? "cursor-grabbing" : "cursor-grab"
+                    )}
+                    style={{
+                      left: bounds.bbox.x,
+                      top: bounds.bbox.y,
+                      width: bounds.bbox.w,
+                      height: bounds.bbox.h,
+                    }}
+                    onPointerDown={onOverlayPointerDown}
+                    onPointerMove={onOverlayPointerMove}
+                    onPointerUp={onOverlayPointerUp}
+                    onPointerCancel={onOverlayPointerUp}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isRay ? (
+                      <>
+                        <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
+                        <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                          {layer.name}
+                        </span>
+                        <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                        <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                        <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
+                        <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
+                        {raysBBox && (
+                          <OriginCrosshair
+                            color="blue"
+                            style={{
+                              left: (layer.originX / 100) * fittedSize.w - raysBBox.x,
+                              top: (layer.originY / 100) * fittedSize.h - raysBBox.y,
+                            }}
+                          />
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
+                        <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                          {layer.name}
+                        </span>
+                        <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
+                      </>
+                    )}
+                  </div>
+                );
+              }
+
+              // Click-to-select area for unselected layers
+              return (
+                <div
+                  key={layer.id}
+                  className="group absolute cursor-pointer"
+                  style={{
+                    left: bounds.bbox.x,
+                    top: bounds.bbox.y,
+                    width: bounds.bbox.w,
+                    height: bounds.bbox.h,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedLayerId(layer.id);
+                  }}
+                >
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
+                      isRay
+                        ? "group-hover:border-blue-400/50"
+                        : "rounded-full group-hover:border-amber-400/50"
+                    )}
+                  />
+                  <span className="pointer-events-none absolute -top-5 left-0 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block"
+                    style={{ background: isRay ? "#60a5fa" : "#fbbf24", color: isRay ? "white" : "black" }}
+                  >
+                    {layer.name}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Floating zoom controls */}
