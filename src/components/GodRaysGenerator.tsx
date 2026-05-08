@@ -682,7 +682,7 @@ export function GodRaysGenerator() {
         <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-400" />
+              <Sparkles className="size-3 text-amber-400" />
               <span className="text-sm font-semibold tracking-tight">
                 Rays Generator
               </span>
@@ -694,11 +694,7 @@ export function GodRaysGenerator() {
               className="h-7 w-7"
               title={dark ? "Modo claro" : "Modo escuro"}
             >
-              {dark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
+              {dark ? <Sun className="size-3" /> : <Moon className="size-3" />}
             </Button>
           </div>
         </SidebarHeader>
@@ -778,7 +774,7 @@ export function GodRaysGenerator() {
                     onClick={handleRandomize}
                     className="flex-1 gap-2"
                   >
-                    <Shuffle className="h-4 w-4" /> Aleatório
+                    <Shuffle className="size-3" /> Aleatório
                   </Button>
                   <Button
                     variant="outline"
@@ -786,7 +782,7 @@ export function GodRaysGenerator() {
                     onClick={handleReset}
                     className="flex-1 gap-2"
                   >
-                    <RotateCcw className="h-4 w-4" /> Reset
+                    <RotateCcw className="size-3" /> Reset
                   </Button>
                 </div>
               </div>
@@ -895,27 +891,19 @@ export function GodRaysGenerator() {
       <SidebarInset className="relative w-full">
         <div className="flex items-center justify-end gap-3 bg-background border-b border-border px-5 py-3 h-14">
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCopyPresetJson}
-            >
+            <Button size="sm" variant="outline" onClick={handleCopyPresetJson}>
               {copiedJson ? (
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="size-3 " />
               ) : (
-                <Copy className="h-4 w-4" />
+                <Copy className="size-2.5" />
               )}
               {copiedJson ? "Copiado" : "Copiar JSON"}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCopyCss}
-            >
+            <Button size="sm" variant="outline" onClick={handleCopyCss}>
               {copiedCss ? (
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="size-3 " />
               ) : (
-                <Code2 className="h-4 w-4" />
+                <Code2 className="size-3" />
               )}
               {copiedCss ? "Copiado" : "Copiar CSS"}
             </Button>
@@ -925,14 +913,14 @@ export function GodRaysGenerator() {
               onClick={() => handleExport("jpg")}
               disabled={exporting !== null}
             >
-              <ImageIcon className="h-4 w-4" /> JPG
+              <ImageIcon className="size-3" /> JPG
             </Button>
             <Button
               size="sm"
               onClick={() => handleExport("png")}
               disabled={exporting !== null}
             >
-              <Download className="h-4 w-4" /> PNG
+              <Download className="size-3" /> PNG
             </Button>
           </div>
         </div>
@@ -1039,7 +1027,7 @@ export function GodRaysGenerator() {
               className="h-7 w-7 rounded-full"
               title="Diminuir zoom"
             >
-              <ZoomOut className="h-4 w-4" />
+              <ZoomOut className="size-3" />
             </Button>
             <Button
               variant="ghost"
@@ -1057,7 +1045,7 @@ export function GodRaysGenerator() {
               className="h-7 w-7 rounded-full"
               title="Aumentar zoom"
             >
-              <ZoomIn className="h-4 w-4" />
+              <ZoomIn className="size-3" />
             </Button>
             <div className="mx-1 h-4 w-px bg-border" />
             <Button
@@ -1100,7 +1088,7 @@ export function GodRaysGenerator() {
                 onClick={() => setSelectedLayerId(null)}
                 title="Voltar para camadas"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="size-3" />
               </Button>
               <div>
                 <p className="text-xs font-medium uppercase tracking-widest text-sidebar-foreground/40">
@@ -1175,7 +1163,7 @@ export function GodRaysGenerator() {
                               {layer.name}
                             </span>
                           </div>
-                          <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                          <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
                         </div>
 
                         {/* Color preview */}
@@ -1304,7 +1292,7 @@ export function GodRaysGenerator() {
                       </div>
                       <span className="text-sm font-semibold">Background</span>
                     </div>
-                    <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                    <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
                   </div>
                   <div
                     className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
@@ -1590,7 +1578,7 @@ export function GodRaysGenerator() {
                         onClick={handleRandomize}
                         title="Sortear nova seed"
                       >
-                        <Shuffle className="h-4 w-4" />
+                        <Shuffle className="size-3" />
                       </Button>
                     </div>
                   </div>
