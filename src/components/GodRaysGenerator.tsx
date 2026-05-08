@@ -20,6 +20,8 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  SaveIcon,
+  Trash2Icon,
 } from "lucide-react";
 import {
   drawScene,
@@ -70,6 +72,17 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useTheme } from "@/components/theme-provider";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
@@ -247,6 +260,109 @@ export function GodRaysGenerator() {
     return () => window.clearTimeout(id);
   }, [scene]);
 
+
+  // ── Saves ────────────────────────────────────────────────────────────────
+
+  interface SavedScene {
+    id: string;
+    thumb: string;
+    scene: SceneConfig;
+    createdAt: number;
+    activeColorPreset?: string | null;
+    activeRaysPreset?: string | null;
+  }
+
+  const [saves, setSaves] = React.useState<SavedScene[]>(() => {
+    try {
+      const raw = localStorage.getItem("rays-saves");
+      return raw ? (JSON.parse(raw) as SavedScene[]) : [];
+    } catch { return []; }
+  });
+  const [selectedSaveId, setSelectedSaveId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    try { localStorage.setItem("rays-saves", JSON.stringify(saves)); } catch { /* quota */ }
+  }, [saves]);
+
+  const [activeColorPreset, setActiveColorPreset] = React.useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem("rays-ui-state");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { activeColorPreset?: string | null };
+        return parsed.activeColorPreset ?? "c_contentnow";
+      }
+    } catch { /* ignore */ }
+    return "c_contentnow";
+  });
+  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(() => {
+    try {
+      const raw = localStorage.getItem("rays-ui-state");
+      if (raw) {
+        const parsed = JSON.parse(raw) as { activeRaysPreset?: string | null };
+        return parsed.activeRaysPreset ?? "r_side_glow";
+      }
+    } catch { /* ignore */ }
+    return "r_side_glow";
+  });
+
+  // Persist active preset keys immediately
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(
+        "rays-ui-state",
+        JSON.stringify({ activeColorPreset, activeRaysPreset })
+      );
+    } catch { /* quota */ }
+  }, [activeColorPreset, activeRaysPreset]);
+
+  const generateThumb = React.useCallback(async (s: SceneConfig): Promise<string> => {
+    const thumbW = 192;
+    const thumbH = Math.round(192 * (s.height / s.width));
+    const canvas = document.createElement("canvas");
+    canvas.width = thumbW;
+    canvas.height = thumbH;
+    const ratio = thumbW / s.width;
+    const scaled: SceneConfig = {
+      ...s,
+      width: thumbW,
+      height: thumbH,
+      layers: s.layers.map((l) =>
+        l.type === "rays"
+          ? { ...l, rayWidth: l.rayWidth * ratio, blur: l.blur * ratio }
+          : l
+      ) as Layer[],
+    };
+    drawScene(canvas, scaled);
+    return canvas.toDataURL("image/jpeg", 0.8);
+  }, []);
+
+  const handleSaveSlot = React.useCallback(async () => {
+    const thumb = await generateThumb(scene);
+    const newSave: SavedScene = {
+      id: `save-${Date.now()}`,
+      thumb,
+      scene: JSON.parse(JSON.stringify(scene)) as SceneConfig,
+      createdAt: Date.now(),
+      activeColorPreset,
+      activeRaysPreset,
+    };
+    setSaves((prev) => [newSave, ...prev]);
+    setSelectedSaveId(newSave.id);
+  }, [scene, generateThumb, activeColorPreset, activeRaysPreset]);
+
+  const handleDeleteSave = React.useCallback((id: string) => {
+    setSaves((prev) => prev.filter((s) => s.id !== id));
+    setSelectedSaveId((prev) => (prev === id ? null : prev));
+  }, []);
+
+  const handleLoadSave = React.useCallback((save: SavedScene) => {
+    setScene(save.scene);
+    setSelectedSaveId(save.id);
+    setSelectedLayerId(null);
+    setActiveColorPreset(save.activeColorPreset ?? null);
+    setActiveRaysPreset(save.activeRaysPreset ?? null);
+  }, []);
+
   const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
     null
   );
@@ -259,13 +375,6 @@ export function GodRaysGenerator() {
   const panRef = React.useRef({ x: 0, y: 0 });
   const containerSizeRef = React.useRef({ w: 0, h: 0 });
   const fittedSizeRef = React.useRef({ w: 0, h: 0 });
-  const [activeColorPreset, setActiveColorPreset] = React.useState<
-    string | null
-  >("c_contentnow");
-  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
-    "r_side_glow"
-  );
-
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
@@ -612,6 +721,7 @@ export function GodRaysGenerator() {
     setActiveColorPreset("c_contentnow");
     setActiveRaysPreset("r_side_glow");
     localStorage.removeItem("rays-scene");
+    localStorage.removeItem("rays-ui-state");
   };
 
   const applyPreset = (key: string) => {
@@ -872,9 +982,9 @@ export function GodRaysGenerator() {
               <div className="space-y-8 px-2 h-full">
                 <Field label="Preset">
                   <Select
-                    defaultValue={String(
+                    value={String(
                       DIMENSION_PRESETS.findIndex(
-                        (p) => p.w === 1920 && p.h === 1080
+                        (p) => p.w === scene.width && p.h === scene.height
                       )
                     )}
                     onValueChange={(v) => {
@@ -1151,6 +1261,93 @@ export function GodRaysGenerator() {
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
+          </div>
+        </div>
+
+        {/* ── SAVES BAR ─────────────────────────────────────────────── */}
+        <div className="border-t bg-background flex h-28 w-full shrink-0" onClick={(e) => e.stopPropagation()}>
+          {/* Thumbnails */}
+          <div className="flex flex-1 items-center gap-2 overflow-x-auto px-3 py-2">
+            {saves.length === 0 && (
+              <p className="text-xs text-muted-foreground select-none">
+                Nenhum save ainda — clique em <strong>Salvar</strong> para guardar a cena atual.
+              </p>
+            )}
+            {saves.map((save) => (
+              <div
+                key={save.id}
+                className={cn(
+                  "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
+                  selectedSaveId === save.id
+                    ? "border-primary shadow-md"
+                    : "border-transparent hover:border-border"
+                )}
+                style={{ aspectRatio: `${save.scene.width} / ${save.scene.height}` }}
+                onClick={() => handleLoadSave(save)}
+                title={new Date(save.createdAt).toLocaleString("pt-BR")}
+              >
+                <img
+                  src={save.thumb}
+                  alt="save"
+                  className="h-full w-full object-cover"
+                />
+                {/* Delete button on hover */}
+                <button
+                  className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSave(save.id); }}
+                  title="Remover"
+                >
+                  <Trash2Icon className="size-2.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" onClick={handleSaveSlot}>
+                  <SaveIcon className="size-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Salvar cena atual</TooltipContent>
+            </Tooltip>
+
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button size="icon" variant="destructive" disabled={saves.length === 0}>
+                      <Trash2Icon className="size-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Remover todos os saves</TooltipContent>
+              </Tooltip>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Remover todos os saves?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Essa ação não pode ser desfeita. Todos os {saves.length}{" "}
+                    {saves.length === 1 ? "save salvo" : "saves salvos"} serão
+                    removidos permanentemente.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => {
+                      setSaves([]);
+                      setSelectedSaveId(null);
+                    }}
+                  >
+                    Remover todos
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
 
