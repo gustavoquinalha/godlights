@@ -75,6 +75,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -211,25 +212,12 @@ function scaleSceneForPreview(scene: SceneConfig): SceneConfig {
   };
 }
 
-// ── Theme hook ─────────────────────────────────────────────────────────────
-
-function useTheme() {
-  const [dark, setDark] = React.useState(() =>
-    document.documentElement.classList.contains("dark")
-  );
-  const toggle = React.useCallback(() => {
-    setDark((d) => {
-      document.documentElement.classList.toggle("dark", !d);
-      return !d;
-    });
-  }, []);
-  return { dark, toggle };
-}
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function GodRaysGenerator() {
-  const { dark, toggle: toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
     const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
