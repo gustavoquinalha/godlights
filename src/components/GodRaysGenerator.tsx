@@ -1004,6 +1004,9 @@ export function GodRaysGenerator() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="-1" disabled>
+                        Personalizado
+                      </SelectItem>
                       {DIMENSION_PRESETS.map((p, i) => (
                         <SelectItem key={p.label} value={String(i)}>
                           {p.label} — {p.w}×{p.h}
@@ -1326,7 +1329,7 @@ export function GodRaysGenerator() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <AlertDialogTrigger asChild>
-                    <Button size="icon" variant="destructive" disabled={saves.length === 0}>
+                    <Button size="icon" variant="outline" disabled={saves.length === 0}>
                       <Trash2Icon className="size-3" />
                     </Button>
                   </AlertDialogTrigger>
