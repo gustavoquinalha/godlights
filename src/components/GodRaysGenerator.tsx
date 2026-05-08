@@ -149,53 +149,62 @@ function applyRaysPreset(
 ): SceneConfig {
   let firstRaysDone = false;
   let firstHaloDone = false;
+  const mapped = scene.layers.map((layer) => {
+    if (layer.type === "rays" && !firstRaysDone) {
+      firstRaysDone = true;
+      return {
+        ...DEFAULT_RAY_LAYER,
+        id: layer.id,
+        name: layer.name,
+        colorStart: layer.colorStart,
+        colorEnd: layer.colorEnd,
+        fadeToTransparent: layer.fadeToTransparent,
+        ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
+        ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
+        ...(flat.divergence !== undefined && { divergence: flat.divergence }),
+        ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
+        ...(flat.opacity !== undefined && { opacity: flat.opacity }),
+        ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
+        ...(flat.direction !== undefined && { direction: flat.direction }),
+        ...(flat.spread !== undefined && { spread: flat.spread }),
+        ...(flat.originX !== undefined && { originX: flat.originX }),
+        ...(flat.originY !== undefined && { originY: flat.originY }),
+        ...(flat.blur !== undefined && { blur: flat.blur }),
+        ...(flat.randomness !== undefined && { randomness: flat.randomness }),
+        ...(flat.seed !== undefined && { seed: flat.seed }),
+      } as RayLayer;
+    }
+    if (layer.type === "halo" && !firstHaloDone) {
+      firstHaloDone = true;
+      return {
+        ...DEFAULT_HALO_LAYER,
+        id: layer.id,
+        name: layer.name,
+        color: layer.color,
+        ...(flat.halo !== undefined && { intensity: flat.halo }),
+        ...(flat.haloSize !== undefined && { size: flat.haloSize }),
+        ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
+        ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
+        ...(flat.haloBlendMode !== undefined && {
+          blendMode: flat.haloBlendMode,
+        }),
+      } as HaloLayer;
+    }
+    return layer;
+  }) as Layer[];
+
+  // Ensure halos are always rendered on top of rays
+  const ordered: Layer[] = [
+    ...mapped.filter((l) => l.type === "background"),
+    ...mapped.filter((l) => l.type === "rays"),
+    ...mapped.filter((l) => l.type === "halo"),
+  ];
+
   return {
     ...scene,
     noise: flat.noise ?? DEFAULT_SCENE.noise,
     grainSize: flat.grainSize ?? DEFAULT_SCENE.grainSize,
-    layers: scene.layers.map((layer) => {
-      if (layer.type === "rays" && !firstRaysDone) {
-        firstRaysDone = true;
-        return {
-          ...DEFAULT_RAY_LAYER,
-          id: layer.id,
-          name: layer.name,
-          colorStart: layer.colorStart,
-          colorEnd: layer.colorEnd,
-          fadeToTransparent: layer.fadeToTransparent,
-          ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
-          ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
-          ...(flat.divergence !== undefined && { divergence: flat.divergence }),
-          ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
-          ...(flat.opacity !== undefined && { opacity: flat.opacity }),
-          ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
-          ...(flat.direction !== undefined && { direction: flat.direction }),
-          ...(flat.spread !== undefined && { spread: flat.spread }),
-          ...(flat.originX !== undefined && { originX: flat.originX }),
-          ...(flat.originY !== undefined && { originY: flat.originY }),
-          ...(flat.blur !== undefined && { blur: flat.blur }),
-          ...(flat.randomness !== undefined && { randomness: flat.randomness }),
-          ...(flat.seed !== undefined && { seed: flat.seed }),
-        } as RayLayer;
-      }
-      if (layer.type === "halo" && !firstHaloDone) {
-        firstHaloDone = true;
-        return {
-          ...DEFAULT_HALO_LAYER,
-          id: layer.id,
-          name: layer.name,
-          color: layer.color,
-          ...(flat.halo !== undefined && { intensity: flat.halo }),
-          ...(flat.haloSize !== undefined && { size: flat.haloSize }),
-          ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
-          ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
-          ...(flat.haloBlendMode !== undefined && {
-            blendMode: flat.haloBlendMode,
-          }),
-        } as HaloLayer;
-      }
-      return layer;
-    }) as Layer[],
+    layers: ordered,
   };
 }
 
