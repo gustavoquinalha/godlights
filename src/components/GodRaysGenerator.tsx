@@ -471,10 +471,6 @@ export function GodRaysGenerator() {
     selectedLayer?.type === "rays" ? (selectedLayer as RayLayer) : null;
   const selectedHaloLayer =
     selectedLayer?.type === "halo" ? (selectedLayer as HaloLayer) : null;
-  const selectedBgLayer =
-    selectedLayer?.type === "background"
-      ? (selectedLayer as BackgroundLayer)
-      : null;
 
   const bgLayer = scene.layers.find(
     (l) => l.type === "background"
@@ -816,20 +812,41 @@ export function GodRaysGenerator() {
 
   const handleRandomizeLayer = React.useCallback(() => {
     if (selectedRayLayer) {
-      const pick = RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
+      const pick =
+        RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
       updateLayer(selectedRayLayer.id, {
-        ...(pick.config.rayCount !== undefined && { rayCount: pick.config.rayCount }),
-        ...(pick.config.rayWidth !== undefined && { rayWidth: pick.config.rayWidth }),
-        ...(pick.config.divergence !== undefined && { divergence: pick.config.divergence }),
-        ...(pick.config.rayLength !== undefined && { rayLength: pick.config.rayLength }),
-        ...(pick.config.opacity !== undefined && { opacity: pick.config.opacity }),
-        ...(pick.config.blendMode !== undefined && { blendMode: pick.config.blendMode }),
-        ...(pick.config.direction !== undefined && { direction: pick.config.direction }),
+        ...(pick.config.rayCount !== undefined && {
+          rayCount: pick.config.rayCount,
+        }),
+        ...(pick.config.rayWidth !== undefined && {
+          rayWidth: pick.config.rayWidth,
+        }),
+        ...(pick.config.divergence !== undefined && {
+          divergence: pick.config.divergence,
+        }),
+        ...(pick.config.rayLength !== undefined && {
+          rayLength: pick.config.rayLength,
+        }),
+        ...(pick.config.opacity !== undefined && {
+          opacity: pick.config.opacity,
+        }),
+        ...(pick.config.blendMode !== undefined && {
+          blendMode: pick.config.blendMode,
+        }),
+        ...(pick.config.direction !== undefined && {
+          direction: pick.config.direction,
+        }),
         ...(pick.config.spread !== undefined && { spread: pick.config.spread }),
-        ...(pick.config.originX !== undefined && { originX: pick.config.originX }),
-        ...(pick.config.originY !== undefined && { originY: pick.config.originY }),
+        ...(pick.config.originX !== undefined && {
+          originX: pick.config.originX,
+        }),
+        ...(pick.config.originY !== undefined && {
+          originY: pick.config.originY,
+        }),
         ...(pick.config.blur !== undefined && { blur: pick.config.blur }),
-        ...(pick.config.randomness !== undefined && { randomness: pick.config.randomness }),
+        ...(pick.config.randomness !== undefined && {
+          randomness: pick.config.randomness,
+        }),
         seed: Math.floor(Math.random() * 1_000_000),
       });
       setActiveRaysPreset(null);
@@ -841,10 +858,18 @@ export function GodRaysGenerator() {
       const pick = pool[Math.floor(Math.random() * pool.length)];
       updateLayer(selectedHaloLayer.id, {
         ...(pick.config.halo !== undefined && { intensity: pick.config.halo }),
-        ...(pick.config.haloSize !== undefined && { size: pick.config.haloSize }),
-        ...(pick.config.haloOriginX !== undefined && { originX: pick.config.haloOriginX }),
-        ...(pick.config.haloOriginY !== undefined && { originY: pick.config.haloOriginY }),
-        ...(pick.config.haloBlendMode !== undefined && { blendMode: pick.config.haloBlendMode }),
+        ...(pick.config.haloSize !== undefined && {
+          size: pick.config.haloSize,
+        }),
+        ...(pick.config.haloOriginX !== undefined && {
+          originX: pick.config.haloOriginX,
+        }),
+        ...(pick.config.haloOriginY !== undefined && {
+          originY: pick.config.haloOriginY,
+        }),
+        ...(pick.config.haloBlendMode !== undefined && {
+          blendMode: pick.config.haloBlendMode,
+        }),
       });
       setActiveRaysPreset(null);
     }
@@ -861,11 +886,12 @@ export function GodRaysGenerator() {
     const raysCandidates = RAYS_PRESETS.filter(
       (p) => p.key !== activeRaysPreset
     );
-    const raysPool =
-      raysCandidates.length > 0 ? raysCandidates : RAYS_PRESETS;
+    const raysPool = raysCandidates.length > 0 ? raysCandidates : RAYS_PRESETS;
     const raysPick = raysPool[Math.floor(Math.random() * raysPool.length)];
 
-    setScene((s) => applyColorPreset(applyRaysPreset(s, raysPick.config), colorPick.config));
+    setScene((s) =>
+      applyColorPreset(applyRaysPreset(s, raysPick.config), colorPick.config)
+    );
     setActiveColorPreset(colorPick.key);
     setActiveRaysPreset(raysPick.key);
   };
@@ -1173,7 +1199,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2 h-full pb-3">
+              <div className="space-y-8 px-2">
                 <Field label="Preset">
                   <Select
                     value={String(
@@ -1229,17 +1255,23 @@ export function GodRaysGenerator() {
                     />
                   </Field>
                 </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-                <div className="flex-1 h-full flex items-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    className="w-full"
-                  >
-                    <RotateCcw className="size-3" /> Reset
-                  </Button>
-                </div>
+          <SidebarSeparator />
+
+          <SidebarGroup className="flex-1 flex justify-end">
+            <SidebarGroupContent>
+              <div className="px-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="w-full"
+                >
+                  <RotateCcw className="size-3" /> Resetar
+                </Button>
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1438,46 +1470,46 @@ export function GodRaysGenerator() {
             </Tooltip>
 
             {/* Zoom controls */}
-          <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => changeZoom(-ZOOM_STEP)}
-              disabled={zoom <= MIN_ZOOM}
-              className="h-7 w-7 rounded-full"
-              title="Diminuir zoom"
-            >
-              <ZoomOut className="size-3" />
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={resetView}
-              className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums"
-              title="Resetar zoom"
-            >
-              {Math.round(zoom * 100)}%
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => changeZoom(ZOOM_STEP)}
-              disabled={zoom >= MAX_ZOOM}
-              className="h-7 w-7 rounded-full"
-              title="Aumentar zoom"
-            >
-              <ZoomIn className="size-3" />
-            </Button>
-            <div className="mx-1 h-4 w-px bg-border" />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={resetView}
-              className="h-7 w-7 rounded-full"
-              title="Zoom 100%"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
+            <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => changeZoom(-ZOOM_STEP)}
+                disabled={zoom <= MIN_ZOOM}
+                className="h-7 w-7 rounded-full"
+                title="Diminuir zoom"
+              >
+                <ZoomOut className="size-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={resetView}
+                className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums"
+                title="Resetar zoom"
+              >
+                {Math.round(zoom * 100)}%
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => changeZoom(ZOOM_STEP)}
+                disabled={zoom >= MAX_ZOOM}
+                className="h-7 w-7 rounded-full"
+                title="Aumentar zoom"
+              >
+                <ZoomIn className="size-3" />
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={resetView}
+                className="h-7 w-7 rounded-full"
+                title="Zoom 100%"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -1488,56 +1520,61 @@ export function GodRaysGenerator() {
         >
           {/* Thumbnails */}
           <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
-          <ScrollAreaPrimitive.Viewport className="h-full w-full">
-          <div className="flex h-full items-center gap-2 px-3 py-2">
-            {saves.length === 0 && (
-              <p className="text-xs text-muted-foreground select-none">
-                Nenhum save ainda — clique em <strong>Salvar</strong> para
-                guardar a cena atual.
-              </p>
-            )}
-            {saves.map((save) => (
-              <div
-                key={save.id}
-                className={cn(
-                  "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
-                  selectedSaveId === save.id
-                    ? "border-primary shadow-md"
-                    : "border-transparent hover:border-border"
+            <ScrollAreaPrimitive.Viewport className="h-full w-full">
+              <div className="flex h-full items-center gap-2 px-3 py-2">
+                {saves.length === 0 && (
+                  <div className="w-full flex flex-col items-center justify-center h-26">
+                    <p className="text-xs text-muted-foreground/60">
+                      Nenhum save ainda!
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                      Clique em <strong>Salvar</strong> para guardar a cena
+                      atual.
+                    </p>
+                  </div>
                 )}
-                style={{
-                  aspectRatio: `${save.scene.width} / ${save.scene.height}`,
-                }}
-                onClick={() => handleLoadSave(save)}
-                title={new Date(save.createdAt).toLocaleString("pt-BR")}
-              >
-                <img
-                  src={save.thumb}
-                  alt="save"
-                  className="h-full w-full object-cover"
-                />
-                {/* Delete button on hover */}
-                <button
-                  className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteSave(save.id);
-                  }}
-                  title="Remover"
-                >
-                  <Trash2Icon className="size-2.5" />
-                </button>
+                {saves.map((save) => (
+                  <div
+                    key={save.id}
+                    className={cn(
+                      "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
+                      selectedSaveId === save.id
+                        ? "border-primary shadow-md"
+                        : "border-transparent hover:border-border"
+                    )}
+                    style={{
+                      aspectRatio: `${save.scene.width} / ${save.scene.height}`,
+                    }}
+                    onClick={() => handleLoadSave(save)}
+                    title={new Date(save.createdAt).toLocaleString("pt-BR")}
+                  >
+                    <img
+                      src={save.thumb}
+                      alt="save"
+                      className="h-full w-full object-cover"
+                    />
+                    {/* Delete button on hover */}
+                    <button
+                      className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteSave(save.id);
+                      }}
+                      title="Remover"
+                    >
+                      <Trash2Icon className="size-2.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          </ScrollAreaPrimitive.Viewport>
-          <ScrollAreaPrimitive.Scrollbar
-            orientation="horizontal"
-            className="flex h-2.5 flex-col border-t border-t-transparent p-[1px] touch-none select-none transition-colors"
-          >
-            <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
-          </ScrollAreaPrimitive.Scrollbar>
-          <ScrollAreaPrimitive.Corner />
+            </ScrollAreaPrimitive.Viewport>
+            <ScrollAreaPrimitive.Scrollbar
+              orientation="horizontal"
+              className="flex h-2.5 flex-col border-t border-t-transparent p-[1px] touch-none select-none transition-colors"
+            >
+              <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+            </ScrollAreaPrimitive.Scrollbar>
+            <ScrollAreaPrimitive.Corner />
           </ScrollAreaPrimitive.Root>
 
           {/* Actions */}
@@ -1597,7 +1634,6 @@ export function GodRaysGenerator() {
             {scene.width} × {scene.height}px ·{" "}
             {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
           </span>
-          
         </div>
       </SidebarInset>
 
@@ -1629,7 +1665,6 @@ export function GodRaysGenerator() {
                       (selectedLayer as RayLayer).name}
                     {selectedLayer?.type === "halo" &&
                       (selectedLayer as HaloLayer).name}
-                    {selectedLayer?.type === "background" && "Background"}
                   </h2>
                 </div>
               </div>
@@ -1825,48 +1860,6 @@ export function GodRaysGenerator() {
                     </div>
                   );
                 })}
-
-                {/* Background card (always at bottom, no move/delete) */}
-                <button
-                  className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
-                  onClick={() => setSelectedLayerId("background")}
-                >
-                  <div className="mb-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                        <ImageIcon className="h-3.5 w-3.5" />
-                      </div>
-                      <span className="text-sm font-semibold">Background</span>
-                    </div>
-                    <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
-                  </div>
-                  <div
-                    className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
-                    style={{
-                      background:
-                        bgLayer.bgType === "gradient"
-                          ? `linear-gradient(135deg, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`
-                          : bgLayer.bgType === "solid"
-                          ? bgLayer.bgColor
-                          : undefined,
-                    }}
-                  >
-                    {bgLayer.bgType === "transparent" && (
-                      <div className="h-full w-full rounded-lg bg-checker" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-[11px] text-sidebar-foreground/50 capitalize">
-                    <span>{bgLayer.bgType}</span>
-                    {bgLayer.bgType !== "transparent" && (
-                      <>
-                        <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                        <span className="font-mono uppercase">
-                          {bgLayer.bgColor}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </button>
               </div>
             </div>
           )}
@@ -2205,99 +2198,96 @@ export function GodRaysGenerator() {
             </SidebarGroup>
           )}
 
-          {/* ── BACKGROUND PROPERTIES ────────────────────────────────── */}
-          {selectedBgLayer && (
-            <SidebarGroup>
-              <SidebarGroupLabel>Background</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <div className="space-y-8 px-2 pb-2">
-                  <Field label="Tipo">
-                    <Select
-                      value={selectedBgLayer.bgType}
-                      onValueChange={(v) =>
-                        updateLayer("background", {
-                          bgType: v as BackgroundType,
-                        })
+          {/* ── BACKGROUND PROPERTIES (always visible) ───────────────── */}
+          <SidebarSeparator />
+          <SidebarGroup>
+            <SidebarGroupLabel>Background</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-8 px-2 pb-2">
+                <Field label="Tipo">
+                  <Select
+                    value={bgLayer.bgType}
+                    onValueChange={(v) =>
+                      updateLayer("background", {
+                        bgType: v as BackgroundType,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transparent">Transparente</SelectItem>
+                      <SelectItem value="solid">Cor sólida</SelectItem>
+                      <SelectItem value="gradient">Gradiente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {bgLayer.bgType === "solid" && (
+                  <div className="flex items-center gap-3">
+                    <ColorPicker
+                      value={bgLayer.bgColor}
+                      onChange={(v) =>
+                        updateLayer("background", { bgColor: v })
                       }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="transparent">
-                          Transparente
-                        </SelectItem>
-                        <SelectItem value="solid">Cor sólida</SelectItem>
-                        <SelectItem value="gradient">Gradiente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  {selectedBgLayer.bgType === "solid" && (
+                    />
+                    <span className="font-mono text-xs text-sidebar-foreground/60">
+                      {bgLayer.bgColor}
+                    </span>
+                  </div>
+                )}
+                {bgLayer.bgType === "gradient" && (
+                  <>
                     <div className="flex items-center gap-3">
-                      <ColorPicker
-                        value={selectedBgLayer.bgColor}
-                        onChange={(v) =>
-                          updateLayer("background", { bgColor: v })
-                        }
-                      />
-                      <span className="font-mono text-xs text-sidebar-foreground/60">
-                        {selectedBgLayer.bgColor}
-                      </span>
-                    </div>
-                  )}
-                  {selectedBgLayer.bgType === "gradient" && (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={selectedBgLayer.bgColor}
-                            onChange={(v) =>
-                              updateLayer("background", { bgColor: v })
-                            }
-                          />
-                          <span className="text-[11px] text-sidebar-foreground/60">
-                            Início
-                          </span>
-                        </div>
-                        <div
-                          className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
-                          style={{
-                            background: `linear-gradient(to right, ${selectedBgLayer.bgColor}, ${selectedBgLayer.bgColor2})`,
-                          }}
-                        />
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={selectedBgLayer.bgColor2}
-                            onChange={(v) =>
-                              updateLayer("background", { bgColor2: v })
-                            }
-                          />
-                          <span className="text-[11px] text-sidebar-foreground/60">
-                            Fim
-                          </span>
-                        </div>
-                      </div>
-                      <Field
-                        label="Ângulo"
-                        value={selectedBgLayer.bgGradientAngle.toFixed(0)}
-                        unit="°"
-                      >
-                        <Slider
-                          min={0}
-                          max={360}
-                          step={1}
-                          value={[selectedBgLayer.bgGradientAngle]}
-                          onValueChange={([v]) =>
-                            updateLayer("background", { bgGradientAngle: v })
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={bgLayer.bgColor}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor: v })
                           }
                         />
-                      </Field>
-                    </>
-                  )}
-                </div>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          )}
+                        <span className="text-[11px] text-sidebar-foreground/60">
+                          Início
+                        </span>
+                      </div>
+                      <div
+                        className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
+                        style={{
+                          background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
+                        }}
+                      />
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={bgLayer.bgColor2}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor2: v })
+                          }
+                        />
+                        <span className="text-[11px] text-sidebar-foreground/60">
+                          Fim
+                        </span>
+                      </div>
+                    </div>
+                    <Field
+                      label="Ângulo"
+                      value={bgLayer.bgGradientAngle.toFixed(0)}
+                      unit="°"
+                    >
+                      <Slider
+                        min={0}
+                        max={360}
+                        step={1}
+                        value={[bgLayer.bgGradientAngle]}
+                        onValueChange={([v]) =>
+                          updateLayer("background", { bgGradientAngle: v })
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
       </Sidebar>
     </SidebarProvider>
