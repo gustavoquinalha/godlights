@@ -462,7 +462,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
     key: "r_warm_haze",
     label: "Warm haze",
     thumb:
-      "conic-gradient(from 115deg at 20% 0%, transparent 0deg, #aaa 48deg, transparent 48deg)",
+      "conic-gradient(from 137deg at 20% 0%, transparent 0deg, #aaa 48deg, transparent 48deg)",
     category: "rays",
     config: {
       rayCount: 6,
@@ -492,7 +492,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
     key: "r_canopy",
     label: "Canopy",
     thumb:
-      "conic-gradient(from 130deg at 50% 0%, transparent 0deg, #aaa 100deg, transparent 100deg)",
+      "conic-gradient(from 178deg at 80% 0%, transparent 0deg, #aaa 35deg, transparent 35deg)",
     category: "rays",
     config: {
       rayCount: 22,
@@ -513,7 +513,8 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_aurora",
     label: "Aurora",
-    thumb: "linear-gradient(180deg, #aaa 0%, transparent 60%, #777 100%)",
+    thumb:
+      "conic-gradient(from 120deg at 50% 0%, transparent 0deg, #aaa 120deg, transparent 120deg)",
     category: "rays",
     config: {
       rayCount: 40,
@@ -538,7 +539,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
     key: "r_side_glow",
     label: "Side glow",
     thumb:
-      "conic-gradient(from 160deg at 110% 0%, transparent 0deg, #aaa 87deg, transparent 87deg)",
+      "conic-gradient(from 174deg at 100% 0%, transparent 0deg, #aaa 87deg, transparent 87deg)",
     category: "rays",
     config: {
       rayCount: 16,
@@ -566,7 +567,8 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_mist",
     label: "Dense mist",
-    thumb: "linear-gradient(180deg, #aaa 0%, transparent 100%)",
+    thumb:
+      "conic-gradient(from 115deg at 50% 0%, transparent 0deg, #aaa 140deg, transparent 140deg)",
     category: "rays",
     config: {
       rayCount: 60,
@@ -591,7 +593,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
     key: "r_fan",
     label: "Fan",
     thumb:
-      "conic-gradient(from 120deg at 50% 0%, transparent 0deg, #aaa 60deg, transparent 120deg)",
+      "conic-gradient(from 94deg at 0% 20%, transparent 0deg, #aaa 12deg, transparent 12deg)",
     category: "rays",
     config: {
       rayCount: 27,
@@ -646,7 +648,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
     key: "r_sidelight",
     label: "Side light",
     thumb:
-      "conic-gradient(from 60deg at 0% 40%, transparent 0deg, #aaa 40deg, transparent 80deg)",
+      "conic-gradient(from 76deg at 0% 40%, transparent 0deg, #aaa 50deg, transparent 50deg)",
     category: "rays",
     config: {
       rayCount: 18,

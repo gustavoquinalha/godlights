@@ -891,12 +891,16 @@ export function GodRaysGenerator() {
                           <button
                             onClick={() => applyPreset(p.key)}
                             className={cn(
-                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeColorPreset === p.key &&
                                 "ring-2 ring-primary"
                             )}
-                            style={{ background: p.thumb }}
-                          />
+                          >
+                            <div
+                              className="absolute inset-0 scale-150"
+                              style={{ background: p.thumb, filter: "blur(3px)" }}
+                            />
+                          </button>
                         </TooltipTrigger>
                         <TooltipContent>{p.label}</TooltipContent>
                       </Tooltip>
@@ -914,12 +918,16 @@ export function GodRaysGenerator() {
                           <button
                             onClick={() => applyPreset(p.key)}
                             className={cn(
-                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeRaysPreset === p.key &&
                                 "ring-2 ring-primary"
                             )}
-                            style={{ background: p.thumb }}
-                          />
+                          >
+                            <div
+                              className="absolute inset-0 scale-150"
+                              style={{ background: p.thumb, filter: "blur(3px)" }}
+                            />
+                          </button>
                         </TooltipTrigger>
                         <TooltipContent>{p.label}</TooltipContent>
                       </Tooltip>
