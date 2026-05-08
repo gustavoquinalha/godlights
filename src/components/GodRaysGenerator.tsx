@@ -927,7 +927,7 @@ export function GodRaysGenerator() {
 
         <div
           ref={previewContainerRef}
-          className="relative flex flex-1 items-center justify-center overflow-hidden bg-checker"
+          className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/60"
           onClick={() => setSelectedLayerId(null)}
         >
           <div
@@ -942,7 +942,7 @@ export function GodRaysGenerator() {
           >
             <canvas
               ref={previewCanvasRef}
-              className="block h-full w-full rounded-md shadow-2xl ring-1 ring-border"
+              className="block h-full w-full rounded-2xl shadow-2xl"
             />
 
             {/* Hit areas for all non-background layers */}
@@ -1030,7 +1030,11 @@ export function GodRaysGenerator() {
                         : "rounded-full group-hover:border-amber-400/50"
                     )}
                   />
-                  <span className="pointer-events-none absolute -top-5 left-0 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block"
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
+                      isRay ? "left-0" : "left-1/2 -translate-x-1/2"
+                    )}
                     style={{ background: isRay ? "#60a5fa" : "#fbbf24", color: isRay ? "white" : "black" }}
                   >
                     {layer.name}
