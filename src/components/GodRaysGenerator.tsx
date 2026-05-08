@@ -22,6 +22,7 @@ import {
   ArrowDown,
   SaveIcon,
   Trash2Icon,
+  Dices,
 } from "lucide-react";
 import {
   drawScene,
@@ -66,6 +67,7 @@ import {
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipTrigger,
@@ -195,7 +197,9 @@ function applyRaysPreset(
 
   // If no rays layer existed, create one from the preset
   if (!firstRaysDone) {
-    const existingRay = scene.layers.find((l) => l.type === "rays") as RayLayer | undefined;
+    const existingRay = scene.layers.find((l) => l.type === "rays") as
+      | RayLayer
+      | undefined;
     mapped.push({
       ...DEFAULT_RAY_LAYER,
       id: `rays-${Date.now()}`,
@@ -221,7 +225,9 @@ function applyRaysPreset(
   // If preset has halo data but no halo layer existed, create one
   const presetHasHalo = flat.halo !== undefined || flat.haloSize !== undefined;
   if (!firstHaloDone && presetHasHalo) {
-    const existingHalo = scene.layers.find((l) => l.type === "halo") as HaloLayer | undefined;
+    const existingHalo = scene.layers.find((l) => l.type === "halo") as
+      | HaloLayer
+      | undefined;
     mapped.push({
       ...DEFAULT_HALO_LAYER,
       id: `halo-${Date.now()}`,
@@ -231,7 +237,9 @@ function applyRaysPreset(
       ...(flat.haloSize !== undefined && { size: flat.haloSize }),
       ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
       ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
-      ...(flat.haloBlendMode !== undefined && { blendMode: flat.haloBlendMode }),
+      ...(flat.haloBlendMode !== undefined && {
+        blendMode: flat.haloBlendMode,
+      }),
     } as HaloLayer);
   }
 
@@ -311,7 +319,6 @@ export function GodRaysGenerator() {
     return () => window.clearTimeout(id);
   }, [scene]);
 
-
   // ── Saves ────────────────────────────────────────────────────────────────
 
   interface SavedScene {
@@ -327,34 +334,52 @@ export function GodRaysGenerator() {
     try {
       const raw = localStorage.getItem("rays-saves");
       return raw ? (JSON.parse(raw) as SavedScene[]) : [];
-    } catch { return []; }
+    } catch {
+      return [];
+    }
   });
-  const [selectedSaveId, setSelectedSaveId] = React.useState<string | null>(null);
+  const [selectedSaveId, setSelectedSaveId] = React.useState<string | null>(
+    null
+  );
 
   React.useEffect(() => {
-    try { localStorage.setItem("rays-saves", JSON.stringify(saves)); } catch { /* quota */ }
+    try {
+      localStorage.setItem("rays-saves", JSON.stringify(saves));
+    } catch {
+      /* quota */
+    }
   }, [saves]);
 
-  const [activeColorPreset, setActiveColorPreset] = React.useState<string | null>(() => {
+  const [activeColorPreset, setActiveColorPreset] = React.useState<
+    string | null
+  >(() => {
     try {
       const raw = localStorage.getItem("rays-ui-state");
       if (raw) {
         const parsed = JSON.parse(raw) as { activeColorPreset?: string | null };
         return parsed.activeColorPreset ?? "c_contentnow";
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return "c_contentnow";
   });
-  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(() => {
-    try {
-      const raw = localStorage.getItem("rays-ui-state");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { activeRaysPreset?: string | null };
-        return parsed.activeRaysPreset ?? "r_side_glow";
+  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
+    () => {
+      try {
+        const raw = localStorage.getItem("rays-ui-state");
+        if (raw) {
+          const parsed = JSON.parse(raw) as {
+            activeRaysPreset?: string | null;
+          };
+          return parsed.activeRaysPreset ?? "r_side_glow";
+        }
+      } catch {
+        /* ignore */
       }
-    } catch { /* ignore */ }
-    return "r_side_glow";
-  });
+      return "r_side_glow";
+    }
+  );
 
   // Persist active preset keys immediately
   React.useEffect(() => {
@@ -363,29 +388,34 @@ export function GodRaysGenerator() {
         "rays-ui-state",
         JSON.stringify({ activeColorPreset, activeRaysPreset })
       );
-    } catch { /* quota */ }
+    } catch {
+      /* quota */
+    }
   }, [activeColorPreset, activeRaysPreset]);
 
-  const generateThumb = React.useCallback(async (s: SceneConfig): Promise<string> => {
-    const thumbW = 192;
-    const thumbH = Math.round(192 * (s.height / s.width));
-    const canvas = document.createElement("canvas");
-    canvas.width = thumbW;
-    canvas.height = thumbH;
-    const ratio = thumbW / s.width;
-    const scaled: SceneConfig = {
-      ...s,
-      width: thumbW,
-      height: thumbH,
-      layers: s.layers.map((l) =>
-        l.type === "rays"
-          ? { ...l, rayWidth: l.rayWidth * ratio, blur: l.blur * ratio }
-          : l
-      ) as Layer[],
-    };
-    drawScene(canvas, scaled);
-    return canvas.toDataURL("image/jpeg", 0.8);
-  }, []);
+  const generateThumb = React.useCallback(
+    async (s: SceneConfig): Promise<string> => {
+      const thumbW = 192;
+      const thumbH = Math.round(192 * (s.height / s.width));
+      const canvas = document.createElement("canvas");
+      canvas.width = thumbW;
+      canvas.height = thumbH;
+      const ratio = thumbW / s.width;
+      const scaled: SceneConfig = {
+        ...s,
+        width: thumbW,
+        height: thumbH,
+        layers: s.layers.map((l) =>
+          l.type === "rays"
+            ? { ...l, rayWidth: l.rayWidth * ratio, blur: l.blur * ratio }
+            : l
+        ) as Layer[],
+      };
+      drawScene(canvas, scaled);
+      return canvas.toDataURL("image/jpeg", 0.8);
+    },
+    []
+  );
 
   const handleSaveSlot = React.useCallback(async () => {
     const thumb = await generateThumb(scene);
@@ -524,11 +554,15 @@ export function GodRaysGenerator() {
       const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = new RegExp(`^${escapedBase} \\d+$`);
       const takenNumbers = new Set(
-        s.layers.filter((l) => l.type !== "background").map((l) => l.name).filter((n) => n === baseName || regex.test(n)).map((n) => {
-          if (n === baseName) return 1;
-          const m = n.match(/(\d+)$/);
-          return m ? parseInt(m[1], 10) : 1;
-        })
+        s.layers
+          .filter((l) => l.type !== "background")
+          .map((l) => l.name)
+          .filter((n) => n === baseName || regex.test(n))
+          .map((n) => {
+            if (n === baseName) return 1;
+            const m = n.match(/(\d+)$/);
+            return m ? parseInt(m[1], 10) : 1;
+          })
       );
       let num = 2;
       while (takenNumbers.has(num)) num++;
@@ -771,6 +805,70 @@ export function GodRaysGenerator() {
     setActiveRaysPreset(null);
   };
 
+  const handleRandomizeColor = () => {
+    const candidates = COLOR_PRESETS.filter((p) => p.key !== activeColorPreset);
+    const pool = candidates.length > 0 ? candidates : COLOR_PRESETS;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setScene((s) => applyColorPreset(s, pick.config));
+    setActiveColorPreset(pick.key);
+  };
+
+  const handleRandomizeLayer = React.useCallback(() => {
+    if (selectedRayLayer) {
+      const pick = RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
+      updateLayer(selectedRayLayer.id, {
+        ...(pick.config.rayCount !== undefined && { rayCount: pick.config.rayCount }),
+        ...(pick.config.rayWidth !== undefined && { rayWidth: pick.config.rayWidth }),
+        ...(pick.config.divergence !== undefined && { divergence: pick.config.divergence }),
+        ...(pick.config.rayLength !== undefined && { rayLength: pick.config.rayLength }),
+        ...(pick.config.opacity !== undefined && { opacity: pick.config.opacity }),
+        ...(pick.config.blendMode !== undefined && { blendMode: pick.config.blendMode }),
+        ...(pick.config.direction !== undefined && { direction: pick.config.direction }),
+        ...(pick.config.spread !== undefined && { spread: pick.config.spread }),
+        ...(pick.config.originX !== undefined && { originX: pick.config.originX }),
+        ...(pick.config.originY !== undefined && { originY: pick.config.originY }),
+        ...(pick.config.blur !== undefined && { blur: pick.config.blur }),
+        ...(pick.config.randomness !== undefined && { randomness: pick.config.randomness }),
+        seed: Math.floor(Math.random() * 1_000_000),
+      });
+      setActiveRaysPreset(null);
+    } else if (selectedHaloLayer) {
+      const haloPresets = RAYS_PRESETS.filter(
+        (p) => p.config.halo !== undefined || p.config.haloSize !== undefined
+      );
+      const pool = haloPresets.length > 0 ? haloPresets : RAYS_PRESETS;
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      updateLayer(selectedHaloLayer.id, {
+        ...(pick.config.halo !== undefined && { intensity: pick.config.halo }),
+        ...(pick.config.haloSize !== undefined && { size: pick.config.haloSize }),
+        ...(pick.config.haloOriginX !== undefined && { originX: pick.config.haloOriginX }),
+        ...(pick.config.haloOriginY !== undefined && { originY: pick.config.haloOriginY }),
+        ...(pick.config.haloBlendMode !== undefined && { blendMode: pick.config.haloBlendMode }),
+      });
+      setActiveRaysPreset(null);
+    }
+  }, [selectedRayLayer, selectedHaloLayer, updateLayer]);
+
+  const handleRandomizeAll = () => {
+    const colorCandidates = COLOR_PRESETS.filter(
+      (p) => p.key !== activeColorPreset
+    );
+    const colorPool =
+      colorCandidates.length > 0 ? colorCandidates : COLOR_PRESETS;
+    const colorPick = colorPool[Math.floor(Math.random() * colorPool.length)];
+
+    const raysCandidates = RAYS_PRESETS.filter(
+      (p) => p.key !== activeRaysPreset
+    );
+    const raysPool =
+      raysCandidates.length > 0 ? raysCandidates : RAYS_PRESETS;
+    const raysPick = raysPool[Math.floor(Math.random() * raysPool.length)];
+
+    setScene((s) => applyColorPreset(applyRaysPreset(s, raysPick.config), colorPick.config));
+    setActiveColorPreset(colorPick.key);
+    setActiveRaysPreset(raysPick.key);
+  };
+
   const handleReset = () => {
     const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
@@ -943,69 +1041,92 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Presets</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-3 px-2 pb-2">
+              <div className="flex flex-col gap-3 w-full pb-2">
                 <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                  <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
                     Cores
                   </p>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {COLOR_PRESETS.map((p) => (
-                      <Tooltip key={p.key}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => applyPreset(p.key)}
-                            className={cn(
-                              "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
-                              activeColorPreset === p.key &&
-                                "ring-2 ring-primary"
-                            )}
-                          >
-                            <div
-                              className="absolute inset-0 scale-150"
-                              style={{ background: p.thumb, filter: "blur(3px)" }}
-                            />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{p.label}</TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
+                  <ScrollArea className="h-[88px] p-1">
+                    <div className="grid grid-cols-6 pb-1">
+                      {COLOR_PRESETS.map((p) => (
+                        <div className="p-1 w-full aspect-square" key={p.key}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => applyPreset(p.key)}
+                                className={cn(
+                                  "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                                  activeColorPreset === p.key &&
+                                    "ring-2 ring-primary"
+                                )}
+                              >
+                                <div
+                                  className="absolute inset-0 scale-150"
+                                  style={{
+                                    background: p.thumb,
+                                    filter: "blur(3px)",
+                                  }}
+                                />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{p.label}</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRandomizeColor}
+                    className="w-full gap-1.5"
+                    title="Cor aleatória"
+                  >
+                    <Shuffle className="size-3" /> Aleatório
+                  </Button>
                 </div>
+
                 <div>
-                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                  <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
                     Rays / Halo
                   </p>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {RAYS_PRESETS.map((p) => (
-                      <Tooltip key={p.key}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => applyPreset(p.key)}
-                            className={cn(
-                              "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
-                              activeRaysPreset === p.key &&
-                                "ring-2 ring-primary"
-                            )}
-                          >
-                            <div
-                              className="absolute inset-0 scale-150"
-                              style={{ background: p.thumb, filter: "blur(3px)" }}
-                            />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{p.label}</TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-2">
+                  <ScrollArea className="h-[88px] p-1">
+                    <div className="grid grid-cols-6 pb-1">
+                      {RAYS_PRESETS.map((p) => (
+                        <div className="p-1 w-full aspect-square" key={p.key}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => applyPreset(p.key)}
+                                className={cn(
+                                  "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                                  activeRaysPreset === p.key &&
+                                    "ring-2 ring-primary"
+                                )}
+                              >
+                                <div
+                                  className="absolute inset-0 scale-150"
+                                  style={{
+                                    background: p.thumb,
+                                    filter: "blur(3px)",
+                                  }}
+                                />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>{p.label}</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRandomize}
-                    className="flex-1 gap-2"
+                    className="w-full gap-1.5"
+                    title="Rays aleatório"
                   >
-                    <Shuffle className="size-3" /> Aleatório
+                    <Shuffle className="size-3" /> Rays
                   </Button>
                 </div>
               </div>
@@ -1293,11 +1414,30 @@ export function GodRaysGenerator() {
             })}
           </div>
 
-          {/* Floating zoom controls */}
+          {/* Floating controls */}
           <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Dice: randomize color + rays */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center rounded-full border border-border bg-background/80 px-1 py-1 shadow-lg backdrop-blur-sm">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleRandomizeAll}
+                    className="h-7 w-7 rounded-full"
+                  >
+                    <Dices className="size-3.5" />
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Randomizar</TooltipContent>
+            </Tooltip>
+
+            {/* Zoom controls */}
+          <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
             <Button
               variant="ghost"
               size="icon"
@@ -1337,15 +1477,21 @@ export function GodRaysGenerator() {
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
           </div>
+          </div>
         </div>
 
         {/* ── SAVES BAR ─────────────────────────────────────────────── */}
-        <div className="border-t bg-background flex h-28 w-full shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="border-t bg-background flex h-28 w-full shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Thumbnails */}
-          <div className="flex flex-1 items-center gap-2 overflow-x-auto px-3 py-2">
+          <ScrollArea className="flex-1">
+          <div className="flex h-full items-center gap-2 px-3 py-2">
             {saves.length === 0 && (
               <p className="text-xs text-muted-foreground select-none">
-                Nenhum save ainda — clique em <strong>Salvar</strong> para guardar a cena atual.
+                Nenhum save ainda — clique em <strong>Salvar</strong> para
+                guardar a cena atual.
               </p>
             )}
             {saves.map((save) => (
@@ -1357,7 +1503,9 @@ export function GodRaysGenerator() {
                     ? "border-primary shadow-md"
                     : "border-transparent hover:border-border"
                 )}
-                style={{ aspectRatio: `${save.scene.width} / ${save.scene.height}` }}
+                style={{
+                  aspectRatio: `${save.scene.width} / ${save.scene.height}`,
+                }}
                 onClick={() => handleLoadSave(save)}
                 title={new Date(save.createdAt).toLocaleString("pt-BR")}
               >
@@ -1369,7 +1517,10 @@ export function GodRaysGenerator() {
                 {/* Delete button on hover */}
                 <button
                   className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteSave(save.id); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteSave(save.id);
+                  }}
                   title="Remover"
                 >
                   <Trash2Icon className="size-2.5" />
@@ -1377,6 +1528,8 @@ export function GodRaysGenerator() {
               </div>
             ))}
           </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           {/* Actions */}
           <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
@@ -1393,7 +1546,11 @@ export function GodRaysGenerator() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <AlertDialogTrigger asChild>
-                    <Button size="icon" variant="outline" disabled={saves.length === 0}>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      disabled={saves.length === 0}
+                    >
                       <Trash2Icon className="size-3" />
                     </Button>
                   </AlertDialogTrigger>
@@ -1446,28 +1603,42 @@ export function GodRaysGenerator() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                onClick={() => setSelectedLayerId(null)}
-                title="Voltar para camadas"
-              >
-                <ChevronLeft className="size-3" />
-              </Button>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-widest text-sidebar-foreground/40">
-                  Camada
-                </p>
-                <h2 className="text-sm font-bold tracking-tight">
-                  {selectedLayer?.type === "rays" &&
-                    (selectedLayer as RayLayer).name}
-                  {selectedLayer?.type === "halo" &&
-                    (selectedLayer as HaloLayer).name}
-                  {selectedLayer?.type === "background" && "Background"}
-                </h2>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                  onClick={() => setSelectedLayerId(null)}
+                  title="Voltar para camadas"
+                >
+                  <ChevronLeft className="size-3" />
+                </Button>
+                <div className="min-w-0">
+                  <h2 className="text-sm font-bold tracking-tight truncate">
+                    {selectedLayer?.type === "rays" &&
+                      (selectedLayer as RayLayer).name}
+                    {selectedLayer?.type === "halo" &&
+                      (selectedLayer as HaloLayer).name}
+                    {selectedLayer?.type === "background" && "Background"}
+                  </h2>
+                </div>
               </div>
+              {(selectedRayLayer || selectedHaloLayer) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      onClick={handleRandomizeLayer}
+                    >
+                      <Shuffle className="size-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Randomizar camada</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           )}
         </SidebarHeader>
