@@ -67,6 +67,17 @@
 /* ── Tailwind v4 theme mapping ──────────────────────────────────────────── */
 
 @theme inline {
+  --spacing: 0.25rem; /* base unit: p-1=4px, p-4=16px, p-8=32px */
+
+  --text-base: 0.85rem;                               /* ← ajuste aqui, o resto deriva */
+  --text-xs:   calc(var(--text-base) * 0.75);     /* 12px */
+  --text-sm:   calc(var(--text-base) * 0.875);    /* 14px */
+  --text-lg:   calc(var(--text-base) * 1.125);    /* 18px */
+  --text-xl:   calc(var(--text-base) * 1.25);     /* 20px */
+  --text-2xl:  calc(var(--text-base) * 1.5);      /* 24px */
+  --text-3xl:  calc(var(--text-base) * 1.875);    /* 30px */
+  --text-4xl:  calc(var(--text-base) * 2.25);     /* 36px */
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);

@@ -63,7 +63,12 @@ import {
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
-import { COLOR_PRESETS, RAYS_PRESETS, PRESETS, SCENE_PRESETS } from "@/lib/presets";
+import {
+  COLOR_PRESETS,
+  RAYS_PRESETS,
+  PRESETS,
+  SCENE_PRESETS,
+} from "@/lib/presets";
 import {
   Tooltip,
   TooltipTrigger,
@@ -276,9 +281,10 @@ export function GodRaysGenerator() {
   const bgLayer = scene.layers.find(
     (l) => l.type === "background"
   ) as BackgroundLayer;
-  const nonBgLayers = scene.layers.filter(
-    (l) => l.type !== "background"
-  ) as (RayLayer | HaloLayer)[];
+  const nonBgLayers = scene.layers.filter((l) => l.type !== "background") as (
+    | RayLayer
+    | HaloLayer
+  )[];
 
   // ── Layer management ─────────────────────────────────────────────────────
 
@@ -295,48 +301,48 @@ export function GodRaysGenerator() {
   );
 
   const updateScene = React.useCallback(
-    (changes: Partial<Pick<SceneConfig, "width" | "height" | "noise" | "grainSize">>) => {
+    (
+      changes: Partial<
+        Pick<SceneConfig, "width" | "height" | "noise" | "grainSize">
+      >
+    ) => {
       setScene((s) => ({ ...s, ...changes }));
     },
     []
   );
 
-  const addLayer = React.useCallback(
-    (type: "rays" | "halo") => {
-      const id = `${type}-${Date.now()}`;
-      setScene((s) => {
-        const count = s.layers.filter((l) => l.type === type).length;
-        const name =
-          type === "rays" ? `Rays ${count + 1}` : `Halo ${count + 1}`;
-        const firstOfType = s.layers.find((l) => l.type === type);
-        const newLayer: Layer =
-          type === "rays"
-            ? {
-                id,
-                name,
-                ...DEFAULT_RAY_LAYER,
-                colorStart:
-                  (firstOfType as RayLayer | undefined)?.colorStart ??
-                  DEFAULT_RAY_LAYER.colorStart,
-                colorEnd:
-                  (firstOfType as RayLayer | undefined)?.colorEnd ??
-                  DEFAULT_RAY_LAYER.colorEnd,
-                seed: Math.floor(Math.random() * 1_000_000),
-              }
-            : {
-                id,
-                name,
-                ...DEFAULT_HALO_LAYER,
-                color:
-                  (firstOfType as HaloLayer | undefined)?.color ??
-                  DEFAULT_HALO_LAYER.color,
-              };
-        return { ...s, layers: [...s.layers, newLayer] };
-      });
-      setSelectedLayerId(id);
-    },
-    []
-  );
+  const addLayer = React.useCallback((type: "rays" | "halo") => {
+    const id = `${type}-${Date.now()}`;
+    setScene((s) => {
+      const count = s.layers.filter((l) => l.type === type).length;
+      const name = type === "rays" ? `Rays ${count + 1}` : `Halo ${count + 1}`;
+      const firstOfType = s.layers.find((l) => l.type === type);
+      const newLayer: Layer =
+        type === "rays"
+          ? {
+              id,
+              name,
+              ...DEFAULT_RAY_LAYER,
+              colorStart:
+                (firstOfType as RayLayer | undefined)?.colorStart ??
+                DEFAULT_RAY_LAYER.colorStart,
+              colorEnd:
+                (firstOfType as RayLayer | undefined)?.colorEnd ??
+                DEFAULT_RAY_LAYER.colorEnd,
+              seed: Math.floor(Math.random() * 1_000_000),
+            }
+          : {
+              id,
+              name,
+              ...DEFAULT_HALO_LAYER,
+              color:
+                (firstOfType as HaloLayer | undefined)?.color ??
+                DEFAULT_HALO_LAYER.color,
+            };
+      return { ...s, layers: [...s.layers, newLayer] };
+    });
+    setSelectedLayerId(id);
+  }, []);
 
   const duplicateLayer = React.useCallback((id: string) => {
     const newId = `${id.split("-")[0]}-${Date.now()}`;
@@ -349,9 +355,10 @@ export function GodRaysGenerator() {
         id: newId,
         ...(original.type !== "background" && {
           name: `${original.name} (cópia)`,
-          seed: original.type === "rays"
-            ? Math.floor(Math.random() * 1_000_000)
-            : undefined,
+          seed:
+            original.type === "rays"
+              ? Math.floor(Math.random() * 1_000_000)
+              : undefined,
         }),
       } as Layer;
       const layers = [...s.layers];
@@ -569,9 +576,15 @@ export function GodRaysGenerator() {
     const preset = SCENE_PRESETS.find((p) => p.key === key);
     if (!preset) return;
     // Preserve current colors — apply only structure from the preset
-    const curRay = scene.layers.find((l) => l.type === "rays") as RayLayer | undefined;
-    const curHalo = scene.layers.find((l) => l.type === "halo") as HaloLayer | undefined;
-    const curBg = scene.layers.find((l) => l.type === "background") as BackgroundLayer;
+    const curRay = scene.layers.find((l) => l.type === "rays") as
+      | RayLayer
+      | undefined;
+    const curHalo = scene.layers.find((l) => l.type === "halo") as
+      | HaloLayer
+      | undefined;
+    const curBg = scene.layers.find(
+      (l) => l.type === "background"
+    ) as BackgroundLayer;
     const layers = preset.scene.layers.map((layer) => {
       if (layer.type === "background") return { ...curBg };
       if (layer.type === "rays")
@@ -579,7 +592,8 @@ export function GodRaysGenerator() {
           ...layer,
           colorStart: curRay?.colorStart ?? layer.colorStart,
           colorEnd: curRay?.colorEnd ?? layer.colorEnd,
-          fadeToTransparent: curRay?.fadeToTransparent ?? layer.fadeToTransparent,
+          fadeToTransparent:
+            curRay?.fadeToTransparent ?? layer.fadeToTransparent,
         };
       if (layer.type === "halo")
         return { ...layer, color: curHalo?.color ?? layer.color };
@@ -665,7 +679,7 @@ export function GodRaysGenerator() {
     <SidebarProvider className="h-svh">
       {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
       <Sidebar side="left">
-        <SidebarHeader>
+        <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-amber-400" />
@@ -785,7 +799,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Efeitos globais</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-4 px-2 pb-2">
+              <div className="space-y-8 px-2 pb-2">
                 <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
@@ -818,7 +832,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-4 px-2 pb-2">
+              <div className="space-y-8 px-2 pb-2">
                 <Field label="Preset">
                   <Select
                     defaultValue={String(
@@ -879,13 +893,12 @@ export function GodRaysGenerator() {
 
       {/* ── CENTER: Preview ───────────────────────────────────────────── */}
       <SidebarInset className="relative w-full">
-        <div className="flex items-center justify-end gap-3 bg-background border-b border-border px-5 py-3">
+        <div className="flex items-center justify-end gap-3 bg-background border-b border-border px-5 py-3 h-14">
           <div className="flex flex-wrap items-center gap-2">
             <Button
               size="sm"
               variant="outline"
               onClick={handleCopyPresetJson}
-              className="gap-2"
             >
               {copiedJson ? (
                 <Check className="h-4 w-4 text-emerald-400" />
@@ -898,7 +911,6 @@ export function GodRaysGenerator() {
               size="sm"
               variant="outline"
               onClick={handleCopyCss}
-              className="gap-2"
             >
               {copiedCss ? (
                 <Check className="h-4 w-4 text-emerald-400" />
@@ -912,7 +924,6 @@ export function GodRaysGenerator() {
               variant="outline"
               onClick={() => handleExport("jpg")}
               disabled={exporting !== null}
-              className="gap-2"
             >
               <ImageIcon className="h-4 w-4" /> JPG
             </Button>
@@ -920,7 +931,6 @@ export function GodRaysGenerator() {
               size="sm"
               onClick={() => handleExport("png")}
               disabled={exporting !== null}
-              className="gap-2"
             >
               <Download className="h-4 w-4" /> PNG
             </Button>
@@ -1011,10 +1021,7 @@ export function GodRaysGenerator() {
                 <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
                   {selectedHaloLayer.name}
                 </span>
-                <OriginCrosshair
-                  color="amber"
-                  className="left-1/2 top-1/2"
-                />
+                <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
               </div>
             )}
           </div>
@@ -1077,17 +1084,11 @@ export function GodRaysGenerator() {
       {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
       <Sidebar side="right">
         {/* Header */}
-        <SidebarHeader className="border-b border-sidebar-border px-4 py-3">
+        <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           {selectedLayerId === null ? (
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium uppercase tracking-widest text-sidebar-foreground/40">
-                  Painel
-                </p>
                 <h2 className="text-base font-bold tracking-tight">Camadas</h2>
-              </div>
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-sidebar-primary/10 text-xs font-semibold text-sidebar-primary">
-                {nonBgLayers.length + 1}
               </div>
             </div>
           ) : (
@@ -1106,8 +1107,10 @@ export function GodRaysGenerator() {
                   Camada
                 </p>
                 <h2 className="text-sm font-bold tracking-tight">
-                  {selectedLayer?.type === "rays" && (selectedLayer as RayLayer).name}
-                  {selectedLayer?.type === "halo" && (selectedLayer as HaloLayer).name}
+                  {selectedLayer?.type === "rays" &&
+                    (selectedLayer as RayLayer).name}
+                  {selectedLayer?.type === "halo" &&
+                    (selectedLayer as HaloLayer).name}
                   {selectedLayer?.type === "background" && "Background"}
                 </h2>
               </div>
@@ -1180,7 +1183,9 @@ export function GodRaysGenerator() {
                           <div
                             className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
                             style={{
-                              background: `linear-gradient(135deg, ${layer.colorStart}, ${
+                              background: `linear-gradient(135deg, ${
+                                layer.colorStart
+                              }, ${
                                 layer.fadeToTransparent
                                   ? "transparent"
                                   : layer.colorEnd
@@ -1395,7 +1400,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Forma</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-4 px-2 pb-2">
+                  <div className="space-y-8 px-2 pb-2">
                     <Field label="Quantidade" value={selectedRayLayer.rayCount}>
                       <Slider
                         min={1}
@@ -1499,7 +1504,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-4 px-2 pb-2">
+                  <div className="space-y-8 px-2 pb-2">
                     <Field
                       label="Direção"
                       value={selectedRayLayer.direction.toFixed(0)}
@@ -1550,7 +1555,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-4 px-2 pb-2">
+                  <div className="space-y-8 px-2 pb-2">
                     <Field
                       label="Variação"
                       value={selectedRayLayer.randomness.toFixed(0)}
@@ -1599,7 +1604,7 @@ export function GodRaysGenerator() {
             <SidebarGroup>
               <SidebarGroupLabel>Halo</SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="space-y-4 px-2 pb-2">
+                <div className="space-y-8 px-2 pb-2">
                   <Field label="Cor">
                     <div className="flex items-center gap-3">
                       <ColorPicker
@@ -1671,19 +1676,23 @@ export function GodRaysGenerator() {
             <SidebarGroup>
               <SidebarGroupLabel>Background</SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="space-y-4 px-2 pb-2">
+                <div className="space-y-8 px-2 pb-2">
                   <Field label="Tipo">
                     <Select
                       value={selectedBgLayer.bgType}
                       onValueChange={(v) =>
-                        updateLayer("background", { bgType: v as BackgroundType })
+                        updateLayer("background", {
+                          bgType: v as BackgroundType,
+                        })
                       }
                     >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="transparent">Transparente</SelectItem>
+                        <SelectItem value="transparent">
+                          Transparente
+                        </SelectItem>
                         <SelectItem value="solid">Cor sólida</SelectItem>
                         <SelectItem value="gradient">Gradiente</SelectItem>
                       </SelectContent>

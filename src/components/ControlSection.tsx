@@ -1,6 +1,8 @@
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, InfoIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Label } from "./ui/label";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 interface ControlSectionProps {
   title: string;
@@ -24,7 +26,9 @@ export function ControlSection({
         <div className="h-px flex-1 bg-border" />
         <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground transition-colors group-hover:text-foreground">
           {title}
-          <ChevronDown className={cn("h-3 w-3 transition-transform", open && "rotate-180")} />
+          <ChevronDown
+            className={cn("h-3 w-3 transition-transform", open && "rotate-180")}
+          />
         </span>
         <div className="h-px flex-1 bg-border" />
       </button>
@@ -47,19 +51,32 @@ interface FieldProps {
 
 export function Field({ label, hint, value, unit, children }: FieldProps) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between">
-        <label className="text-sm font-medium text-foreground/90">{label}</label>
+    <div className="w-full flex flex-col gap-2">
+      <div className="w-full flex items-baseline justify-between">
+        <div className="flex gap-1 items-center">
+          <Label className="text-sm font-medium text-foreground/90">
+            {label}
+          </Label>
+          {hint && (
+            <Tooltip>
+              <TooltipTrigger>
+                <InfoIcon className="size-3 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{hint}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
+
         {value !== undefined && (
           <span className="font-mono text-xs text-muted-foreground">
-            {value}{unit ?? ""}
+            {value}
+            {unit ?? ""}
           </span>
         )}
       </div>
       {children}
-      {hint && (
-        <p className="text-[11px] leading-snug text-muted-foreground">{hint}</p>
-      )}
     </div>
   );
 }
