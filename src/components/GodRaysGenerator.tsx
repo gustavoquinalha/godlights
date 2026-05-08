@@ -93,6 +93,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useTheme } from "@/components/theme-provider";
+import { Label } from "./ui/label";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -1194,7 +1195,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Background</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2 pb-2">
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
                 <Field label="Tipo">
                   <Select
                     value={bgLayer.bgType}
@@ -1214,45 +1215,57 @@ export function GodRaysGenerator() {
                     </SelectContent>
                   </Select>
                 </Field>
+
                 {bgLayer.bgType === "solid" && (
-                  <div className="flex items-center gap-2">
-                    <ColorPicker
-                      value={bgLayer.bgColor}
-                      onChange={(v) =>
-                        updateLayer("background", { bgColor: v })
-                      }
-                    />
-                    <span className="font-mono text-xs text-sidebar-foreground/60">
-                      {bgLayer.bgColor}
-                    </span>
+                  <div className="w-full flex flex-col gap-2">
+                    <Label className="text-sm font-medium text-foreground/90">
+                      Cores
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <ColorPicker
+                        value={bgLayer.bgColor}
+                        onChange={(v) =>
+                          updateLayer("background", { bgColor: v })
+                        }
+                      />
+                      <span className="font-mono text-xs text-sidebar-foreground/60">
+                        {bgLayer.bgColor}
+                      </span>
+                    </div>
                   </div>
                 )}
                 {bgLayer.bgType === "gradient" && (
                   <>
-                    <div className="flex items-center gap-2">
-                      <div className="flex flex-col items-center gap-1.5">
-                        <ColorPicker
-                          value={bgLayer.bgColor}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor: v })
-                          }
+                    <div className="w-full flex flex-col gap-2">
+                      <Label className="text-sm font-medium text-foreground/90">
+                        Cores
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <ColorPicker
+                            value={bgLayer.bgColor}
+                            onChange={(v) =>
+                              updateLayer("background", { bgColor: v })
+                            }
+                          />
+                        </div>
+                        <div
+                          className="h-9 flex-1 rounded-lg ring-1 ring-border"
+                          style={{
+                            background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
+                          }}
                         />
-                      </div>
-                      <div
-                        className="h-9 flex-1 rounded-lg ring-1 ring-border"
-                        style={{
-                          background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
-                        }}
-                      />
-                      <div className="flex flex-col items-center gap-1.5">
-                        <ColorPicker
-                          value={bgLayer.bgColor2}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor2: v })
-                          }
-                        />
+                        <div className="flex flex-col items-center gap-1.5">
+                          <ColorPicker
+                            value={bgLayer.bgColor2}
+                            onChange={(v) =>
+                              updateLayer("background", { bgColor2: v })
+                            }
+                          />
+                        </div>
                       </div>
                     </div>
+
                     <Field
                       label="Ângulo"
                       value={bgLayer.bgGradientAngle.toFixed(0)}
@@ -1278,9 +1291,9 @@ export function GodRaysGenerator() {
 
           {/* EFFECTS (global) */}
           <SidebarGroup>
-            <SidebarGroupLabel>Efeitos globais</SidebarGroupLabel>
+            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2 pb-2">
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
                 <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
@@ -1313,7 +1326,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2">
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
                 <Field label="Preset">
                   <Select
                     value={String(
@@ -1398,17 +1411,34 @@ export function GodRaysGenerator() {
           {/* lg+: botões inline */}
           <div className="hidden lg:flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleCopyPresetJson}>
-              {copiedJson ? <Check className="size-3" /> : <Copy className="size-2.5" />}
+              {copiedJson ? (
+                <Check className="size-3" />
+              ) : (
+                <Copy className="size-2.5" />
+              )}
               {copiedJson ? "Copiado" : "Copiar JSON"}
             </Button>
             <Button size="sm" variant="outline" onClick={handleCopyCss}>
-              {copiedCss ? <Check className="size-3" /> : <Code2 className="size-3" />}
+              {copiedCss ? (
+                <Check className="size-3" />
+              ) : (
+                <Code2 className="size-3" />
+              )}
               {copiedCss ? "Copiado" : "Copiar CSS"}
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport("jpg")} disabled={exporting !== null}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleExport("jpg")}
+              disabled={exporting !== null}
+            >
               <ImageIcon className="size-3" /> JPG
             </Button>
-            <Button size="sm" onClick={() => handleExport("png")} disabled={exporting !== null}>
+            <Button
+              size="sm"
+              onClick={() => handleExport("png")}
+              disabled={exporting !== null}
+            >
               <Download className="size-3" /> PNG
             </Button>
           </div>
@@ -1416,7 +1446,11 @@ export function GodRaysGenerator() {
           {/* <lg: dropdown dots */}
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="h-8 w-8 lg:hidden">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 lg:hidden"
+              >
                 <MoreHorizontal className="size-4" />
               </Button>
             </PopoverTrigger>
@@ -1426,14 +1460,22 @@ export function GodRaysGenerator() {
                   onClick={handleCopyPresetJson}
                   className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  {copiedJson ? <Check className="size-3.5 shrink-0" /> : <Copy className="size-3.5 shrink-0" />}
+                  {copiedJson ? (
+                    <Check className="size-3.5 shrink-0" />
+                  ) : (
+                    <Copy className="size-3.5 shrink-0" />
+                  )}
                   {copiedJson ? "Copiado!" : "Copiar JSON"}
                 </button>
                 <button
                   onClick={handleCopyCss}
                   className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                 >
-                  {copiedCss ? <Check className="size-3.5 shrink-0" /> : <Code2 className="size-3.5 shrink-0" />}
+                  {copiedCss ? (
+                    <Check className="size-3.5 shrink-0" />
+                  ) : (
+                    <Code2 className="size-3.5 shrink-0" />
+                  )}
                   {copiedCss ? "Copiado!" : "Copiar CSS"}
                 </button>
                 <div className="my-1 h-px bg-border" />
@@ -1868,7 +1910,7 @@ export function GodRaysGenerator() {
                     >
                       {/* Clickable area */}
                       <button
-                        className="w-full p-3 text-left"
+                        className="w-full p-3 text-left cursor-pointer"
                         onClick={() => setSelectedLayerId(layer.id)}
                       >
                         <div className="mb-2.5 flex items-center justify-between">
@@ -2061,7 +2103,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Forma</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-8 px-2 pb-2">
+                  <div className="w-full flex flex-col gap-6 px-2 pb-2">
                     <Field label="Quantidade" value={selectedRayLayer.rayCount}>
                       <Slider
                         min={1}
@@ -2165,7 +2207,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-8 px-2 pb-2">
+                  <div className="w-full flex flex-col gap-6 px-2 pb-2">
                     <Field
                       label="Direção"
                       value={selectedRayLayer.direction.toFixed(0)}
@@ -2216,7 +2258,7 @@ export function GodRaysGenerator() {
               <SidebarGroup>
                 <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
                 <SidebarGroupContent>
-                  <div className="space-y-8 px-2 pb-2">
+                  <div className="w-full flex flex-col gap-6 px-2 pb-2">
                     <Field
                       label="Variação"
                       value={selectedRayLayer.randomness.toFixed(0)}
@@ -2265,7 +2307,7 @@ export function GodRaysGenerator() {
             <SidebarGroup>
               <SidebarGroupLabel>Halo</SidebarGroupLabel>
               <SidebarGroupContent>
-                <div className="space-y-8 px-2 pb-2">
+                <div className="w-full flex flex-col gap-6 px-2 pb-2">
                   <Field label="Cor">
                     <div className="flex items-center gap-2">
                       <ColorPicker
