@@ -720,9 +720,9 @@ export function GodRaysGenerator() {
                           <button
                             onClick={() => applyPreset(p.key)}
                             className={cn(
-                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeColorPreset === p.key &&
-                                "ring-2 ring-sidebar-ring"
+                                "ring-2 ring-primary"
                             )}
                             style={{ background: p.thumb }}
                           />
@@ -743,9 +743,9 @@ export function GodRaysGenerator() {
                           <button
                             onClick={() => applyPreset(p.key)}
                             className={cn(
-                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeRaysPreset === p.key &&
-                                "ring-2 ring-sidebar-ring"
+                                "ring-2 ring-primary"
                             )}
                             style={{ background: p.thumb }}
                           />
@@ -759,9 +759,9 @@ export function GodRaysGenerator() {
                           <button
                             onClick={() => applyScenePreset(p.key)}
                             className={cn(
-                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
                               activeScenePreset === p.key &&
-                                "ring-2 ring-sidebar-ring"
+                                "ring-2 ring-primary"
                             )}
                             style={{ background: p.thumb }}
                           />
@@ -1164,7 +1164,7 @@ export function GodRaysGenerator() {
                       >
                         <div className="mb-2.5 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                               {layer.type === "rays" ? (
                                 <Move className="h-3.5 w-3.5" />
                               ) : (
@@ -1299,7 +1299,7 @@ export function GodRaysGenerator() {
                 >
                   <div className="mb-2.5 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <ImageIcon className="h-3.5 w-3.5" />
                       </div>
                       <span className="text-sm font-semibold">Background</span>
