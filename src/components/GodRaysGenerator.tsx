@@ -66,6 +66,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
@@ -182,7 +183,21 @@ function applyRaysPreset(
         ...(flat.originX !== undefined && { originX: flat.originX }),
         ...(flat.originY !== undefined && { originY: flat.originY }),
         ...(flat.blur !== undefined && { blur: flat.blur }),
-        ...(flat.randomness !== undefined && { randomness: flat.randomness }),
+        ...(flat.randomnessWidth !== undefined
+          ? { randomnessWidth: flat.randomnessWidth }
+          : flat.randomness !== undefined
+          ? { randomnessWidth: flat.randomness }
+          : {}),
+        ...(flat.randomnessLength !== undefined
+          ? { randomnessLength: flat.randomnessLength }
+          : flat.randomness !== undefined
+          ? { randomnessLength: flat.randomness }
+          : {}),
+        ...(flat.randomnessAngle !== undefined
+          ? { randomnessAngle: flat.randomnessAngle }
+          : flat.randomness !== undefined
+          ? { randomnessAngle: flat.randomness }
+          : {}),
         ...(flat.seed !== undefined && { seed: flat.seed }),
       } as RayLayer;
     }
@@ -289,6 +304,68 @@ function scaleSceneForPreview(scene: SceneConfig): SceneConfig {
   };
 }
 
+// ── Scene migration (adds new fields to old saved data) ────────────────────
+
+function migrateScene(scene: SceneConfig): SceneConfig {
+  return {
+    ...scene,
+    layers: scene.layers.map((layer) => {
+      if (layer.type === "rays") {
+        const legacy = (layer as RayLayer & { randomness?: number }).randomness;
+        const fallback = legacy ?? 30;
+        return {
+          ...layer,
+          randomnessWidth: layer.randomnessWidth ?? fallback,
+          randomnessLength: layer.randomnessLength ?? fallback,
+          randomnessAngle: layer.randomnessAngle ?? fallback,
+        } as RayLayer;
+      }
+      return layer;
+    }) as Layer[],
+  };
+}
+
+// ── Sidebar bridge helpers ─────────────────────────────────────────────────
+
+const LeftToggleCtx = React.createContext<() => void>(() => {});
+
+function LeftSidebarBridge({ children }: { children: React.ReactNode }) {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <LeftToggleCtx.Provider value={toggleSidebar}>
+      {children}
+    </LeftToggleCtx.Provider>
+  );
+}
+
+function LeftPanelTrigger() {
+  const toggle = React.useContext(LeftToggleCtx);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggle}>
+          <PanelLeft className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Painel de presets</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function RightPanelTrigger() {
+  const { toggleSidebar } = useSidebar();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggleSidebar}>
+          <PanelRight className="size-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Painel de camadas</TooltipContent>
+    </Tooltip>
+  );
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function GodRaysGenerator() {
@@ -302,7 +379,7 @@ export function GodRaysGenerator() {
   const [scene, setScene] = React.useState<SceneConfig>(() => {
     try {
       const saved = localStorage.getItem("rays-scene");
-      if (saved) return JSON.parse(saved) as SceneConfig;
+      if (saved) return migrateScene(JSON.parse(saved) as SceneConfig);
     } catch {
       /* ignore corrupt data */
     }
@@ -316,9 +393,6 @@ export function GodRaysGenerator() {
     if (raysPreset) s = applyRaysPreset(s, raysPreset.config);
     return s;
   });
-
-  const [leftOpen, setLeftOpen] = React.useState(true);
-  const [rightOpen, setRightOpen] = React.useState(true);
 
   // Persist scene to localStorage on every change (debounced)
   React.useEffect(() => {
@@ -454,7 +528,7 @@ export function GodRaysGenerator() {
   );
 
   const handleLoadSave = React.useCallback((save: SavedScene) => {
-    setScene(save.scene);
+    setScene(migrateScene(save.scene));
     setSelectedSaveId(save.id);
     setSelectedLayerId(null);
     setActiveColorPreset(save.activeColorPreset ?? null);
@@ -856,9 +930,21 @@ export function GodRaysGenerator() {
           originY: pick.config.originY,
         }),
         ...(pick.config.blur !== undefined && { blur: pick.config.blur }),
-        ...(pick.config.randomness !== undefined && {
-          randomness: pick.config.randomness,
-        }),
+        ...(pick.config.randomnessWidth !== undefined
+          ? { randomnessWidth: pick.config.randomnessWidth }
+          : pick.config.randomness !== undefined
+          ? { randomnessWidth: pick.config.randomness }
+          : {}),
+        ...(pick.config.randomnessLength !== undefined
+          ? { randomnessLength: pick.config.randomnessLength }
+          : pick.config.randomness !== undefined
+          ? { randomnessLength: pick.config.randomness }
+          : {}),
+        ...(pick.config.randomnessAngle !== undefined
+          ? { randomnessAngle: pick.config.randomnessAngle }
+          : pick.config.randomness !== undefined
+          ? { randomnessAngle: pick.config.randomness }
+          : {}),
         seed: Math.floor(Math.random() * 1_000_000),
       });
       setActiveRaysPreset(null);
@@ -906,6 +992,14 @@ export function GodRaysGenerator() {
     );
     setActiveColorPreset(colorPick.key);
     setActiveRaysPreset(raysPick.key);
+  };
+
+  const handleRandomizeRaysPreset = () => {
+    const candidates = RAYS_PRESETS.filter((p) => p.key !== activeRaysPreset);
+    const pool = candidates.length > 0 ? candidates : RAYS_PRESETS;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setScene((s) => applyRaysPreset(s, pick.config));
+    setActiveRaysPreset(pick.key);
   };
 
   const handleReset = () => {
@@ -1052,11 +1146,7 @@ export function GodRaysGenerator() {
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <SidebarProvider
-      open={leftOpen}
-      onOpenChange={setLeftOpen}
-      className="h-svh"
-    >
+    <SidebarProvider className="h-svh">
       {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
       <Sidebar side="left">
         <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
@@ -1152,7 +1242,7 @@ export function GodRaysGenerator() {
                         <Button
                           variant="ghost"
                           size="icon-xs"
-                          onClick={handleRandomize}
+                          onClick={handleRandomizeRaysPreset}
                           className="p-0!"
                           title="Rays aleatório"
                         >
@@ -1415,27 +1505,12 @@ export function GodRaysGenerator() {
       </Sidebar>
 
       {/* ── CENTER: Preview ───────────────────────────────────────────── */}
-      <SidebarProvider
-        open={rightOpen}
-        onOpenChange={setRightOpen}
-        className="flex-1 min-h-0"
-      >
+      <LeftSidebarBridge>
+      <SidebarProvider className="flex-1 min-h-0">
         <SidebarInset className="relative w-full">
           <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
             <div className="flex gap-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => setLeftOpen((v) => !v)}
-                  >
-                    <PanelLeft className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Painel de presets</TooltipContent>
-              </Tooltip>
+              <LeftPanelTrigger />
 
               <div className="flex md:hidden items-center gap-2">
                 <div className="flex items-center gap-2">
@@ -1567,19 +1642,7 @@ export function GodRaysGenerator() {
                 </PopoverContent>
               </Popover>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 shrink-0"
-                    onClick={() => setRightOpen((v) => !v)}
-                  >
-                    <PanelRight className="size-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Painel de camadas</TooltipContent>
-              </Tooltip>
+              <RightPanelTrigger />
             </div>
           </div>
 
@@ -2322,18 +2385,47 @@ export function GodRaysGenerator() {
                   <SidebarGroupContent>
                     <div className="w-full flex flex-col gap-6 px-2 pb-2">
                       <Field
-                        label="Variação"
-                        value={selectedRayLayer.randomness.toFixed(0)}
+                        label="Largura"
+                        value={selectedRayLayer.randomnessWidth.toFixed(0)}
                         unit="%"
-                        hint="Jitter na largura, comprimento e ângulo de cada raio"
                       >
                         <Slider
                           min={0}
                           max={100}
                           step={1}
-                          value={[selectedRayLayer.randomness]}
+                          value={[selectedRayLayer.randomnessWidth]}
                           onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { randomness: v })
+                            updateLayer(selectedRayLayer.id, { randomnessWidth: v })
+                          }
+                        />
+                      </Field>
+                      <Field
+                        label="Comprimento"
+                        value={selectedRayLayer.randomnessLength.toFixed(0)}
+                        unit="%"
+                      >
+                        <Slider
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={[selectedRayLayer.randomnessLength]}
+                          onValueChange={([v]) =>
+                            updateLayer(selectedRayLayer.id, { randomnessLength: v })
+                          }
+                        />
+                      </Field>
+                      <Field
+                        label="Ângulo"
+                        value={selectedRayLayer.randomnessAngle.toFixed(0)}
+                        unit="%"
+                      >
+                        <Slider
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={[selectedRayLayer.randomnessAngle]}
+                          onValueChange={([v]) =>
+                            updateLayer(selectedRayLayer.id, { randomnessAngle: v })
                           }
                         />
                       </Field>
@@ -2438,6 +2530,7 @@ export function GodRaysGenerator() {
           </SidebarContent>
         </Sidebar>
       </SidebarProvider>
+      </LeftSidebarBridge>
     </SidebarProvider>
   );
 }

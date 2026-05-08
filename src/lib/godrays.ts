@@ -42,7 +42,11 @@ export interface RayLayer {
   colorEnd: string;
   fadeToTransparent: boolean;
   blur: number;
-  randomness: number;
+  /** @deprecated use randomnessWidth/Length/Angle */
+  randomness?: number;
+  randomnessWidth: number;
+  randomnessLength: number;
+  randomnessAngle: number;
   seed: number;
 }
 
@@ -96,7 +100,9 @@ export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
   colorEnd: "#ffd28a",
   fadeToTransparent: true,
   blur: 8,
-  randomness: 30,
+  randomnessWidth: 30,
+  randomnessLength: 18,
+  randomnessAngle: 30,
   seed: 1337,
 };
 
@@ -163,6 +169,9 @@ export interface GodRaysConfig {
   noise: number;
   grainSize: number;
   randomness: number;
+  randomnessWidth: number;
+  randomnessLength: number;
+  randomnessAngle: number;
   seed: number;
 }
 
@@ -312,12 +321,16 @@ function renderRays(
 
   const rng = mulberry32(layer.seed);
 
+  const rndW = layer.randomnessWidth ?? layer.randomness ?? 0;
+  const rndL = layer.randomnessLength ?? layer.randomness ?? 0;
+  const rndA = layer.randomnessAngle ?? layer.randomness ?? 0;
+
   for (let i = 0; i < layer.rayCount; i++) {
     const t = layer.rayCount === 1 ? 0.5 : i / (layer.rayCount - 1);
-    const widthVar = 1 - rng() * (layer.randomness / 100);
-    const lenVar = 1 - rng() * (layer.randomness / 100) * 0.6;
+    const widthVar = 1 - rng() * (rndW / 100);
+    const lenVar = 1 - rng() * (rndL / 100) * 0.6;
     const slot = layer.rayCount > 1 ? spread / (layer.rayCount - 1) : spread;
-    const jitter = (rng() - 0.5) * (layer.randomness / 100) * slot;
+    const jitter = (rng() - 0.5) * (rndA / 100) * slot;
     const angle = baseAngle - spread / 2 + spread * t + jitter;
     const w0 = Math.max(1, layer.rayWidth * widthVar);
     const w1 = Math.max(1, w0 * layer.divergence);
