@@ -193,6 +193,48 @@ function applyRaysPreset(
     return layer;
   }) as Layer[];
 
+  // If no rays layer existed, create one from the preset
+  if (!firstRaysDone) {
+    const existingRay = scene.layers.find((l) => l.type === "rays") as RayLayer | undefined;
+    mapped.push({
+      ...DEFAULT_RAY_LAYER,
+      id: `rays-${Date.now()}`,
+      name: "Rays",
+      colorStart: existingRay?.colorStart ?? DEFAULT_RAY_LAYER.colorStart,
+      colorEnd: existingRay?.colorEnd ?? DEFAULT_RAY_LAYER.colorEnd,
+      ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
+      ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
+      ...(flat.divergence !== undefined && { divergence: flat.divergence }),
+      ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
+      ...(flat.opacity !== undefined && { opacity: flat.opacity }),
+      ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
+      ...(flat.direction !== undefined && { direction: flat.direction }),
+      ...(flat.spread !== undefined && { spread: flat.spread }),
+      ...(flat.originX !== undefined && { originX: flat.originX }),
+      ...(flat.originY !== undefined && { originY: flat.originY }),
+      ...(flat.blur !== undefined && { blur: flat.blur }),
+      ...(flat.randomness !== undefined && { randomness: flat.randomness }),
+      ...(flat.seed !== undefined && { seed: flat.seed }),
+    } as RayLayer);
+  }
+
+  // If preset has halo data but no halo layer existed, create one
+  const presetHasHalo = flat.halo !== undefined || flat.haloSize !== undefined;
+  if (!firstHaloDone && presetHasHalo) {
+    const existingHalo = scene.layers.find((l) => l.type === "halo") as HaloLayer | undefined;
+    mapped.push({
+      ...DEFAULT_HALO_LAYER,
+      id: `halo-${Date.now()}`,
+      name: "Halo",
+      color: existingHalo?.color ?? DEFAULT_HALO_LAYER.color,
+      ...(flat.halo !== undefined && { intensity: flat.halo }),
+      ...(flat.haloSize !== undefined && { size: flat.haloSize }),
+      ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
+      ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
+      ...(flat.haloBlendMode !== undefined && { blendMode: flat.haloBlendMode }),
+    } as HaloLayer);
+  }
+
   // Ensure halos are always rendered on top of rays
   const ordered: Layer[] = [
     ...mapped.filter((l) => l.type === "background"),
