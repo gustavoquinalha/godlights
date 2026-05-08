@@ -23,6 +23,7 @@ import {
   SaveIcon,
   Trash2Icon,
   Dices,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   drawScene,
@@ -68,6 +69,11 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import {
   Tooltip,
@@ -1046,7 +1052,9 @@ export function GodRaysGenerator() {
         <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Sparkles className="size-3 text-amber-400" />
+              <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
+                <Sparkles className="size-4 text-primary-foreground" />
+              </div>
               <span className="text-sm font-semibold tracking-tight">
                 Godlights
               </span>
@@ -1387,39 +1395,65 @@ export function GodRaysGenerator() {
       {/* ── CENTER: Preview ───────────────────────────────────────────── */}
       <SidebarInset className="relative w-full">
         <div className="flex items-center justify-end gap-3 bg-background border-b border-border px-5 py-3 h-14">
-          <div className="flex flex-wrap items-center gap-2">
+          {/* lg+: botões inline */}
+          <div className="hidden lg:flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleCopyPresetJson}>
-              {copiedJson ? (
-                <Check className="size-3 " />
-              ) : (
-                <Copy className="size-2.5" />
-              )}
+              {copiedJson ? <Check className="size-3" /> : <Copy className="size-2.5" />}
               {copiedJson ? "Copiado" : "Copiar JSON"}
             </Button>
             <Button size="sm" variant="outline" onClick={handleCopyCss}>
-              {copiedCss ? (
-                <Check className="size-3 " />
-              ) : (
-                <Code2 className="size-3" />
-              )}
+              {copiedCss ? <Check className="size-3" /> : <Code2 className="size-3" />}
               {copiedCss ? "Copiado" : "Copiar CSS"}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleExport("jpg")}
-              disabled={exporting !== null}
-            >
+            <Button size="sm" variant="outline" onClick={() => handleExport("jpg")} disabled={exporting !== null}>
               <ImageIcon className="size-3" /> JPG
             </Button>
-            <Button
-              size="sm"
-              onClick={() => handleExport("png")}
-              disabled={exporting !== null}
-            >
+            <Button size="sm" onClick={() => handleExport("png")} disabled={exporting !== null}>
               <Download className="size-3" /> PNG
             </Button>
           </div>
+
+          {/* <lg: dropdown dots */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="icon" className="h-8 w-8 lg:hidden">
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-1.5">
+              <div className="flex flex-col gap-0.5">
+                <button
+                  onClick={handleCopyPresetJson}
+                  className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  {copiedJson ? <Check className="size-3.5 shrink-0" /> : <Copy className="size-3.5 shrink-0" />}
+                  {copiedJson ? "Copiado!" : "Copiar JSON"}
+                </button>
+                <button
+                  onClick={handleCopyCss}
+                  className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                >
+                  {copiedCss ? <Check className="size-3.5 shrink-0" /> : <Code2 className="size-3.5 shrink-0" />}
+                  {copiedCss ? "Copiado!" : "Copiar CSS"}
+                </button>
+                <div className="my-1 h-px bg-border" />
+                <button
+                  onClick={() => handleExport("jpg")}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <ImageIcon className="size-3.5 shrink-0" /> Exportar JPG
+                </button>
+                <button
+                  onClick={() => handleExport("png")}
+                  disabled={exporting !== null}
+                  className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Download className="size-3.5 shrink-0" /> Exportar PNG
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div
