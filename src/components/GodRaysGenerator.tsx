@@ -14,6 +14,7 @@ import {
   Move,
   Sun,
   Moon,
+  ChevronLeft,
 } from "lucide-react";
 import {
   drawGodRays,
@@ -23,7 +24,6 @@ import {
   type GodRaysConfig,
   type BackgroundType,
 } from "@/lib/godrays";
-import { LayerCard } from "@/components/LayerCard";
 import { OriginCrosshair } from "@/components/OriginCrosshair";
 import { BlendModeSelect } from "@/components/BlendModeSelect";
 import { OriginInputs } from "@/components/OriginInputs";
@@ -44,11 +44,22 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarInset,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
-import { ControlSection, Field } from "@/components/ControlSection";
+import { Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
@@ -101,7 +112,18 @@ export function GodRaysGenerator() {
     const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_ember");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
     let cfg = { ...DEFAULT_CONFIG, ...(colorPreset?.config ?? {}) };
-    if (raysPreset) cfg = { ...DEFAULT_CONFIG, ...raysPreset.config, colorStart: cfg.colorStart, colorEnd: cfg.colorEnd, haloColor: cfg.haloColor, bgType: cfg.bgType, bgColor: cfg.bgColor, bgColor2: cfg.bgColor2, bgGradientAngle: cfg.bgGradientAngle };
+    if (raysPreset)
+      cfg = {
+        ...DEFAULT_CONFIG,
+        ...raysPreset.config,
+        colorStart: cfg.colorStart,
+        colorEnd: cfg.colorEnd,
+        haloColor: cfg.haloColor,
+        bgType: cfg.bgType,
+        bgColor: cfg.bgColor,
+        bgColor2: cfg.bgColor2,
+        bgGradientAngle: cfg.bgGradientAngle,
+      };
     return cfg;
   });
   const [copiedJson, setCopiedJson] = React.useState(false);
@@ -109,8 +131,12 @@ export function GodRaysGenerator() {
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
   const [layerView, setLayerView] = React.useState<LayerView>("layers");
-  const [activeColorPreset, setActiveColorPreset] = React.useState<string | null>("c_ember");
-  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>("r_side_glow");
+  const [activeColorPreset, setActiveColorPreset] = React.useState<
+    string | null
+  >("c_ember");
+  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
+    "r_side_glow"
+  );
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
@@ -124,7 +150,6 @@ export function GodRaysGenerator() {
     setZoom((z) => clampZoom(z + delta));
   }, []);
 
-  // Wheel zoom — must use non-passive listener to call preventDefault
   React.useEffect(() => {
     const el = previewContainerRef.current;
     if (!el) return;
@@ -137,7 +162,6 @@ export function GodRaysGenerator() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // ---- Render preview on config change ----
   React.useEffect(() => {
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
@@ -160,11 +184,15 @@ export function GodRaysGenerator() {
     []
   );
 
-  // ---- Drag handles (rays / halo independent) ----
   type DragHandle = "rays" | "halo";
-  const [draggingHandle, setDraggingHandle] = React.useState<DragHandle | null>(null);
+  const [draggingHandle, setDraggingHandle] = React.useState<DragHandle | null>(
+    null
+  );
   const dragStartRef = React.useRef<{
-    pctX: number; pctY: number; originX: number; originY: number;
+    pctX: number;
+    pctY: number;
+    originX: number;
+    originY: number;
   } | null>(null);
 
   const canvasPct = (e: React.PointerEvent) => {
@@ -177,38 +205,47 @@ export function GodRaysGenerator() {
     };
   };
 
-  const onOverlayPointerDown = (handle: DragHandle) => (e: React.PointerEvent) => {
-    e.stopPropagation();
-    setDraggingHandle(handle);
-    setLayerView(handle);
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const pos = canvasPct(e);
-    if (!pos) return;
-    dragStartRef.current = {
-      pctX: pos.x,
-      pctY: pos.y,
-      originX: handle === "rays" ? config.originX : config.haloOriginX,
-      originY: handle === "rays" ? config.originY : config.haloOriginY,
+  const onOverlayPointerDown =
+    (handle: DragHandle) => (e: React.PointerEvent) => {
+      e.stopPropagation();
+      setDraggingHandle(handle);
+      setLayerView(handle);
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const pos = canvasPct(e);
+      if (!pos) return;
+      dragStartRef.current = {
+        pctX: pos.x,
+        pctY: pos.y,
+        originX: handle === "rays" ? config.originX : config.haloOriginX,
+        originY: handle === "rays" ? config.originY : config.haloOriginY,
+      };
     };
-  };
 
-  const onOverlayPointerMove = (handle: DragHandle) => (e: React.PointerEvent) => {
-    if (!dragStartRef.current) return;
-    const pos = canvasPct(e);
-    if (!pos) return;
-    const newX = dragStartRef.current.originX + (pos.x - dragStartRef.current.pctX);
-    const newY = dragStartRef.current.originY + (pos.y - dragStartRef.current.pctY);
-    if (handle === "rays") setConfig((c) => ({ ...c, originX: newX, originY: newY }));
-    else setConfig((c) => ({ ...c, haloOriginX: newX, haloOriginY: newY }));
-  };
+  const onOverlayPointerMove =
+    (handle: DragHandle) => (e: React.PointerEvent) => {
+      if (!dragStartRef.current) return;
+      const pos = canvasPct(e);
+      if (!pos) return;
+      const newX =
+        dragStartRef.current.originX + (pos.x - dragStartRef.current.pctX);
+      const newY =
+        dragStartRef.current.originY + (pos.y - dragStartRef.current.pctY);
+      if (handle === "rays")
+        setConfig((c) => ({ ...c, originX: newX, originY: newY }));
+      else setConfig((c) => ({ ...c, haloOriginX: newX, haloOriginY: newY }));
+    };
 
-  const onOverlayPointerUp = (_handle: DragHandle) => (e: React.PointerEvent) => {
-    setDraggingHandle(null);
-    dragStartRef.current = null;
-    try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-  };
+  const onOverlayPointerUp =
+    (_handle: DragHandle) => (e: React.PointerEvent) => {
+      setDraggingHandle(null);
+      dragStartRef.current = null;
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
 
-  // ---- Exports ----
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -244,19 +281,46 @@ export function GodRaysGenerator() {
 
   const handleCopyPresetJson = async () => {
     const COLOR_KEYS: (keyof GodRaysConfig)[] = [
-      "colorStart", "colorEnd", "fadeToTransparent",
+      "colorStart",
+      "colorEnd",
+      "fadeToTransparent",
       "haloColor",
-      "bgType", "bgColor", "bgColor2", "bgGradientAngle",
+      "bgType",
+      "bgColor",
+      "bgColor2",
+      "bgGradientAngle",
     ];
     const RAYS_KEYS: (keyof GodRaysConfig)[] = [
-      "rayCount", "rayWidth", "divergence", "rayLength", "opacity",
-      "blendMode", "direction", "spread", "originX", "originY",
-      "haloBlendMode", "halo", "haloSize", "haloOriginX", "haloOriginY",
-      "blur", "noise", "grainSize", "randomness", "seed",
+      "rayCount",
+      "rayWidth",
+      "divergence",
+      "rayLength",
+      "opacity",
+      "blendMode",
+      "direction",
+      "spread",
+      "originX",
+      "originY",
+      "haloBlendMode",
+      "halo",
+      "haloSize",
+      "haloOriginX",
+      "haloOriginY",
+      "blur",
+      "noise",
+      "grainSize",
+      "randomness",
+      "seed",
     ];
     const pick = (keys: (keyof GodRaysConfig)[]) =>
       Object.fromEntries(keys.map((k) => [k, config[k]]));
-    await navigator.clipboard.writeText(JSON.stringify({ color: pick(COLOR_KEYS), rays: pick(RAYS_KEYS) }, null, 2));
+    await navigator.clipboard.writeText(
+      JSON.stringify(
+        { color: pick(COLOR_KEYS), rays: pick(RAYS_KEYS) },
+        null,
+        2
+      )
+    );
     setCopiedJson(true);
     window.setTimeout(() => setCopiedJson(false), 1800);
   };
@@ -265,20 +329,33 @@ export function GodRaysGenerator() {
     setConfig((c) => ({ ...c, seed: Math.floor(Math.random() * 1_000_000) }));
     setActiveRaysPreset(null);
   };
-  const handleReset = () => { setConfig(DEFAULT_CONFIG); setActiveColorPreset(null); setActiveRaysPreset(null); };
+  const handleReset = () => {
+    setConfig(DEFAULT_CONFIG);
+    setActiveColorPreset(null);
+    setActiveRaysPreset(null);
+  };
   const applyPreset = (key: string) => {
     const preset = PRESETS.find((p) => p.key === key);
     if (!preset) return;
     if (preset.category === "color") {
       setConfig((c) => ({ ...c, ...preset.config }));
     } else {
-      setConfig((c) => ({ ...DEFAULT_CONFIG, ...preset.config, colorStart: c.colorStart, colorEnd: c.colorEnd, haloColor: c.haloColor, bgType: c.bgType, bgColor: c.bgColor, bgColor2: c.bgColor2, bgGradientAngle: c.bgGradientAngle }));
+      setConfig((c) => ({
+        ...DEFAULT_CONFIG,
+        ...preset.config,
+        colorStart: c.colorStart,
+        colorEnd: c.colorEnd,
+        haloColor: c.haloColor,
+        bgType: c.bgType,
+        bgColor: c.bgColor,
+        bgColor2: c.bgColor2,
+        bgGradientAngle: c.bgGradientAngle,
+      }));
     }
     if (preset.category === "color") setActiveColorPreset(key);
     else setActiveRaysPreset(key);
   };
 
-  // Compute responsive preview size (largest box of given AR fitting available area)
   const [containerSize, setContainerSize] = React.useState({ w: 0, h: 0 });
   React.useEffect(() => {
     const el = previewContainerRef.current;
@@ -306,7 +383,6 @@ export function GodRaysGenerator() {
     return { w, h };
   }, [containerSize, config.width, config.height]);
 
-  // Bounding box of the rays cone in display pixels
   const raysBBox = React.useMemo(() => {
     const { w, h } = fittedSize;
     if (!w || !h) return null;
@@ -326,9 +402,15 @@ export function GodRaysGenerator() {
     const x = Math.min(...xs);
     const y = Math.min(...ys);
     return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
-  }, [fittedSize, config.originX, config.originY, config.direction, config.spread, config.rayLength]);
+  }, [
+    fittedSize,
+    config.originX,
+    config.originY,
+    config.direction,
+    config.spread,
+    config.rayLength,
+  ]);
 
-  // Bounding circle of the halo in display pixels
   const haloBCircle = React.useMemo(() => {
     const { w, h } = fittedSize;
     if (!w || !h) return null;
@@ -340,147 +422,271 @@ export function GodRaysGenerator() {
     };
   }, [fittedSize, config.haloOriginX, config.haloOriginY, config.haloSize]);
 
-  // Hit-test click on canvas — Figma-style layer selection
-  const onCanvasClick = React.useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const canvas = previewCanvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * fittedSize.w;
-    const py = ((e.clientY - rect.top) / rect.height) * fittedSize.h;
+  const onCanvasClick = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const canvas = previewCanvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const px = ((e.clientX - rect.left) / rect.width) * fittedSize.w;
+      const py = ((e.clientY - rect.top) / rect.height) * fittedSize.h;
 
-    // Rays (rendered on top — check first)
-    if (raysBBox && px >= raysBBox.x && px <= raysBBox.x + raysBBox.w && py >= raysBBox.y && py <= raysBBox.y + raysBBox.h) {
-      setLayerView("rays");
-      return;
-    }
-    // Halo
-    if (haloBCircle && Math.hypot(px - haloBCircle.cx, py - haloBCircle.cy) <= haloBCircle.r) {
-      setLayerView("halo");
-      return;
-    }
-    setLayerView("layers");
-  }, [fittedSize, raysBBox, haloBCircle]);
+      if (
+        raysBBox &&
+        px >= raysBBox.x &&
+        px <= raysBBox.x + raysBBox.w &&
+        py >= raysBBox.y &&
+        py <= raysBBox.y + raysBBox.h
+      ) {
+        setLayerView("rays");
+        return;
+      }
+      if (
+        haloBCircle &&
+        Math.hypot(px - haloBCircle.cx, py - haloBCircle.cy) <= haloBCircle.r
+      ) {
+        setLayerView("halo");
+        return;
+      }
+      setLayerView("layers");
+    },
+    [fittedSize, raysBBox, haloBCircle]
+  );
 
   return (
-    <SidebarProvider>
-      {/* ----------- LEFT SIDEBAR ----------- */}
-      <Sidebar side="left" collapsible="none">
-        <SidebarHeader className="flex-row items-center justify-between gap-2 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-amber-400" />
-            <span className="text-sm font-semibold tracking-tight">Rays Generator</span>
+    <SidebarProvider className="h-svh">
+      {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
+      <Sidebar side="left">
+        <SidebarHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-400" />
+              <span className="text-sm font-semibold tracking-tight">
+                Rays Generator
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="h-7 w-7"
+              title={dark ? "Modo claro" : "Modo escuro"}
+            >
+              {dark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground"
-            title={dark ? "Modo claro" : "Modo escuro"}
-          >
-            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </Button>
         </SidebarHeader>
+
         <SidebarContent>
-          <ControlSection title="Presets" defaultOpen={true}>
-            <div className="space-y-3">
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Cores</p>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {COLOR_PRESETS.map((p) => (
-                    <Tooltip key={p.key}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => applyPreset(p.key)}
-                          className={cn("aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md", activeColorPreset === p.key && "ring-2 ring-primary")}
-                          style={{ background: p.thumb }}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{p.label}</TooltipContent>
-                    </Tooltip>
-                  ))}
+          {/* PRESETS */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Presets</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-3 px-2 pb-2">
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                    Cores
+                  </p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {COLOR_PRESETS.map((p) => (
+                      <Tooltip key={p.key}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => applyPreset(p.key)}
+                            className={cn(
+                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              activeColorPreset === p.key &&
+                                "ring-2 ring-sidebar-ring"
+                            )}
+                            style={{ background: p.thumb }}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>{p.label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                    Rays / Halo
+                  </p>
+                  <div className="grid grid-cols-6 gap-1.5">
+                    {RAYS_PRESETS.map((p) => (
+                      <Tooltip key={p.key}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => applyPreset(p.key)}
+                            className={cn(
+                              "aspect-square w-full overflow-hidden rounded-full border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                              activeRaysPreset === p.key &&
+                                "ring-2 ring-sidebar-ring"
+                            )}
+                            style={{ background: p.thumb }}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>{p.label}</TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRandomize}
+                    className="flex-1 gap-2"
+                  >
+                    <Shuffle className="h-4 w-4" /> Aleatório
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    className="flex-1 gap-2"
+                  >
+                    <RotateCcw className="h-4 w-4" /> Reset
+                  </Button>
                 </div>
               </div>
-              <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Rays / Halo</p>
-                <div className="grid grid-cols-6 gap-1.5">
-                  {RAYS_PRESETS.map((p) => (
-                    <Tooltip key={p.key}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => applyPreset(p.key)}
-                          className={cn("aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md", activeRaysPreset === p.key && "ring-2 ring-primary")}
-                          style={{ background: p.thumb }}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{p.label}</TooltipContent>
-                    </Tooltip>
-                  ))}
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          {/* EFFECTS */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-4 px-2 pb-2">
+                <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
+                  <Slider
+                    min={0}
+                    max={80}
+                    step={0.5}
+                    value={[config.blur]}
+                    onValueChange={([v]) => update("blur", v)}
+                  />
+                </Field>
+                <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[config.noise]}
+                    onValueChange={([v]) => update("noise", v)}
+                  />
+                </Field>
+                <Field
+                  label="Tamanho do grão"
+                  value={config.grainSize.toFixed(0)}
+                  unit="px"
+                >
+                  <Slider
+                    min={1}
+                    max={6}
+                    step={1}
+                    value={[config.grainSize]}
+                    onValueChange={([v]) => update("grainSize", v)}
+                  />
+                </Field>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          {/* DIMENSIONS */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-4 px-2 pb-2">
+                <Field label="Preset">
+                  <Select
+                    defaultValue={String(
+                      DIMENSION_PRESETS.findIndex(
+                        (p) => p.w === 1920 && p.h === 1080
+                      )
+                    )}
+                    onValueChange={(v) => {
+                      const p = DIMENSION_PRESETS[parseInt(v, 10)];
+                      if (p)
+                        setConfig((c) => ({ ...c, width: p.w, height: p.h }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {DIMENSION_PRESETS.map((p, i) => (
+                        <SelectItem key={p.label} value={String(i)}>
+                          {p.label} — {p.w}×{p.h}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Largura" unit="px" value={config.width}>
+                    <Input
+                      type="number"
+                      min={64}
+                      max={8000}
+                      value={config.width}
+                      onChange={(e) =>
+                        update("width", clampNum(e.target.value, 64, 8000))
+                      }
+                    />
+                  </Field>
+                  <Field label="Altura" unit="px" value={config.height}>
+                    <Input
+                      type="number"
+                      min={64}
+                      max={8000}
+                      value={config.height}
+                      onChange={(e) =>
+                        update("height", clampNum(e.target.value, 64, 8000))
+                      }
+                    />
+                  </Field>
                 </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleRandomize} className="flex-1 gap-2">
-                <Shuffle className="h-4 w-4" /> Aleatório
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleReset} className="flex-1 gap-2">
-                <RotateCcw className="h-4 w-4" /> Reset
-              </Button>
-            </div>
-          </ControlSection>
-
-          <ControlSection title="Efeitos">
-            <Field label="Blur" value={config.blur.toFixed(1)} unit="px">
-              <Slider min={0} max={80} step={0.5} value={[config.blur]} onValueChange={([v]) => update("blur", v)} />
-            </Field>
-            <Field label="Ruído / grão" value={config.noise.toFixed(0)}>
-              <Slider min={0} max={100} step={1} value={[config.noise]} onValueChange={([v]) => update("noise", v)} />
-            </Field>
-            <Field label="Tamanho do grão" value={config.grainSize.toFixed(0)} unit="px">
-              <Slider min={1} max={6} step={1} value={[config.grainSize]} onValueChange={([v]) => update("grainSize", v)} />
-            </Field>
-          </ControlSection>
-
-          <ControlSection title="Dimensões">
-            <Field label="Preset">
-              <Select
-                defaultValue={String(DIMENSION_PRESETS.findIndex((p) => p.w === 1920 && p.h === 1080))}
-                onValueChange={(v) => {
-                  const p = DIMENSION_PRESETS[parseInt(v, 10)];
-                  if (p) setConfig((c) => ({ ...c, width: p.w, height: p.h }));
-                }}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DIMENSION_PRESETS.map((p, i) => (
-                    <SelectItem key={p.label} value={String(i)}>{p.label} — {p.w}×{p.h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Largura" unit="px" value={config.width}>
-                <Input type="number" min={64} max={8000} value={config.width} onChange={(e) => update("width", clampNum(e.target.value, 64, 8000))} />
-              </Field>
-              <Field label="Altura" unit="px" value={config.height}>
-                <Input type="number" min={64} max={8000} value={config.height} onChange={(e) => update("height", clampNum(e.target.value, 64, 8000))} />
-              </Field>
-            </div>
-          </ControlSection>
-
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
       </Sidebar>
 
-      {/* ----------- CENTER: Preview ----------- */}
-      <SidebarInset>
-        <div className="flex items-center justify-end gap-3 border-b border-border px-5 py-3">
+      {/* ── CENTER: Preview ───────────────────────────────────────────── */}
+      <SidebarInset className="relative w-full">
+        <div className="flex items-center justify-end gap-3 bg-background border-b border-border px-5 py-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handleCopyPresetJson} className="gap-2">
-              {copiedJson ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyPresetJson}
+              className="gap-2"
+            >
+              {copiedJson ? (
+                <Check className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
               {copiedJson ? "Copiado" : "Copiar JSON"}
             </Button>
-            <Button size="sm" variant="outline" onClick={handleCopyCss} className="gap-2">
-              {copiedCss ? <Check className="h-4 w-4 text-emerald-400" /> : <Code2 className="h-4 w-4" />}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCopyCss}
+              className="gap-2"
+            >
+              {copiedCss ? (
+                <Check className="h-4 w-4 text-emerald-400" />
+              ) : (
+                <Code2 className="h-4 w-4" />
+              )}
               {copiedCss ? "Copiado" : "Copiar CSS"}
             </Button>
             <Button
@@ -490,8 +696,7 @@ export function GodRaysGenerator() {
               disabled={exporting !== null}
               className="gap-2"
             >
-              <ImageIcon className="h-4 w-4" />
-              JPG
+              <ImageIcon className="h-4 w-4" /> JPG
             </Button>
             <Button
               size="sm"
@@ -499,8 +704,7 @@ export function GodRaysGenerator() {
               disabled={exporting !== null}
               className="gap-2"
             >
-              <Download className="h-4 w-4" />
-              PNG
+              <Download className="h-4 w-4" /> PNG
             </Button>
           </div>
         </div>
@@ -526,14 +730,18 @@ export function GodRaysGenerator() {
               className="block h-full w-full rounded-md shadow-2xl ring-1 ring-border"
             />
 
-            {/* Rays bounding box — fits the actual cone */}
             {layerView === "rays" && raysBBox && (
               <div
                 className={cn(
                   "absolute",
                   draggingHandle === "rays" ? "cursor-grabbing" : "cursor-grab"
                 )}
-                style={{ left: raysBBox.x, top: raysBBox.y, width: raysBBox.w, height: raysBBox.h }}
+                style={{
+                  left: raysBBox.x,
+                  top: raysBBox.y,
+                  width: raysBBox.w,
+                  height: raysBBox.h,
+                }}
                 onPointerDown={onOverlayPointerDown("rays")}
                 onPointerMove={onOverlayPointerMove("rays")}
                 onPointerUp={onOverlayPointerUp("rays")}
@@ -558,7 +766,6 @@ export function GodRaysGenerator() {
               </div>
             )}
 
-            {/* Halo bounding circle — fits the actual glow radius */}
             {layerView === "halo" && haloBCircle && (
               <div
                 className={cn(
@@ -596,7 +803,7 @@ export function GodRaysGenerator() {
               size="icon"
               onClick={() => changeZoom(-ZOOM_STEP)}
               disabled={zoom <= MIN_ZOOM}
-              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
+              className="h-7 w-7 rounded-full"
               title="Diminuir zoom"
             >
               <ZoomOut className="h-4 w-4" />
@@ -604,7 +811,7 @@ export function GodRaysGenerator() {
             <Button
               variant="ghost"
               onClick={() => setZoom(1)}
-              className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums text-foreground/80 hover:text-foreground"
+              className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums"
               title="Resetar zoom"
             >
               {Math.round(zoom * 100)}%
@@ -614,7 +821,7 @@ export function GodRaysGenerator() {
               size="icon"
               onClick={() => changeZoom(ZOOM_STEP)}
               disabled={zoom >= MAX_ZOOM}
-              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
+              className="h-7 w-7 rounded-full"
               title="Aumentar zoom"
             >
               <ZoomIn className="h-4 w-4" />
@@ -624,7 +831,7 @@ export function GodRaysGenerator() {
               variant="ghost"
               size="icon"
               onClick={() => setZoom(1)}
-              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
+              className="h-7 w-7 rounded-full"
               title="Zoom 100%"
             >
               <Maximize2 className="h-3.5 w-3.5" />
@@ -632,7 +839,7 @@ export function GodRaysGenerator() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
           <span>
             {config.width} × {config.height}px ·{" "}
             {((config.width * config.height) / 1_000_000).toFixed(2)} MP
@@ -641,224 +848,492 @@ export function GodRaysGenerator() {
         </div>
       </SidebarInset>
 
-      {/* ----------- RIGHT SIDEBAR: Layers ----------- */}
-      <Sidebar side="right" collapsible="none">
-        <SidebarHeader className="flex-row items-center gap-2 px-4 py-3">
-          {layerView !== "layers" && (
-            <Button
-              variant="ghost"
-              onClick={() => setLayerView("layers")}
-              className="h-auto gap-1 px-1 py-0.5 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground [&_svg]:size-3"
-            >
-              <RotateCcw className="rotate-90" />
-              Camadas
-            </Button>
-          )}
-          <span className="text-sm font-semibold tracking-tight">
-            {layerView === "layers" && "Camadas"}
-            {layerView === "rays" && "Rays"}
-            {layerView === "halo" && "Halo"}
-            {layerView === "background" && "Background"}
-          </span>
+      {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
+      <Sidebar side="right">
+        <SidebarHeader>
+          <div className="flex items-center gap-1">
+            {layerView !== "layers" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0"
+                onClick={() => setLayerView("layers")}
+                title="Voltar para camadas"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <span className="text-sm font-semibold tracking-tight">
+              {layerView === "layers" && "Camadas"}
+              {layerView === "rays" && "Rays"}
+              {layerView === "halo" && "Halo"}
+              {layerView === "background" && "Background"}
+            </span>
+          </div>
         </SidebarHeader>
-        <SidebarContent>
 
+        <SidebarContent>
           {/* LAYERS LIST */}
           {layerView === "layers" && (
-            <div className="space-y-2 p-3">
-              <LayerCard
-                accent="blue"
-                icon={<Move className="h-4 w-4" />}
-                label="Rays"
-                description={`${config.rayCount} raios · ${Math.round(config.opacity * 100)}% opac.`}
-                preview={
-                  <div
-                    className="h-6 w-10 rounded-md border border-border/40"
-                    style={{ background: `linear-gradient(to right, ${config.colorStart}, ${config.fadeToTransparent ? "transparent" : config.colorEnd})` }}
-                  />
-                }
+            <div className="flex flex-col gap-2 p-3">
+              {/* Rays Card */}
+              <button
                 onClick={() => setLayerView("rays")}
-              />
-              <LayerCard
-                accent="amber"
-                icon={<Move className="h-4 w-4" />}
-                label="Halo"
-                description={`${Math.round(config.halo * 100)}% intensidade`}
-                preview={
-                  <div
-                    className="h-6 w-6 rounded-full border border-border/40"
-                    style={{ background: config.haloColor }}
-                  />
-                }
+                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                      <Move className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-sm font-semibold">Rays</span>
+                  </div>
+                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                </div>
+                <div
+                  className="mb-3 h-10 w-full rounded-lg border border-sidebar-border/40"
+                  style={{
+                    background: `linear-gradient(135deg, ${config.colorStart}, ${
+                      config.fadeToTransparent ? "transparent" : config.colorEnd
+                    })`,
+                  }}
+                />
+                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50">
+                  <span>{config.rayCount} raios</span>
+                  <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                  <span>{Math.round(config.opacity * 100)}% opacidade</span>
+                </div>
+              </button>
+
+              {/* Halo Card */}
+              <button
                 onClick={() => setLayerView("halo")}
-              />
-              <LayerCard
-                icon={<ImageIcon className="h-4 w-4" />}
-                label="Background"
-                description={<span className="capitalize">{config.bgType}</span>}
-                preview={
-                  config.bgType === "gradient" ? (
-                    <div
-                      className="h-6 w-10 rounded-md border border-border/40"
-                      style={{ background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})` }}
-                    />
-                  ) : config.bgType === "solid" ? (
-                    <div className="h-6 w-6 rounded-full border border-border/40" style={{ background: config.bgColor }} />
-                  ) : (
-                    <div className="h-6 w-6 rounded-full border border-border/40 bg-checker" />
-                  )
-                }
+                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-sm font-semibold">Halo</span>
+                  </div>
+                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                </div>
+                <div className="mb-3 flex h-10 w-full items-center justify-center rounded-lg border border-sidebar-border/40 overflow-hidden"
+                  style={{ background: `radial-gradient(ellipse at center, ${config.haloColor} 0%, transparent 70%)` }}
+                />
+                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50">
+                  <span>{Math.round(config.halo * 100)}% intensidade</span>
+                  <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                  <span style={{ color: config.haloColor }} className="font-mono uppercase">{config.haloColor}</span>
+                </div>
+              </button>
+
+              {/* Background Card */}
+              <button
                 onClick={() => setLayerView("background")}
-              />
+                className="group w-full rounded-xl border border-sidebar-border bg-sidebar-accent/30 p-3 text-left transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm active:scale-[0.99]"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-sidebar-primary/10 text-sidebar-primary">
+                      <ImageIcon className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-sm font-semibold">Background</span>
+                  </div>
+                  <ChevronLeft className="h-4 w-4 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                </div>
+                <div
+                  className="mb-3 h-10 w-full rounded-lg border border-sidebar-border/40"
+                  style={{
+                    background:
+                      config.bgType === "gradient"
+                        ? `linear-gradient(135deg, ${config.bgColor}, ${config.bgColor2})`
+                        : config.bgType === "solid"
+                        ? config.bgColor
+                        : undefined,
+                  }}
+                >
+                  {config.bgType === "transparent" && (
+                    <div className="h-full w-full rounded-lg bg-checker" />
+                  )}
+                </div>
+                <div className="flex items-center gap-3 text-xs text-sidebar-foreground/50 capitalize">
+                  <span>{config.bgType}</span>
+                  {config.bgType !== "transparent" && (
+                    <>
+                      <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
+                      <span className="font-mono uppercase">{config.bgColor}</span>
+                    </>
+                  )}
+                </div>
+              </button>
             </div>
           )}
 
           {/* RAYS PROPERTIES */}
           {layerView === "rays" && (
             <>
-              <ControlSection title="Cores">
-                <div className="flex items-center gap-3">
-                  <div className="flex flex-col items-center gap-1.5">
-                    <ColorPicker value={config.colorStart} onChange={(v) => update("colorStart", v)} />
-                    <span className="text-[11px] text-muted-foreground">Início</span>
+              <SidebarGroup>
+                <SidebarGroupLabel>Cores</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <div className="space-y-3 px-2 pb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={config.colorStart}
+                          onChange={(v) => update("colorStart", v)}
+                        />
+                        <span className="text-[11px] text-sidebar-foreground/60">
+                          Início
+                        </span>
+                      </div>
+                      <div
+                        className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
+                        style={{
+                          background: `linear-gradient(to right, ${
+                            config.colorStart
+                          }, ${
+                            config.fadeToTransparent
+                              ? "transparent"
+                              : config.colorEnd
+                          })`,
+                        }}
+                      />
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={config.colorEnd}
+                          onChange={(v) => update("colorEnd", v)}
+                        />
+                        <span className="text-[11px] text-sidebar-foreground/60">
+                          Fim
+                        </span>
+                      </div>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={config.fadeToTransparent}
+                        onCheckedChange={(v) =>
+                          update("fadeToTransparent", v === true)
+                        }
+                      />
+                      Desvanecer para transparente
+                    </label>
                   </div>
-                  <div
-                    className="h-9 flex-1 rounded-lg border border-border/40"
-                    style={{ background: `linear-gradient(to right, ${config.colorStart}, ${config.fadeToTransparent ? "transparent" : config.colorEnd})` }}
-                  />
-                  <div className="flex flex-col items-center gap-1.5">
-                    <ColorPicker value={config.colorEnd} onChange={(v) => update("colorEnd", v)} />
-                    <span className="text-[11px] text-muted-foreground">Fim</span>
+                </SidebarGroupContent>
+              </SidebarGroup>
+
+              <SidebarSeparator />
+
+              <SidebarGroup>
+                <SidebarGroupLabel>Forma</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <div className="space-y-4 px-2 pb-2">
+                    <Field label="Quantidade" value={config.rayCount}>
+                      <Slider
+                        min={1}
+                        max={200}
+                        step={1}
+                        value={[config.rayCount]}
+                        onValueChange={([v]) => update("rayCount", v)}
+                      />
+                    </Field>
+                    <Field
+                      label="Largura base"
+                      unit="px"
+                      value={config.rayWidth.toFixed(0)}
+                    >
+                      <Slider
+                        min={1}
+                        max={400}
+                        step={1}
+                        value={[config.rayWidth]}
+                        onValueChange={([v]) => update("rayWidth", v)}
+                      />
+                    </Field>
+                    <Field
+                      label="Divergência"
+                      value={config.divergence.toFixed(2)}
+                      hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
+                    >
+                      <Slider
+                        min={0.1}
+                        max={5}
+                        step={0.05}
+                        value={[config.divergence]}
+                        onValueChange={([v]) => update("divergence", v)}
+                      />
+                    </Field>
+                    <Field
+                      label="Comprimento"
+                      value={config.rayLength.toFixed(2)}
+                      unit="× diag"
+                    >
+                      <Slider
+                        min={0.2}
+                        max={2.5}
+                        step={0.05}
+                        value={[config.rayLength]}
+                        onValueChange={([v]) => update("rayLength", v)}
+                      />
+                    </Field>
+                    <Field
+                      label="Opacidade"
+                      value={(config.opacity * 100).toFixed(0)}
+                      unit="%"
+                    >
+                      <Slider
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        value={[config.opacity]}
+                        onValueChange={([v]) => update("opacity", v)}
+                      />
+                    </Field>
+                    <Field label="Blend mode">
+                      <BlendModeSelect
+                        value={config.blendMode}
+                        onChange={(v) => update("blendMode", v)}
+                      />
+                    </Field>
                   </div>
-                </div>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
-                  <Checkbox
-                    checked={config.fadeToTransparent}
-                    onCheckedChange={(v) => update("fadeToTransparent", v === true)}
-                  />
-                  Desvanecer para transparente
-                </label>
-              </ControlSection>
+                </SidebarGroupContent>
+              </SidebarGroup>
 
-              <ControlSection title="Forma">
-                <Field label="Quantidade" value={config.rayCount}>
-                  <Slider min={1} max={200} step={1} value={[config.rayCount]} onValueChange={([v]) => update("rayCount", v)} />
-                </Field>
-                <Field label="Largura base" unit="px" value={config.rayWidth.toFixed(0)}>
-                  <Slider min={1} max={400} step={1} value={[config.rayWidth]} onValueChange={([v]) => update("rayWidth", v)} />
-                </Field>
-                <Field label="Divergência" value={config.divergence.toFixed(2)} hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham">
-                  <Slider min={0.1} max={5} step={0.05} value={[config.divergence]} onValueChange={([v]) => update("divergence", v)} />
-                </Field>
-                <Field label="Comprimento" value={config.rayLength.toFixed(2)} unit="× diag">
-                  <Slider min={0.2} max={2.5} step={0.05} value={[config.rayLength]} onValueChange={([v]) => update("rayLength", v)} />
-                </Field>
-                <Field label="Opacidade" value={(config.opacity * 100).toFixed(0)} unit="%">
-                  <Slider min={0} max={1} step={0.01} value={[config.opacity]} onValueChange={([v]) => update("opacity", v)} />
-                </Field>
-                <Field label="Blend mode">
-                  <BlendModeSelect value={config.blendMode} onChange={(v) => update("blendMode", v)} />
-                </Field>
-              </ControlSection>
+              <SidebarSeparator />
 
-              <ControlSection title="Direção e origem">
-                <Field label="Direção" value={config.direction.toFixed(0)} unit="°" hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda">
-                  <Slider min={0} max={360} step={1} value={[config.direction]} onValueChange={([v]) => update("direction", v)} />
-                </Field>
-                <Field label="Abertura (spread)" value={config.spread.toFixed(0)} unit="°">
-                  <Slider min={0} max={360} step={1} value={[config.spread]} onValueChange={([v]) => update("spread", v)} />
-                </Field>
-                <OriginInputs
-                  x={config.originX}
-                  y={config.originY}
-                  onXChange={(v) => update("originX", v)}
-                  onYChange={(v) => update("originY", v)}
-                />
-              </ControlSection>
+              <SidebarGroup>
+                <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <div className="space-y-4 px-2 pb-2">
+                    <Field
+                      label="Direção"
+                      value={config.direction.toFixed(0)}
+                      unit="°"
+                      hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
+                    >
+                      <Slider
+                        min={0}
+                        max={360}
+                        step={1}
+                        value={[config.direction]}
+                        onValueChange={([v]) => update("direction", v)}
+                      />
+                    </Field>
+                    <Field
+                      label="Abertura (spread)"
+                      value={config.spread.toFixed(0)}
+                      unit="°"
+                    >
+                      <Slider
+                        min={0}
+                        max={360}
+                        step={1}
+                        value={[config.spread]}
+                        onValueChange={([v]) => update("spread", v)}
+                      />
+                    </Field>
+                    <OriginInputs
+                      x={config.originX}
+                      y={config.originY}
+                      onXChange={(v) => update("originX", v)}
+                      onYChange={(v) => update("originY", v)}
+                    />
+                  </div>
+                </SidebarGroupContent>
+              </SidebarGroup>
 
-              <ControlSection title="Aleatoriedade" defaultOpen={true}>
-                <Field label="Variação" value={config.randomness.toFixed(0)} unit="%" hint="Jitter na largura, comprimento e ângulo de cada raio">
-                  <Slider min={0} max={100} step={1} value={[config.randomness]} onValueChange={([v]) => update("randomness", v)} />
-                </Field>
-                <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-                  <Field label="Seed" value={config.seed}>
-                    <Input type="number" value={config.seed} onChange={(e) => update("seed", clampNum(e.target.value, 0, 1_000_000))} />
-                  </Field>
-                  <Button variant="outline" size="icon" onClick={handleRandomize} title="Sortear nova seed">
-                    <Shuffle className="h-4 w-4" />
-                  </Button>
-                </div>
-              </ControlSection>
+              <SidebarSeparator />
+
+              <SidebarGroup>
+                <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <div className="space-y-4 px-2 pb-2">
+                    <Field
+                      label="Variação"
+                      value={config.randomness.toFixed(0)}
+                      unit="%"
+                      hint="Jitter na largura, comprimento e ângulo de cada raio"
+                    >
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[config.randomness]}
+                        onValueChange={([v]) => update("randomness", v)}
+                      />
+                    </Field>
+                    <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                      <Field label="Seed" value={config.seed}>
+                        <Input
+                          type="number"
+                          value={config.seed}
+                          onChange={(e) =>
+                            update(
+                              "seed",
+                              clampNum(e.target.value, 0, 1_000_000)
+                            )
+                          }
+                        />
+                      </Field>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleRandomize}
+                        title="Sortear nova seed"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </SidebarGroupContent>
+              </SidebarGroup>
             </>
           )}
 
           {/* HALO PROPERTIES */}
           {layerView === "halo" && (
-            <ControlSection title="Halo">
-              <Field label="Cor">
-                <div className="flex items-center gap-3">
-                  <ColorPicker value={config.haloColor} onChange={(v) => update("haloColor", v)} />
-                  <span className="font-mono text-xs text-muted-foreground">{config.haloColor}</span>
+            <SidebarGroup>
+              <SidebarGroupLabel>Halo</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="space-y-4 px-2 pb-2">
+                  <Field label="Cor">
+                    <div className="flex items-center gap-3">
+                      <ColorPicker
+                        value={config.haloColor}
+                        onChange={(v) => update("haloColor", v)}
+                      />
+                      <span className="font-mono text-xs text-sidebar-foreground/60">
+                        {config.haloColor}
+                      </span>
+                    </div>
+                  </Field>
+                  <Field
+                    label="Intensidade"
+                    value={(config.halo * 100).toFixed(0)}
+                    unit="%"
+                  >
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={[config.halo]}
+                      onValueChange={([v]) => update("halo", v)}
+                    />
+                  </Field>
+                  <Field
+                    label="Tamanho"
+                    value={(config.haloSize * 100).toFixed(0)}
+                    unit="%"
+                  >
+                    <Slider
+                      min={0.05}
+                      max={1.5}
+                      step={0.01}
+                      value={[config.haloSize]}
+                      onValueChange={([v]) => update("haloSize", v)}
+                    />
+                  </Field>
+                  <Field label="Blend mode">
+                    <BlendModeSelect
+                      value={config.haloBlendMode}
+                      onChange={(v) => update("haloBlendMode", v)}
+                    />
+                  </Field>
+                  <OriginInputs
+                    x={config.haloOriginX}
+                    y={config.haloOriginY}
+                    onXChange={(v) => update("haloOriginX", v)}
+                    onYChange={(v) => update("haloOriginY", v)}
+                  />
                 </div>
-              </Field>
-              <Field label="Intensidade" value={(config.halo * 100).toFixed(0)} unit="%">
-                <Slider min={0} max={1} step={0.01} value={[config.halo]} onValueChange={([v]) => update("halo", v)} />
-              </Field>
-              <Field label="Tamanho" value={(config.haloSize * 100).toFixed(0)} unit="%">
-                <Slider min={0.05} max={1.5} step={0.01} value={[config.haloSize]} onValueChange={([v]) => update("haloSize", v)} />
-              </Field>
-              <Field label="Blend mode">
-                <BlendModeSelect value={config.haloBlendMode} onChange={(v) => update("haloBlendMode", v)} />
-              </Field>
-              <OriginInputs
-                x={config.haloOriginX}
-                y={config.haloOriginY}
-                onXChange={(v) => update("haloOriginX", v)}
-                onYChange={(v) => update("haloOriginY", v)}
-              />
-            </ControlSection>
+              </SidebarGroupContent>
+            </SidebarGroup>
           )}
 
           {/* BACKGROUND PROPERTIES */}
           {layerView === "background" && (
-            <ControlSection title="Background">
-              <Field label="Tipo">
-                <Select value={config.bgType} onValueChange={(v) => update("bgType", v as BackgroundType)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="transparent">Transparente</SelectItem>
-                    <SelectItem value="solid">Cor sólida</SelectItem>
-                    <SelectItem value="gradient">Gradiente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              {config.bgType === "solid" && (
-                <div className="flex items-center gap-3">
-                  <ColorPicker value={config.bgColor} onChange={(v) => update("bgColor", v)} />
-                  <span className="font-mono text-xs text-muted-foreground">{config.bgColor}</span>
-                </div>
-              )}
-              {config.bgType === "gradient" && (
-                <>
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-center gap-1.5">
-                      <ColorPicker value={config.bgColor} onChange={(v) => update("bgColor", v)} />
-                      <span className="text-[11px] text-muted-foreground">Início</span>
-                    </div>
-                    <div className="h-9 flex-1 rounded-lg border border-border/40" style={{ background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})` }} />
-                    <div className="flex flex-col items-center gap-1.5">
-                      <ColorPicker value={config.bgColor2} onChange={(v) => update("bgColor2", v)} />
-                      <span className="text-[11px] text-muted-foreground">Fim</span>
-                    </div>
-                  </div>
-                  <Field label="Ângulo" value={config.bgGradientAngle.toFixed(0)} unit="°">
-                    <Slider min={0} max={360} step={1} value={[config.bgGradientAngle]} onValueChange={([v]) => update("bgGradientAngle", v)} />
+            <SidebarGroup>
+              <SidebarGroupLabel>Background</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <div className="space-y-4 px-2 pb-2">
+                  <Field label="Tipo">
+                    <Select
+                      value={config.bgType}
+                      onValueChange={(v) =>
+                        update("bgType", v as BackgroundType)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="transparent">
+                          Transparente
+                        </SelectItem>
+                        <SelectItem value="solid">Cor sólida</SelectItem>
+                        <SelectItem value="gradient">Gradiente</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </Field>
-                </>
-              )}
-            </ControlSection>
+                  {config.bgType === "solid" && (
+                    <div className="flex items-center gap-3">
+                      <ColorPicker
+                        value={config.bgColor}
+                        onChange={(v) => update("bgColor", v)}
+                      />
+                      <span className="font-mono text-xs text-sidebar-foreground/60">
+                        {config.bgColor}
+                      </span>
+                    </div>
+                  )}
+                  {config.bgType === "gradient" && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col items-center gap-1.5">
+                          <ColorPicker
+                            value={config.bgColor}
+                            onChange={(v) => update("bgColor", v)}
+                          />
+                          <span className="text-[11px] text-sidebar-foreground/60">
+                            Início
+                          </span>
+                        </div>
+                        <div
+                          className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
+                          style={{
+                            background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})`,
+                          }}
+                        />
+                        <div className="flex flex-col items-center gap-1.5">
+                          <ColorPicker
+                            value={config.bgColor2}
+                            onChange={(v) => update("bgColor2", v)}
+                          />
+                          <span className="text-[11px] text-sidebar-foreground/60">
+                            Fim
+                          </span>
+                        </div>
+                      </div>
+                      <Field
+                        label="Ângulo"
+                        value={config.bgGradientAngle.toFixed(0)}
+                        unit="°"
+                      >
+                        <Slider
+                          min={0}
+                          max={360}
+                          step={1}
+                          value={[config.bgGradientAngle]}
+                          onValueChange={([v]) => update("bgGradientAngle", v)}
+                        />
+                      </Field>
+                    </>
+                  )}
+                </div>
+              </SidebarGroupContent>
+            </SidebarGroup>
           )}
-
         </SidebarContent>
       </Sidebar>
     </SidebarProvider>
