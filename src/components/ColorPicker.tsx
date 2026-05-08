@@ -29,7 +29,7 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
           title={value}
         />
       </PopoverTrigger>
-      <PopoverContent className="w-[232px] p-3" align="start">
+      <PopoverContent className="w-58 p-3" align="start">
         <HexColorPicker color={value} onChange={onChange} />
         <Input
           value={value}

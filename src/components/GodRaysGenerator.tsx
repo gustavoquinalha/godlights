@@ -1077,7 +1077,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Presets</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="flex flex-col gap-3 w-full pb-2">
+              <div className="flex flex-col gap-3 w-full">
                 <div>
                   <div className="w-full flex gap-2 items-center justify-between mb-1.5">
                     <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
@@ -1101,7 +1101,7 @@ export function GodRaysGenerator() {
                     </Tooltip>
                   </div>
 
-                  <ScrollArea className="h-[88px] p-1">
+                  <ScrollArea className="h-22 p-1">
                     <div className="grid grid-cols-6 pb-1">
                       {COLOR_PRESETS.map((p) => (
                         <div className="p-1 w-full aspect-square" key={p.key}>
@@ -1156,7 +1156,7 @@ export function GodRaysGenerator() {
                     </Tooltip>
                   </div>
 
-                  <ScrollArea className="h-[88px] p-1">
+                  <ScrollArea className="h-22 p-1">
                     <div className="grid grid-cols-6 pb-1">
                       {RAYS_PRESETS.map((p) => (
                         <div className="p-1 w-full aspect-square" key={p.key}>
@@ -1666,7 +1666,7 @@ export function GodRaysGenerator() {
               <Button
                 variant="ghost"
                 onClick={resetView}
-                className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums"
+                className="h-7 min-w-13 px-1 text-xs font-medium tabular-nums"
                 title="Resetar zoom"
               >
                 {Math.round(zoom * 100)}%
@@ -1752,7 +1752,7 @@ export function GodRaysGenerator() {
             </ScrollAreaPrimitive.Viewport>
             <ScrollAreaPrimitive.Scrollbar
               orientation="horizontal"
-              className="flex h-2.5 flex-col border-t border-t-transparent p-[1px] touch-none select-none transition-colors"
+              className="flex h-2.5 flex-col border-t border-t-transparent p-px touch-none select-none transition-colors"
             >
               <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
             </ScrollAreaPrimitive.Scrollbar>
@@ -1915,11 +1915,11 @@ export function GodRaysGenerator() {
                       >
                         <div className="mb-2.5 flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                               {layer.type === "rays" ? (
-                                <Move className="h-3.5 w-3.5" />
+                                <Move className="h-3 w-3" />
                               ) : (
-                                <Sparkles className="h-3.5 w-3.5" />
+                                <Sparkles className="h-3 w-3" />
                               )}
                             </div>
                             <span className="text-sm font-semibold">
@@ -1952,33 +1952,6 @@ export function GodRaysGenerator() {
                             }}
                           />
                         )}
-
-                        {/* Metadata */}
-                        <div className="flex items-center gap-2 text-[11px] text-sidebar-foreground/50">
-                          {layer.type === "rays" && (
-                            <>
-                              <span>{layer.rayCount} raios</span>
-                              <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                              <span>
-                                {Math.round(layer.opacity * 100)}% opac.
-                              </span>
-                            </>
-                          )}
-                          {layer.type === "halo" && (
-                            <>
-                              <span>
-                                {Math.round(layer.intensity * 100)}% intens.
-                              </span>
-                              <span className="h-1 w-1 rounded-full bg-sidebar-foreground/30" />
-                              <span
-                                className="font-mono uppercase"
-                                style={{ color: layer.color }}
-                              >
-                                {layer.color}
-                              </span>
-                            </>
-                          )}
-                        </div>
                       </button>
 
                       {/* Layer controls */}
