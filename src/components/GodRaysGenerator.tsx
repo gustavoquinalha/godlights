@@ -1070,9 +1070,28 @@ export function GodRaysGenerator() {
             <SidebarGroupContent>
               <div className="flex flex-col gap-3 w-full pb-2">
                 <div>
-                  <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-                    Cores
-                  </p>
+                  <div className="w-full flex gap-2 items-center justify-between mb-1.5">
+                    <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                      Cores
+                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={handleRandomizeColor}
+                          className="p-0!"
+                          title="Cor aleatória"
+                        >
+                          <Shuffle className="size-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Cor aleatória</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
                   <ScrollArea className="h-[88px] p-1">
                     <div className="grid grid-cols-6 pb-1">
                       {COLOR_PRESETS.map((p) => (
@@ -1102,21 +1121,32 @@ export function GodRaysGenerator() {
                       ))}
                     </div>
                   </ScrollArea>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRandomizeColor}
-                    className="w-full gap-1.5"
-                    title="Cor aleatória"
-                  >
-                    <Shuffle className="size-3" /> Aleatório
-                  </Button>
                 </div>
 
                 <div>
-                  <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-                    Rays / Halo
-                  </p>
+                  <div className="w-full flex gap-2 items-center justify-between mb-1.5">
+                    <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
+                      Rays / Halo
+                    </p>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={handleRandomize}
+                          className="p-0!"
+                          title="Rays aleatório"
+                        >
+                          <Shuffle className="size-2.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Rays aleatório</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+
                   <ScrollArea className="h-[88px] p-1">
                     <div className="grid grid-cols-6 pb-1">
                       {RAYS_PRESETS.map((p) => (
@@ -1146,16 +1176,92 @@ export function GodRaysGenerator() {
                       ))}
                     </div>
                   </ScrollArea>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRandomize}
-                    className="w-full gap-1.5"
-                    title="Rays aleatório"
-                  >
-                    <Shuffle className="size-3" /> Rays
-                  </Button>
                 </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          <SidebarGroup>
+            <SidebarGroupLabel>Background</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="space-y-8 px-2 pb-2">
+                <Field label="Tipo">
+                  <Select
+                    value={bgLayer.bgType}
+                    onValueChange={(v) =>
+                      updateLayer("background", {
+                        bgType: v as BackgroundType,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="transparent">Transparente</SelectItem>
+                      <SelectItem value="solid">Cor sólida</SelectItem>
+                      <SelectItem value="gradient">Gradiente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                {bgLayer.bgType === "solid" && (
+                  <div className="flex items-center gap-2">
+                    <ColorPicker
+                      value={bgLayer.bgColor}
+                      onChange={(v) =>
+                        updateLayer("background", { bgColor: v })
+                      }
+                    />
+                    <span className="font-mono text-xs text-sidebar-foreground/60">
+                      {bgLayer.bgColor}
+                    </span>
+                  </div>
+                )}
+                {bgLayer.bgType === "gradient" && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={bgLayer.bgColor}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor: v })
+                          }
+                        />
+                      </div>
+                      <div
+                        className="h-9 flex-1 rounded-lg ring-1 ring-border"
+                        style={{
+                          background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
+                        }}
+                      />
+                      <div className="flex flex-col items-center gap-1.5">
+                        <ColorPicker
+                          value={bgLayer.bgColor2}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor2: v })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <Field
+                      label="Ângulo"
+                      value={bgLayer.bgGradientAngle.toFixed(0)}
+                      unit="°"
+                    >
+                      <Slider
+                        min={0}
+                        max={360}
+                        step={1}
+                        value={[bgLayer.bgGradientAngle]}
+                        onValueChange={([v]) =>
+                          updateLayer("background", { bgGradientAngle: v })
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1263,7 +1369,7 @@ export function GodRaysGenerator() {
 
           <SidebarGroup className="flex-1 flex justify-end">
             <SidebarGroupContent>
-              <div className="px-2">
+              <div className="px-2 pb-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -1871,7 +1977,7 @@ export function GodRaysGenerator() {
                 <SidebarGroupLabel>Cores</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <div className="space-y-3 px-2 pb-2">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <div className="flex flex-col items-center gap-1.5">
                         <ColorPicker
                           value={selectedRayLayer.colorStart}
@@ -1879,12 +1985,9 @@ export function GodRaysGenerator() {
                             updateLayer(selectedRayLayer.id, { colorStart: v })
                           }
                         />
-                        <span className="text-[11px] text-sidebar-foreground/60">
-                          Início
-                        </span>
                       </div>
                       <div
-                        className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
+                        className="h-9 flex-1 rounded-lg ring-1 ring-border"
                         style={{
                           background: `linear-gradient(to right, ${
                             selectedRayLayer.colorStart
@@ -1902,9 +2005,6 @@ export function GodRaysGenerator() {
                             updateLayer(selectedRayLayer.id, { colorEnd: v })
                           }
                         />
-                        <span className="text-[11px] text-sidebar-foreground/60">
-                          Fim
-                        </span>
                       </div>
                     </div>
                     <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -2133,7 +2233,7 @@ export function GodRaysGenerator() {
               <SidebarGroupContent>
                 <div className="space-y-8 px-2 pb-2">
                   <Field label="Cor">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       <ColorPicker
                         value={selectedHaloLayer.color}
                         onChange={(v) =>
@@ -2197,97 +2297,6 @@ export function GodRaysGenerator() {
               </SidebarGroupContent>
             </SidebarGroup>
           )}
-
-          {/* ── BACKGROUND PROPERTIES (always visible) ───────────────── */}
-          <SidebarSeparator />
-          <SidebarGroup>
-            <SidebarGroupLabel>Background</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="space-y-8 px-2 pb-2">
-                <Field label="Tipo">
-                  <Select
-                    value={bgLayer.bgType}
-                    onValueChange={(v) =>
-                      updateLayer("background", {
-                        bgType: v as BackgroundType,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="transparent">Transparente</SelectItem>
-                      <SelectItem value="solid">Cor sólida</SelectItem>
-                      <SelectItem value="gradient">Gradiente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                {bgLayer.bgType === "solid" && (
-                  <div className="flex items-center gap-3">
-                    <ColorPicker
-                      value={bgLayer.bgColor}
-                      onChange={(v) =>
-                        updateLayer("background", { bgColor: v })
-                      }
-                    />
-                    <span className="font-mono text-xs text-sidebar-foreground/60">
-                      {bgLayer.bgColor}
-                    </span>
-                  </div>
-                )}
-                {bgLayer.bgType === "gradient" && (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col items-center gap-1.5">
-                        <ColorPicker
-                          value={bgLayer.bgColor}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor: v })
-                          }
-                        />
-                        <span className="text-[11px] text-sidebar-foreground/60">
-                          Início
-                        </span>
-                      </div>
-                      <div
-                        className="h-9 flex-1 rounded-lg border border-sidebar-border/40"
-                        style={{
-                          background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
-                        }}
-                      />
-                      <div className="flex flex-col items-center gap-1.5">
-                        <ColorPicker
-                          value={bgLayer.bgColor2}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor2: v })
-                          }
-                        />
-                        <span className="text-[11px] text-sidebar-foreground/60">
-                          Fim
-                        </span>
-                      </div>
-                    </div>
-                    <Field
-                      label="Ângulo"
-                      value={bgLayer.bgGradientAngle.toFixed(0)}
-                      unit="°"
-                    >
-                      <Slider
-                        min={0}
-                        max={360}
-                        step={1}
-                        value={[bgLayer.bgGradientAngle]}
-                        onValueChange={([v]) =>
-                          updateLayer("background", { bgGradientAngle: v })
-                        }
-                      />
-                    </Field>
-                  </>
-                )}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </SidebarContent>
       </Sidebar>
     </SidebarProvider>

@@ -1,7 +1,12 @@
 import { HexColorPicker } from "react-colorful";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { Button } from "./ui/button";
 
 interface ColorPickerProps {
   value: string;
@@ -13,10 +18,11 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button
+        <Button
+          size={"icon-sm"}
           type="button"
           className={cn(
-            "h-10 w-10 rounded-full border-2 border-border shadow-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "transition-transform p-0 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer ring-1 ring-border",
             className
           )}
           style={{ background: value }}
