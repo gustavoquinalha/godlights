@@ -1422,19 +1422,45 @@ export function GodRaysGenerator() {
       >
         <SidebarInset className="relative w-full">
           <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={() => setLeftOpen((v) => !v)}
+                  >
+                    <PanelLeft className="size-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Painel de presets</TooltipContent>
+              </Tooltip>
+
+              <div className="flex md:hidden items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
+                    <Sparkles className="size-4 text-primary-foreground" />
+                  </div>
+                  <span className="text-sm font-semibold tracking-tight">
+                    Godlights
+                  </span>
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={() => setLeftOpen((v) => !v)}
+                  onClick={toggleTheme}
+                  className="h-7 w-7"
+                  title={dark ? "Modo claro" : "Modo escuro"}
                 >
-                  <PanelLeft className="size-4" />
+                  {dark ? (
+                    <Sun className="size-3" />
+                  ) : (
+                    <Moon className="size-3" />
+                  )}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>Painel de presets</TooltipContent>
-            </Tooltip>
+              </div>
+            </div>
 
             <div className="flex items-center gap-2">
               {/* lg+: botões inline */}
@@ -1544,7 +1570,7 @@ export function GodRaysGenerator() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     className="h-8 w-8 shrink-0"
                     onClick={() => setRightOpen((v) => !v)}
