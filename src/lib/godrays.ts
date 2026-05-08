@@ -11,6 +11,15 @@ export type BlendMode =
   | "soft-light"
   | "hard-light";
 
+export const BLEND_MODES: { label: string; value: BlendMode }[] = [
+  { label: "Normal", value: "source-over" },
+  { label: "Lighter (additive)", value: "lighter" },
+  { label: "Screen", value: "screen" },
+  { label: "Overlay", value: "overlay" },
+  { label: "Soft light", value: "soft-light" },
+  { label: "Hard light", value: "hard-light" },
+];
+
 export type BackgroundType = "transparent" | "solid" | "gradient";
 
 export interface GodRaysConfig {

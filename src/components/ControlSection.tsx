@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 
 interface ControlSectionProps {
   title: string;
-  description?: string;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }
@@ -30,7 +29,7 @@ export function ControlSection({
         <div className="h-px flex-1 bg-border" />
       </button>
       {open && (
-        <div className="mb-3 space-y-5 rounded-xl border border-border/60 bg-white p-4 shadow-sm dark:bg-white/[0.04]">
+        <div className="mb-3 space-y-5 rounded-xl border border-border/60 bg-card p-4 shadow-sm">
           {children}
         </div>
       )}

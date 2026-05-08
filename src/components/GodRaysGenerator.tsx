@@ -14,7 +14,6 @@ import {
   Move,
   Sun,
   Moon,
-  ChevronRight,
 } from "lucide-react";
 import {
   drawGodRays,
@@ -23,8 +22,11 @@ import {
   DEFAULT_CONFIG,
   type GodRaysConfig,
   type BackgroundType,
-  type BlendMode,
 } from "@/lib/godrays";
+import { LayerCard } from "@/components/LayerCard";
+import { OriginCrosshair } from "@/components/OriginCrosshair";
+import { BlendModeSelect } from "@/components/BlendModeSelect";
+import { OriginInputs } from "@/components/OriginInputs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -35,7 +37,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarInset,
+} from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { ControlSection, Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
@@ -51,15 +60,6 @@ const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "4K 16:9", w: 3840, h: 2160 },
   { label: "Wide 21:9", w: 2560, h: 1080 },
   { label: "Banner", w: 1500, h: 500 },
-];
-
-const BLEND_MODES: { label: string; value: BlendMode }[] = [
-  { label: "Normal", value: "source-over" },
-  { label: "Lighter (additive)", value: "lighter" },
-  { label: "Screen", value: "screen" },
-  { label: "Overlay", value: "overlay" },
-  { label: "Soft light", value: "soft-light" },
-  { label: "Hard light", value: "hard-light" },
 ];
 
 const PREVIEW_MAX_DIMENSION = 1200;
@@ -97,11 +97,20 @@ type LayerView = "layers" | "rays" | "halo" | "background";
 
 export function GodRaysGenerator() {
   const { dark, toggle: toggleTheme } = useTheme();
-  const [config, setConfig] = React.useState<GodRaysConfig>(DEFAULT_CONFIG);
-  const [copied, setCopied] = React.useState(false);
+  const [config, setConfig] = React.useState<GodRaysConfig>(() => {
+    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_ember");
+    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
+    let cfg = { ...DEFAULT_CONFIG, ...(colorPreset?.config ?? {}) };
+    if (raysPreset) cfg = { ...DEFAULT_CONFIG, ...raysPreset.config, colorStart: cfg.colorStart, colorEnd: cfg.colorEnd, haloColor: cfg.haloColor, bgType: cfg.bgType, bgColor: cfg.bgColor, bgColor2: cfg.bgColor2, bgGradientAngle: cfg.bgGradientAngle };
+    return cfg;
+  });
+  const [copiedJson, setCopiedJson] = React.useState(false);
+  const [copiedCss, setCopiedCss] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
   const [layerView, setLayerView] = React.useState<LayerView>("layers");
+  const [activeColorPreset, setActiveColorPreset] = React.useState<string | null>("c_ember");
+  const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>("r_side_glow");
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
@@ -229,8 +238,8 @@ export function GodRaysGenerator() {
   const handleCopyCss = async () => {
     const snippet = await buildCssSnippet(config);
     await navigator.clipboard.writeText(snippet);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    setCopiedCss(true);
+    window.setTimeout(() => setCopiedCss(false), 1800);
   };
 
   const handleCopyPresetJson = async () => {
@@ -248,14 +257,15 @@ export function GodRaysGenerator() {
     const pick = (keys: (keyof GodRaysConfig)[]) =>
       Object.fromEntries(keys.map((k) => [k, config[k]]));
     await navigator.clipboard.writeText(JSON.stringify({ color: pick(COLOR_KEYS), rays: pick(RAYS_KEYS) }, null, 2));
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1800);
+    setCopiedJson(true);
+    window.setTimeout(() => setCopiedJson(false), 1800);
   };
 
   const handleRandomize = () => {
     setConfig((c) => ({ ...c, seed: Math.floor(Math.random() * 1_000_000) }));
+    setActiveRaysPreset(null);
   };
-  const handleReset = () => setConfig(DEFAULT_CONFIG);
+  const handleReset = () => { setConfig(DEFAULT_CONFIG); setActiveColorPreset(null); setActiveRaysPreset(null); };
   const applyPreset = (key: string) => {
     const preset = PRESETS.find((p) => p.key === key);
     if (!preset) return;
@@ -264,6 +274,8 @@ export function GodRaysGenerator() {
     } else {
       setConfig((c) => ({ ...DEFAULT_CONFIG, ...preset.config, colorStart: c.colorStart, colorEnd: c.colorEnd, haloColor: c.haloColor, bgType: c.bgType, bgColor: c.bgColor, bgColor2: c.bgColor2, bgGradientAngle: c.bgGradientAngle }));
     }
+    if (preset.category === "color") setActiveColorPreset(key);
+    else setActiveRaysPreset(key);
   };
 
   // Compute responsive preview size (largest box of given AR fitting available area)
@@ -351,23 +363,25 @@ export function GodRaysGenerator() {
   }, [fittedSize, raysBBox, haloBCircle]);
 
   return (
-    <div className="grid h-screen grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] xl:grid-cols-[300px_minmax(0,1fr)_300px]">
+    <SidebarProvider>
       {/* ----------- LEFT SIDEBAR ----------- */}
-      <aside className="flex h-full flex-col overflow-hidden border-r border-border bg-card">
-        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+      <Sidebar side="left" collapsible="none">
+        <SidebarHeader className="flex-row items-center justify-between gap-2 px-4 py-3">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-400" />
             <span className="text-sm font-semibold tracking-tight">Rays Generator</span>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="h-7 w-7 text-sidebar-foreground/60 hover:text-sidebar-foreground"
             title={dark ? "Modo claro" : "Modo escuro"}
           >
             {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
+          </Button>
+        </SidebarHeader>
+        <SidebarContent>
           <ControlSection title="Presets" defaultOpen={true}>
             <div className="space-y-3">
               <div>
@@ -378,7 +392,7 @@ export function GodRaysGenerator() {
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => applyPreset(p.key)}
-                          className="aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md"
+                          className={cn("aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md", activeColorPreset === p.key && "ring-2 ring-primary")}
                           style={{ background: p.thumb }}
                         />
                       </TooltipTrigger>
@@ -395,7 +409,7 @@ export function GodRaysGenerator() {
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => applyPreset(p.key)}
-                          className="aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md"
+                          className={cn("aspect-square w-full overflow-hidden rounded-full border border-border/60 transition-all hover:scale-110 hover:border-border hover:shadow-md", activeRaysPreset === p.key && "ring-2 ring-primary")}
                           style={{ background: p.thumb }}
                         />
                       </TooltipTrigger>
@@ -454,25 +468,20 @@ export function GodRaysGenerator() {
             </div>
           </ControlSection>
 
-        </div>
-      </aside>
+        </SidebarContent>
+      </Sidebar>
 
       {/* ----------- CENTER: Preview ----------- */}
-      <div className="flex h-full flex-col overflow-hidden bg-background">
+      <SidebarInset>
         <div className="flex items-center justify-end gap-3 border-b border-border px-5 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <Button size="sm" variant="outline" onClick={handleCopyPresetJson} className="gap-2">
-              {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copiado" : "Copiar JSON"}
+              {copiedJson ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
+              {copiedJson ? "Copiado" : "Copiar JSON"}
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleCopyCss}
-              className="gap-2"
-            >
-              <Code2 className="h-4 w-4" />
-              Copiar CSS
+            <Button size="sm" variant="outline" onClick={handleCopyCss} className="gap-2">
+              {copiedCss ? <Check className="h-4 w-4 text-emerald-400" /> : <Code2 className="h-4 w-4" />}
+              {copiedCss ? "Copiado" : "Copiar CSS"}
             </Button>
             <Button
               size="sm"
@@ -539,20 +548,13 @@ export function GodRaysGenerator() {
                 <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
                 <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
                 <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
-                {/* Origin crosshair — visual only */}
-                <div
-                  className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2"
+                <OriginCrosshair
+                  color="blue"
                   style={{
                     left: (config.originX / 100) * fittedSize.w - raysBBox.x,
                     top: (config.originY / 100) * fittedSize.h - raysBBox.y,
                   }}
-                >
-                  <div className="relative h-6 w-6">
-                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-blue-400" />
-                    <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-blue-400" />
-                    <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-blue-400 bg-blue-950/80" />
-                  </div>
-                </div>
+                />
               </div>
             )}
 
@@ -579,14 +581,7 @@ export function GodRaysGenerator() {
                 <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
                   Halo
                 </span>
-                {/* Origin crosshair — visual only */}
-                <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <div className="relative h-6 w-6">
-                    <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-amber-400" />
-                    <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-amber-400" />
-                    <div className="absolute left-1/2 top-1/2 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-amber-400 bg-amber-950/80" />
-                  </div>
-                </div>
+                <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
               </div>
             )}
           </div>
@@ -596,37 +591,44 @@ export function GodRaysGenerator() {
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => changeZoom(-ZOOM_STEP)}
               disabled={zoom <= MIN_ZOOM}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30"
+              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
               title="Diminuir zoom"
             >
               <ZoomOut className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
               onClick={() => setZoom(1)}
-              className="min-w-[52px] text-center text-xs font-medium tabular-nums text-foreground/80 transition-colors hover:text-foreground"
+              className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums text-foreground/80 hover:text-foreground"
               title="Resetar zoom"
             >
               {Math.round(zoom * 100)}%
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => changeZoom(ZOOM_STEP)}
               disabled={zoom >= MAX_ZOOM}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground disabled:opacity-30"
+              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
               title="Aumentar zoom"
             >
               <ZoomIn className="h-4 w-4" />
-            </button>
+            </Button>
             <div className="mx-1 h-4 w-px bg-border" />
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setZoom(1)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+              className="h-7 w-7 rounded-full text-foreground/70 hover:text-foreground"
               title="Zoom 100%"
             >
               <Maximize2 className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -637,21 +639,20 @@ export function GodRaysGenerator() {
           </span>
           <span>Arraste no preview para mover a origem</span>
         </div>
-      </div>
+      </SidebarInset>
 
       {/* ----------- RIGHT SIDEBAR: Layers ----------- */}
-      <aside className="flex h-full flex-col overflow-hidden border-l border-border bg-card">
-
-        {/* Header */}
-        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+      <Sidebar side="right" collapsible="none">
+        <SidebarHeader className="flex-row items-center gap-2 px-4 py-3">
           {layerView !== "layers" && (
-            <button
+            <Button
+              variant="ghost"
               onClick={() => setLayerView("layers")}
-              className="mr-1 flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="h-auto gap-1 px-1 py-0.5 text-xs text-sidebar-foreground/60 hover:text-sidebar-foreground [&_svg]:size-3"
             >
-              <RotateCcw className="h-3 w-3 rotate-90" />
+              <RotateCcw className="rotate-90" />
               Camadas
-            </button>
+            </Button>
           )}
           <span className="text-sm font-semibold tracking-tight">
             {layerView === "layers" && "Camadas"}
@@ -659,73 +660,44 @@ export function GodRaysGenerator() {
             {layerView === "halo" && "Halo"}
             {layerView === "background" && "Background"}
           </span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
+        </SidebarHeader>
+        <SidebarContent>
 
           {/* LAYERS LIST */}
           {layerView === "layers" && (
-            <div className="p-3 space-y-2">
-              {/* Rays layer */}
-              <button
-                onClick={() => setLayerView("rays")}
-                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:border-blue-400/40 hover:shadow-md dark:bg-white/[0.04]"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400">
-                  <Move className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">Rays</div>
-                  <div className="text-xs text-muted-foreground">
-                    {config.rayCount} raios · {Math.round(config.opacity * 100)}% opac.
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
+            <div className="space-y-2 p-3">
+              <LayerCard
+                accent="blue"
+                icon={<Move className="h-4 w-4" />}
+                label="Rays"
+                description={`${config.rayCount} raios · ${Math.round(config.opacity * 100)}% opac.`}
+                preview={
                   <div
                     className="h-6 w-10 rounded-md border border-border/40"
                     style={{ background: `linear-gradient(to right, ${config.colorStart}, ${config.fadeToTransparent ? "transparent" : config.colorEnd})` }}
                   />
-                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </button>
-
-              {/* Halo layer */}
-              <button
-                onClick={() => setLayerView("halo")}
-                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:border-amber-400/40 hover:shadow-md dark:bg-white/[0.04]"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400">
-                  <Move className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">Halo</div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.round(config.halo * 100)}% intensidade
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
+                }
+                onClick={() => setLayerView("rays")}
+              />
+              <LayerCard
+                accent="amber"
+                icon={<Move className="h-4 w-4" />}
+                label="Halo"
+                description={`${Math.round(config.halo * 100)}% intensidade`}
+                preview={
                   <div
                     className="h-6 w-6 rounded-full border border-border/40"
                     style={{ background: config.haloColor }}
                   />
-                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </button>
-
-              {/* Background layer */}
-              <button
-                onClick={() => setLayerView("background")}
-                className="group flex w-full items-center gap-3 rounded-xl border border-border/60 bg-white p-3 text-left shadow-sm transition-all hover:shadow-md dark:bg-white/[0.04]"
-              >
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                  <ImageIcon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">Background</div>
-                  <div className="text-xs text-muted-foreground capitalize">{config.bgType}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {config.bgType === "gradient" ? (
+                }
+                onClick={() => setLayerView("halo")}
+              />
+              <LayerCard
+                icon={<ImageIcon className="h-4 w-4" />}
+                label="Background"
+                description={<span className="capitalize">{config.bgType}</span>}
+                preview={
+                  config.bgType === "gradient" ? (
                     <div
                       className="h-6 w-10 rounded-md border border-border/40"
                       style={{ background: `linear-gradient(to right, ${config.bgColor}, ${config.bgColor2})` }}
@@ -734,10 +706,10 @@ export function GodRaysGenerator() {
                     <div className="h-6 w-6 rounded-full border border-border/40" style={{ background: config.bgColor }} />
                   ) : (
                     <div className="h-6 w-6 rounded-full border border-border/40 bg-checker" />
-                  )}
-                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </button>
+                  )
+                }
+                onClick={() => setLayerView("background")}
+              />
             </div>
           )}
 
@@ -760,7 +732,10 @@ export function GodRaysGenerator() {
                   </div>
                 </div>
                 <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground/80">
-                  <input type="checkbox" checked={config.fadeToTransparent} onChange={(e) => update("fadeToTransparent", e.target.checked)} className="h-4 w-4 accent-primary" />
+                  <Checkbox
+                    checked={config.fadeToTransparent}
+                    onCheckedChange={(v) => update("fadeToTransparent", v === true)}
+                  />
                   Desvanecer para transparente
                 </label>
               </ControlSection>
@@ -782,12 +757,7 @@ export function GodRaysGenerator() {
                   <Slider min={0} max={1} step={0.01} value={[config.opacity]} onValueChange={([v]) => update("opacity", v)} />
                 </Field>
                 <Field label="Blend mode">
-                  <Select value={config.blendMode} onValueChange={(v) => update("blendMode", v as BlendMode)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {BLEND_MODES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <BlendModeSelect value={config.blendMode} onChange={(v) => update("blendMode", v)} />
                 </Field>
               </ControlSection>
 
@@ -798,14 +768,12 @@ export function GodRaysGenerator() {
                 <Field label="Abertura (spread)" value={config.spread.toFixed(0)} unit="°">
                   <Slider min={0} max={360} step={1} value={[config.spread]} onValueChange={([v]) => update("spread", v)} />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Origem X" unit="%">
-                    <Input type="number" value={config.originX.toFixed(0)} onChange={(e) => update("originX", Number(e.target.value))} />
-                  </Field>
-                  <Field label="Origem Y" unit="%">
-                    <Input type="number" value={config.originY.toFixed(0)} onChange={(e) => update("originY", Number(e.target.value))} />
-                  </Field>
-                </div>
+                <OriginInputs
+                  x={config.originX}
+                  y={config.originY}
+                  onXChange={(v) => update("originX", v)}
+                  onYChange={(v) => update("originY", v)}
+                />
               </ControlSection>
 
               <ControlSection title="Aleatoriedade" defaultOpen={true}>
@@ -840,21 +808,14 @@ export function GodRaysGenerator() {
                 <Slider min={0.05} max={1.5} step={0.01} value={[config.haloSize]} onValueChange={([v]) => update("haloSize", v)} />
               </Field>
               <Field label="Blend mode">
-                <Select value={config.haloBlendMode} onValueChange={(v) => update("haloBlendMode", v as BlendMode)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {BLEND_MODES.map((b) => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <BlendModeSelect value={config.haloBlendMode} onChange={(v) => update("haloBlendMode", v)} />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Origem X" unit="%">
-                  <Input type="number" value={config.haloOriginX.toFixed(0)} onChange={(e) => update("haloOriginX", Number(e.target.value))} />
-                </Field>
-                <Field label="Origem Y" unit="%">
-                  <Input type="number" value={config.haloOriginY.toFixed(0)} onChange={(e) => update("haloOriginY", Number(e.target.value))} />
-                </Field>
-              </div>
+              <OriginInputs
+                x={config.haloOriginX}
+                y={config.haloOriginY}
+                onXChange={(v) => update("haloOriginX", v)}
+                onYChange={(v) => update("haloOriginY", v)}
+              />
             </ControlSection>
           )}
 
@@ -898,9 +859,9 @@ export function GodRaysGenerator() {
             </ControlSection>
           )}
 
-        </div>
-      </aside>
-    </div>
+        </SidebarContent>
+      </Sidebar>
+    </SidebarProvider>
   );
 }
 
