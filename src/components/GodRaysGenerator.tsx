@@ -84,6 +84,7 @@ const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "2K 16:9", w: 2560, h: 1440 },
   { label: "4K 16:9", w: 3840, h: 2160 },
   { label: "Wide 21:9", w: 2560, h: 1080 },
+  { label: "OG Image", w: 1200, h: 630 },
   { label: "Banner", w: 1500, h: 500 },
 ];
 
@@ -927,7 +928,7 @@ export function GodRaysGenerator() {
 
         <div
           ref={previewContainerRef}
-          className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/60"
+          className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/20"
           onClick={() => setSelectedLayerId(null)}
         >
           <div
