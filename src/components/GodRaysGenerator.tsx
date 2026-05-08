@@ -68,6 +68,7 @@ import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
 import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area";
 import {
   Tooltip,
   TooltipTrigger,
@@ -1482,11 +1483,12 @@ export function GodRaysGenerator() {
 
         {/* ── SAVES BAR ─────────────────────────────────────────────── */}
         <div
-          className="border-t bg-background flex h-28 w-full shrink-0"
+          className="border-t bg-background flex h-32 w-full shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Thumbnails */}
-          <ScrollArea className="flex-1">
+          <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
+          <ScrollAreaPrimitive.Viewport className="h-full w-full">
           <div className="flex h-full items-center gap-2 px-3 py-2">
             {saves.length === 0 && (
               <p className="text-xs text-muted-foreground select-none">
@@ -1528,8 +1530,15 @@ export function GodRaysGenerator() {
               </div>
             ))}
           </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          </ScrollAreaPrimitive.Viewport>
+          <ScrollAreaPrimitive.Scrollbar
+            orientation="horizontal"
+            className="flex h-2.5 flex-col border-t border-t-transparent p-[1px] touch-none select-none transition-colors"
+          >
+            <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+          </ScrollAreaPrimitive.Scrollbar>
+          <ScrollAreaPrimitive.Corner />
+          </ScrollAreaPrimitive.Root>
 
           {/* Actions */}
           <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
@@ -1588,7 +1597,7 @@ export function GodRaysGenerator() {
             {scene.width} × {scene.height}px ·{" "}
             {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
           </span>
-          <span>Arraste no preview para mover a origem</span>
+          
         </div>
       </SidebarInset>
 
