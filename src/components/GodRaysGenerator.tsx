@@ -355,6 +355,10 @@ export function GodRaysGenerator() {
     setSelectedSaveId((prev) => (prev === id ? null : prev));
   }, []);
 
+  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
+    null
+  );
+
   const handleLoadSave = React.useCallback((save: SavedScene) => {
     setScene(save.scene);
     setSelectedSaveId(save.id);
@@ -362,10 +366,6 @@ export function GodRaysGenerator() {
     setActiveColorPreset(save.activeColorPreset ?? null);
     setActiveRaysPreset(save.activeRaysPreset ?? null);
   }, []);
-
-  const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
-    null
-  );
   const [copiedJson, setCopiedJson] = React.useState(false);
   const [copiedCss, setCopiedCss] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
@@ -466,15 +466,28 @@ export function GodRaysGenerator() {
       const idx = s.layers.findIndex((l) => l.id === id);
       if (idx < 0) return s;
       const original = s.layers[idx];
+      if (original.type === "background") return s;
+
+      // Strip trailing number to get base name (e.g. "Rays 2" → "Rays")
+      const baseName = original.name.replace(/\s+\d+$/, "");
+      const escapedBase = baseName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`^${escapedBase} \\d+$`);
+      const takenNumbers = new Set(
+        s.layers.filter((l) => l.type !== "background").map((l) => l.name).filter((n) => n === baseName || regex.test(n)).map((n) => {
+          if (n === baseName) return 1;
+          const m = n.match(/(\d+)$/);
+          return m ? parseInt(m[1], 10) : 1;
+        })
+      );
+      let num = 2;
+      while (takenNumbers.has(num)) num++;
+
       const copy: Layer = {
         ...original,
         id: newId,
-        ...(original.type !== "background" && {
-          name: `${original.name} (cópia)`,
-          seed:
-            original.type === "rays"
-              ? Math.floor(Math.random() * 1_000_000)
-              : undefined,
+        name: `${baseName} ${num}`,
+        ...(original.type === "rays" && {
+          seed: Math.floor(Math.random() * 1_000_000),
         }),
       } as Layer;
       const layers = [...s.layers];
@@ -987,7 +1000,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2 h-full">
+              <div className="space-y-8 px-2 h-full pb-3">
                 <Field label="Preset">
                   <Select
                     value={String(
@@ -1471,7 +1484,7 @@ export function GodRaysGenerator() {
                         {/* Color preview */}
                         {layer.type === "rays" && (
                           <div
-                            className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                            className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
                             style={{
                               background: `linear-gradient(135deg, ${
                                 layer.colorStart
@@ -1485,7 +1498,7 @@ export function GodRaysGenerator() {
                         )}
                         {layer.type === "halo" && (
                           <div
-                            className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                            className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
                             style={{
                               background: `radial-gradient(ellipse at center, ${layer.color} 0%, transparent 70%)`,
                             }}
@@ -1597,7 +1610,7 @@ export function GodRaysGenerator() {
                     <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
                   </div>
                   <div
-                    className="mb-2 h-8 w-full rounded-lg border border-sidebar-border/40"
+                    className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
                     style={{
                       background:
                         bgLayer.bgType === "gradient"
