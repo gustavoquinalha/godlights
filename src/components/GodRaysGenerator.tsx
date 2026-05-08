@@ -63,12 +63,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
-import {
-  COLOR_PRESETS,
-  RAYS_PRESETS,
-  PRESETS,
-  SCENE_PRESETS,
-} from "@/lib/presets";
+import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
 import {
   Tooltip,
   TooltipTrigger,
@@ -216,10 +211,19 @@ function scaleSceneForPreview(scene: SceneConfig): SceneConfig {
 
 export function GodRaysGenerator() {
   const { theme, setTheme } = useTheme();
-  const dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const dark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
+    try {
+      const saved = localStorage.getItem("rays-scene");
+      if (saved) return JSON.parse(saved) as SceneConfig;
+    } catch {
+      /* ignore corrupt data */
+    }
     const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
     let s: SceneConfig = {
@@ -231,6 +235,18 @@ export function GodRaysGenerator() {
     return s;
   });
 
+  // Persist scene to localStorage on every change (debounced)
+  React.useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        localStorage.setItem("rays-scene", JSON.stringify(scene));
+      } catch {
+        /* quota */
+      }
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [scene]);
+
   const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
     null
   );
@@ -238,15 +254,17 @@ export function GodRaysGenerator() {
   const [copiedCss, setCopiedCss] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
+  const [pan, setPan] = React.useState({ x: 0, y: 0 });
+  const zoomRef = React.useRef(1);
+  const panRef = React.useRef({ x: 0, y: 0 });
+  const containerSizeRef = React.useRef({ w: 0, h: 0 });
+  const fittedSizeRef = React.useRef({ w: 0, h: 0 });
   const [activeColorPreset, setActiveColorPreset] = React.useState<
     string | null
   >("c_contentnow");
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     "r_side_glow"
   );
-  const [activeScenePreset, setActiveScenePreset] = React.useState<
-    string | null
-  >(null);
 
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
@@ -387,8 +405,21 @@ export function GodRaysGenerator() {
   const clampZoom = (v: number) =>
     Math.round(Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, v)) * 100) / 100;
 
+  // Keep refs in sync (zoom + pan only; containerSize/fittedSize synced after their declarations)
+  React.useEffect(() => {
+    zoomRef.current = zoom;
+  }, [zoom]);
+  React.useEffect(() => {
+    panRef.current = pan;
+  }, [pan]);
+
   const changeZoom = React.useCallback((delta: number) => {
     setZoom((z) => clampZoom(z + delta));
+  }, []);
+
+  const resetView = React.useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   }, []);
 
   React.useEffect(() => {
@@ -396,8 +427,38 @@ export function GodRaysGenerator() {
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      const delta = e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
-      setZoom((z) => clampZoom(z + delta));
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      const curZoom = zoomRef.current;
+      const { x: panX, y: panY } = panRef.current;
+      const { w: cw, h: ch } = containerSizeRef.current;
+      const { w: fw, h: fh } = fittedSizeRef.current;
+
+      const newZoom = clampZoom(
+        curZoom + (e.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP)
+      );
+
+      // Wrapper center in container space
+      const wrapperCX = cw / 2 + panX;
+      const wrapperCY = ch / 2 + panY;
+
+      // Canvas-space point under the mouse (relative to wrapper center)
+      const canvasX = (mx - wrapperCX) / curZoom;
+      const canvasY = (my - wrapperCY) / curZoom;
+
+      // Adjust pan so that same canvas point stays under mouse
+      const newPanX = mx - canvasX * newZoom - cw / 2;
+      const newPanY = my - canvasY * newZoom - ch / 2;
+
+      // Suppress pan when canvas hasn't sized yet
+      if (!fw || !fh) return;
+
+      zoomRef.current = newZoom;
+      panRef.current = { x: newPanX, y: newPanY };
+      setZoom(newZoom);
+      setPan({ x: newPanX, y: newPanY });
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
@@ -538,13 +599,19 @@ export function GodRaysGenerator() {
   };
 
   const handleReset = () => {
-    setScene({
+    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
+    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
+    let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
-    });
+    };
+    if (colorPreset) s = applyColorPreset(s, colorPreset.config);
+    if (raysPreset) s = applyRaysPreset(s, raysPreset.config);
+    setScene(s);
     setSelectedLayerId(null);
-    setActiveColorPreset(null);
-    setActiveRaysPreset(null);
+    setActiveColorPreset("c_contentnow");
+    setActiveRaysPreset("r_side_glow");
+    localStorage.removeItem("rays-scene");
   };
 
   const applyPreset = (key: string) => {
@@ -553,46 +620,10 @@ export function GodRaysGenerator() {
     if (preset.category === "color") {
       setScene((s) => applyColorPreset(s, preset.config));
       setActiveColorPreset(key);
-      setActiveScenePreset(null);
     } else {
       setScene((s) => applyRaysPreset(s, preset.config));
       setActiveRaysPreset(key);
-      setActiveScenePreset(null);
     }
-  };
-
-  const applyScenePreset = (key: string) => {
-    const preset = SCENE_PRESETS.find((p) => p.key === key);
-    if (!preset) return;
-    // Preserve current colors — apply only structure from the preset
-    const curRay = scene.layers.find((l) => l.type === "rays") as
-      | RayLayer
-      | undefined;
-    const curHalo = scene.layers.find((l) => l.type === "halo") as
-      | HaloLayer
-      | undefined;
-    const curBg = scene.layers.find(
-      (l) => l.type === "background"
-    ) as BackgroundLayer;
-    const layers = preset.scene.layers.map((layer) => {
-      if (layer.type === "background") return { ...curBg };
-      if (layer.type === "rays")
-        return {
-          ...layer,
-          colorStart: curRay?.colorStart ?? layer.colorStart,
-          colorEnd: curRay?.colorEnd ?? layer.colorEnd,
-          fadeToTransparent:
-            curRay?.fadeToTransparent ?? layer.fadeToTransparent,
-        };
-      if (layer.type === "halo")
-        return { ...layer, color: curHalo?.color ?? layer.color };
-      return layer;
-    }) as Layer[];
-    setScene({ ...preset.scene, layers });
-    setSelectedLayerId(null);
-    setActiveScenePreset(key);
-    setActiveColorPreset(null);
-    setActiveRaysPreset(null);
   };
 
   // ── Fitted canvas size ────────────────────────────────────────────────────
@@ -624,12 +655,45 @@ export function GodRaysGenerator() {
     return { w, h };
   }, [containerSize, scene.width, scene.height]);
 
+  // Sync size refs (used in the wheel handler to avoid stale closures)
+  React.useEffect(() => {
+    containerSizeRef.current = containerSize;
+  }, [containerSize]);
+  React.useEffect(() => {
+    fittedSizeRef.current = fittedSize;
+  }, [fittedSize]);
+
+  // Reset pan when the scene output dimensions change
+  const prevSceneDimRef = React.useRef({ w: scene.width, h: scene.height });
+  React.useEffect(() => {
+    if (
+      prevSceneDimRef.current.w !== scene.width ||
+      prevSceneDimRef.current.h !== scene.height
+    ) {
+      setPan({ x: 0, y: 0 });
+      prevSceneDimRef.current = { w: scene.width, h: scene.height };
+    }
+  }, [scene.width, scene.height]);
+
   // ── Canvas overlays ───────────────────────────────────────────────────────
 
   const layerBounds = React.useMemo(() => {
     const { w, h } = fittedSize;
-    if (!w || !h) return new Map<string, { type: "rays" | "halo"; bbox: { x: number; y: number; w: number; h: number } }>();
-    const map = new Map<string, { type: "rays" | "halo"; bbox: { x: number; y: number; w: number; h: number } }>();
+    if (!w || !h)
+      return new Map<
+        string,
+        {
+          type: "rays" | "halo";
+          bbox: { x: number; y: number; w: number; h: number };
+        }
+      >();
+    const map = new Map<
+      string,
+      {
+        type: "rays" | "halo";
+        bbox: { x: number; y: number; w: number; h: number };
+      }
+    >();
     for (const layer of nonBgLayers) {
       if (layer.type === "rays") {
         const ox = (layer.originX / 100) * w;
@@ -640,25 +704,37 @@ export function GodRaysGenerator() {
         const pts: [number, number][] = [[ox, oy]];
         for (let i = 0; i <= 64; i++) {
           const angle = baseAngle - spreadRad / 2 + spreadRad * (i / 64);
-          pts.push([ox + Math.cos(angle) * maxLen, oy + Math.sin(angle) * maxLen]);
+          pts.push([
+            ox + Math.cos(angle) * maxLen,
+            oy + Math.sin(angle) * maxLen,
+          ]);
         }
         const xs = pts.map((p) => p[0]);
         const ys = pts.map((p) => p[1]);
         const x = Math.min(...xs);
         const y = Math.min(...ys);
-        map.set(layer.id, { type: "rays", bbox: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y } });
+        map.set(layer.id, {
+          type: "rays",
+          bbox: { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y },
+        });
       } else if (layer.type === "halo") {
         const r = Math.hypot(w, h) * layer.size;
         const cx = (layer.originX / 100) * w;
         const cy = (layer.originY / 100) * h;
-        map.set(layer.id, { type: "halo", bbox: { x: cx - r, y: cy - r, w: r * 2, h: r * 2 } });
+        map.set(layer.id, {
+          type: "halo",
+          bbox: { x: cx - r, y: cy - r, w: r * 2, h: r * 2 },
+        });
       }
     }
     return map;
   }, [fittedSize, nonBgLayers]);
 
-  const selectedBounds = selectedLayerId ? layerBounds.get(selectedLayerId) ?? null : null;
-  const raysBBox = selectedRayLayer && selectedBounds ? selectedBounds.bbox : null;
+  const selectedBounds = selectedLayerId
+    ? layerBounds.get(selectedLayerId) ?? null
+    : null;
+  const raysBBox =
+    selectedRayLayer && selectedBounds ? selectedBounds.bbox : null;
 
   // ─────────────────────────────────────────────────────────────────────────
   // JSX
@@ -738,22 +814,6 @@ export function GodRaysGenerator() {
                         <TooltipContent>{p.label}</TooltipContent>
                       </Tooltip>
                     ))}
-                    {SCENE_PRESETS.map((p) => (
-                      <Tooltip key={p.key}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => applyScenePreset(p.key)}
-                            className={cn(
-                              "aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
-                              activeScenePreset === p.key &&
-                                "ring-2 ring-primary"
-                            )}
-                            style={{ background: p.thumb }}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent>{p.label}</TooltipContent>
-                      </Tooltip>
-                    ))}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -764,14 +824,6 @@ export function GodRaysGenerator() {
                     className="flex-1 gap-2"
                   >
                     <Shuffle className="size-3" /> Aleatório
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReset}
-                    className="flex-1 gap-2"
-                  >
-                    <RotateCcw className="size-3" /> Reset
                   </Button>
                 </div>
               </div>
@@ -817,7 +869,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="space-y-8 px-2 pb-2">
+              <div className="space-y-8 px-2 h-full">
                 <Field label="Preset">
                   <Select
                     defaultValue={String(
@@ -870,6 +922,17 @@ export function GodRaysGenerator() {
                     />
                   </Field>
                 </div>
+
+                <div className="flex-1 h-full flex items-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReset}
+                    className="w-full"
+                  >
+                    <RotateCcw className="size-3" /> Reset
+                  </Button>
+                </div>
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -916,15 +979,17 @@ export function GodRaysGenerator() {
 
         <div
           ref={previewContainerRef}
-          className="relative flex flex-1 items-center justify-center overflow-hidden bg-muted/20"
+          className="relative flex-1 overflow-hidden bg-muted/20"
           onClick={() => setSelectedLayerId(null)}
         >
           <div
             ref={previewWrapperRef}
-            className="relative select-none"
+            className="absolute select-none"
             style={{
               width: fittedSize.w ? `${fittedSize.w}px` : "0px",
               height: fittedSize.h ? `${fittedSize.h}px` : "0px",
+              left: containerSize.w / 2 - fittedSize.w / 2 + pan.x,
+              top: containerSize.h / 2 - fittedSize.h / 2 + pan.y,
               transform: `scale(${zoom})`,
               transformOrigin: "center center",
             }}
@@ -976,8 +1041,12 @@ export function GodRaysGenerator() {
                           <OriginCrosshair
                             color="blue"
                             style={{
-                              left: (layer.originX / 100) * fittedSize.w - raysBBox.x,
-                              top: (layer.originY / 100) * fittedSize.h - raysBBox.y,
+                              left:
+                                (layer.originX / 100) * fittedSize.w -
+                                raysBBox.x,
+                              top:
+                                (layer.originY / 100) * fittedSize.h -
+                                raysBBox.y,
                             }}
                           />
                         )}
@@ -988,7 +1057,10 @@ export function GodRaysGenerator() {
                         <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
                           {layer.name}
                         </span>
-                        <OriginCrosshair color="amber" className="left-1/2 top-1/2" />
+                        <OriginCrosshair
+                          color="amber"
+                          className="left-1/2 top-1/2"
+                        />
                       </>
                     )}
                   </div>
@@ -1024,7 +1096,10 @@ export function GodRaysGenerator() {
                       "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
                       isRay ? "left-0" : "left-1/2 -translate-x-1/2"
                     )}
-                    style={{ background: isRay ? "#60a5fa" : "#fbbf24", color: isRay ? "white" : "black" }}
+                    style={{
+                      background: isRay ? "#60a5fa" : "#fbbf24",
+                      color: isRay ? "white" : "black",
+                    }}
                   >
                     {layer.name}
                   </span>
@@ -1050,7 +1125,7 @@ export function GodRaysGenerator() {
             </Button>
             <Button
               variant="ghost"
-              onClick={() => setZoom(1)}
+              onClick={resetView}
               className="h-7 min-w-[52px] px-1 text-xs font-medium tabular-nums"
               title="Resetar zoom"
             >
@@ -1070,7 +1145,7 @@ export function GodRaysGenerator() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setZoom(1)}
+              onClick={resetView}
               className="h-7 w-7 rounded-full"
               title="Zoom 100%"
             >

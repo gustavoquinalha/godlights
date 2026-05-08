@@ -1,4 +1,4 @@
-import type { GodRaysConfig, SceneConfig } from "./godrays";
+import type { GodRaysConfig } from "./godrays";
 
 export type PresetCategory = "color" | "rays";
 
@@ -230,7 +230,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
       haloOriginX: 19.88,
       haloOriginY: 160.64,
       blur: 16,
-      noise: 13,
+      noise: 8,
       grainSize: 1,
       randomness: 53,
       seed: 612616,
@@ -259,7 +259,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
       halo: 0.39,
       haloSize: 0.43,
       blur: 16,
-      noise: 13,
+      noise: 8,
       grainSize: 1,
       randomness: 50,
       seed: 869010,
@@ -434,88 +434,3 @@ export const RAYS_PRESETS: RaysPreset[] = [
 ];
 
 export const PRESETS: RaysPreset[] = [...COLOR_PRESETS, ...RAYS_PRESETS];
-
-export interface ScenePreset {
-  key: string;
-  label: string;
-  thumb: string;
-  scene: SceneConfig;
-}
-
-export const SCENE_PRESETS: ScenePreset[] = [
-  {
-    key: "s_ember_cross",
-    label: "Ember Cross",
-    thumb:
-      "conic-gradient(from 225deg at 110% -5%, transparent 0deg, #aaa 25deg, transparent 50deg), conic-gradient(from 45deg at -10% 105%, transparent 0deg, #aaa 25deg, transparent 50deg)",
-    scene: {
-      width: 1920,
-      height: 1080,
-      noise: 13,
-      grainSize: 1,
-      layers: [
-        {
-          id: "background",
-          type: "background",
-          bgType: "solid",
-          bgColor: "#0d0200",
-          bgColor2: "#1a1340",
-          bgGradientAngle: 180,
-        },
-        {
-          type: "halo",
-          originX: 19.88,
-          originY: 160.64,
-          intensity: 0.39,
-          size: 0.43,
-          color: "#ff4400",
-          blendMode: "lighter",
-          id: "halo-1",
-          name: "Halo",
-        },
-        {
-          type: "rays",
-          direction: 224,
-          spread: 87,
-          originX: 111.52347886029413,
-          originY: -22.74741013071896,
-          rayCount: 16,
-          rayWidth: 85,
-          divergence: 2.15,
-          rayLength: 0.75,
-          opacity: 0.37,
-          blendMode: "screen",
-          colorStart: "#ff6a00",
-          colorEnd: "#ff2200",
-          fadeToTransparent: true,
-          blur: 16,
-          randomness: 53,
-          seed: 612616,
-          id: "rays-1",
-          name: "Rays",
-        },
-        {
-          type: "rays",
-          direction: 44,
-          spread: 87,
-          originX: -38.34612132352944,
-          originY: 160.99748366013074,
-          rayCount: 16,
-          rayWidth: 85,
-          divergence: 2.15,
-          rayLength: 0.75,
-          opacity: 0.37,
-          blendMode: "screen",
-          colorStart: "#ff6a00",
-          colorEnd: "#ff2200",
-          fadeToTransparent: true,
-          blur: 16,
-          randomness: 53,
-          seed: 159201,
-          id: "rays-1778206121072",
-          name: "Rays (cópia)",
-        },
-      ],
-    },
-  },
-];
