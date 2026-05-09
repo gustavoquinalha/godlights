@@ -1983,8 +1983,8 @@ export function GodRaysGenerator() {
                   />
                 </div>
 
-                {/* Hit areas for all non-background layers */}
-                {nonBgLayers.map((layer) => {
+                {/* Hit areas for all non-background layers — selected layer rendered last so its drag overlay is always on top */}
+                {[...nonBgLayers.filter(l => l.id !== selectedLayerId), ...nonBgLayers.filter(l => l.id === selectedLayerId)].map((layer) => {
                   const bounds = layerBounds.get(layer.id);
                   if (!bounds) return null;
                   const isSelected = layer.id === selectedLayerId;
