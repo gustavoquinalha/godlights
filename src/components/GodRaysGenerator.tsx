@@ -125,7 +125,7 @@ const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
 
 const PREVIEW_MAX_DIMENSION = 1200;
 const MIN_ZOOM = 0.2;
-const MAX_ZOOM = 2.0;
+const MAX_ZOOM = 3.0;
 const ZOOM_STEP = 0.1;
 
 // ── Preset helpers ─────────────────────────────────────────────────────────
@@ -835,8 +835,10 @@ export function GodRaysGenerator() {
     const el = previewContainerRef.current;
     if (!el) return;
 
+    const isPanButton = (btn: number) => btn === 1 || btn === 2;
+
     const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 1) return;
+      if (!isPanButton(e.button)) return;
       e.preventDefault();
       middlePanStartRef.current = {
         mx: e.clientX,
@@ -860,25 +862,28 @@ export function GodRaysGenerator() {
     };
 
     const onMouseUp = (e: MouseEvent) => {
-      if (e.button !== 1) return;
+      if (!isPanButton(e.button)) return;
       middlePanStartRef.current = null;
       setIsMiddlePanning(false);
     };
 
-    // Prevent default middle-click scroll/autoscroll
+    // Prevent default middle-click scroll and right-click context menu while over canvas
     const onAuxClick = (e: MouseEvent) => {
-      if (e.button === 1) e.preventDefault();
+      if (isPanButton(e.button)) e.preventDefault();
     };
+    const onContextMenu = (e: MouseEvent) => e.preventDefault();
 
     el.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     el.addEventListener("auxclick", onAuxClick);
+    el.addEventListener("contextmenu", onContextMenu);
     return () => {
       el.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
       el.removeEventListener("auxclick", onAuxClick);
+      el.removeEventListener("contextmenu", onContextMenu);
     };
   }, []);
 
@@ -2164,7 +2169,7 @@ export function GodRaysGenerator() {
 
             {/* ── SAVES BAR ─────────────────────────────────────────────── */}
             <div
-              className="border-t bg-background flex h-32 w-full shrink-0"
+              className="border-t bg-background flex w-full shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Thumbnails */}
@@ -2186,13 +2191,14 @@ export function GodRaysGenerator() {
                       <div
                         key={save.id}
                         className={cn(
-                          "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
+                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
                           selectedSaveId === save.id
                             ? "border-primary shadow-md"
                             : "border-transparent hover:border-border"
                         )}
                         style={{
-                          aspectRatio: `${save.scene.width} / ${save.scene.height}`,
+                          height: "96px",
+                          width: `${Math.round(96 * (save.scene.width / save.scene.height))}px`,
                         }}
                         onClick={() => handleLoadSave(save)}
                         title={new Date(save.createdAt).toLocaleString("pt-BR")}
