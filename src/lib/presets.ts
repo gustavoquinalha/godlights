@@ -1,17 +1,65 @@
 import type { GodRaysConfig } from "./godrays";
+import type { BlendMode } from "./godrays";
 
 export type PresetCategory = "color" | "rays";
+
+// ── Color presets ─────────────────────────────────────────────────────────────
+
+export interface ColorPreset {
+  key: string;
+  label: string;
+  thumb: string;
+  category: "color";
+  config: Partial<GodRaysConfig>;
+}
+
+// ── Layer-based rays presets ──────────────────────────────────────────────────
+
+// Shape-only ray layer (no id, name, colorStart, colorEnd)
+export interface PresetRayLayer {
+  type: "rays";
+  direction: number;
+  spread: number;
+  originX: number;
+  originY: number;
+  rayCount: number;
+  rayWidth: number;
+  divergence: number;
+  rayLength: number;
+  opacity: number;
+  blendMode: BlendMode;
+  fadeToTransparent: boolean;
+  blur: number;
+  randomnessWidth: number;
+  randomnessLength: number;
+  randomnessAngle: number;
+  seed: number;
+}
+
+// Shape-only halo layer (no id, name, color)
+export interface PresetHaloLayer {
+  type: "halo";
+  originX: number;
+  originY: number;
+  intensity: number;
+  size: number;
+  blendMode: BlendMode;
+}
+
+export type PresetLayer = PresetRayLayer | PresetHaloLayer;
 
 export interface RaysPreset {
   key: string;
   label: string;
   thumb: string;
-  category: PresetCategory;
-  config: Partial<GodRaysConfig>;
+  category: "rays";
+  layers: PresetLayer[];
 }
 
-// Color-only presets — only affect background + ray colors, never shape
-export const COLOR_PRESETS: RaysPreset[] = [
+// ── Color-only presets ────────────────────────────────────────────────────────
+// Only affect background + ray colors, never shape
+
+export const COLOR_PRESETS: ColorPreset[] = [
   {
     key: "c_contentnow",
     label: "ContentNow",
@@ -455,8 +503,10 @@ export const COLOR_PRESETS: RaysPreset[] = [
   },
 ];
 
-// Rays/halo structure presets — only affect shape, count, spread, direction, effects
-// Colors are left as-is (config is applied on top of current config)
+// ── Rays/halo structure presets ───────────────────────────────────────────────
+// Only affect shape, count, spread, direction, effects.
+// Colors are inherited from the current scene.
+
 export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_corner_flare",
@@ -464,29 +514,12 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 137deg at 15% 0%, transparent 0deg, #aaa 48deg, transparent 48deg), conic-gradient(from 174deg at 91% 0%, transparent 0deg, #888 10deg, transparent 10deg)",
     category: "rays",
-    config: {
-      rayCount: 13,
-      rayWidth: 85,
-      divergence: 2.65,
-      rayLength: 0.6,
-      opacity: 0.39,
-      blendMode: "screen",
-      direction: 161,
-      spread: 48,
-      originX: 15.2,
-      originY: -32.15,
-      haloBlendMode: "lighter",
-      halo: 0.39,
-      haloSize: 0.43,
-      haloOriginX: 30,
-      haloOriginY: -20,
-      blur: 33,
-      noise: 8,
-      grainSize: 1,
-      randomness: 50,
-      seed: 869010,
-      fadeToTransparent: true,
-    },
+    layers: [
+      { type: "rays", direction: 161, spread: 48,  originX: 15.2,   originY: -32.15,  rayCount: 13, rayWidth: 85, divergence: 2.65, rayLength: 0.6,  opacity: 0.39, blendMode: "screen", fadeToTransparent: true, blur: 33, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 869010 },
+      { type: "rays", direction: 198, spread: 0,   originX: 91.21,  originY: -35.28,  rayCount: 7,  rayWidth: 26, divergence: 2.65, rayLength: 0.55, opacity: 0.45, blendMode: "screen", fadeToTransparent: true, blur: 33, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 765135 },
+      { type: "halo", originX: 30,    originY: -20,   intensity: 0.39, size: 0.43, blendMode: "lighter" },
+      { type: "halo", originX: 85.17, originY: -2.14, intensity: 0.16, size: 0.19, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_warm_haze",
@@ -494,29 +527,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 137deg at 20% 0%, transparent 0deg, #aaa 48deg, transparent 48deg)",
     category: "rays",
-    config: {
-      rayCount: 6,
-      rayWidth: 85,
-      divergence: 2.65,
-      rayLength: 0.6,
-      opacity: 0.39,
-      blendMode: "screen",
-      haloBlendMode: "lighter",
-      direction: 161,
-      spread: 48,
-      originX: 20,
-      originY: -23,
-      haloOriginX: 30,
-      haloOriginY: -20,
-      halo: 0.39,
-      haloSize: 0.43,
-      blur: 16,
-      noise: 8,
-      grainSize: 1,
-      randomness: 50,
-      seed: 869010,
-      fadeToTransparent: true,
-    },
+    layers: [
+      { type: "rays", direction: 161, spread: 48, originX: 20, originY: -23, rayCount: 15, rayWidth: 85, divergence: 2.65, rayLength: 0.6, opacity: 0.39, blendMode: "screen", fadeToTransparent: true, blur: 26, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 869010 },
+      { type: "halo", originX: 30, originY: -20, intensity: 0.39, size: 0.43, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_canopy",
@@ -524,21 +538,9 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 178deg at 80% 0%, transparent 0deg, #aaa 35deg, transparent 35deg)",
     category: "rays",
-    config: {
-      rayCount: 22,
-      rayWidth: 50,
-      divergence: 1.8,
-      rayLength: 1.5,
-      opacity: 0.5,
-      blur: 18,
-      spread: 35,
-      direction: 195,
-      originX: 77.799,
-      originY: -132.757,
-      randomness: 40,
-      seed: 1337,
-      blendMode: "screen",
-    },
+    layers: [
+      { type: "rays", direction: 195, spread: 35, originX: 77.8, originY: -132.757, rayCount: 22, rayWidth: 50, divergence: 1.8, rayLength: 1.5, opacity: 0.5, blendMode: "screen", fadeToTransparent: true, blur: 28, randomnessWidth: 40, randomnessLength: 40, randomnessAngle: 40, seed: 1337 },
+    ],
   },
   {
     key: "r_aurora",
@@ -546,24 +548,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 120deg at 50% 0%, transparent 0deg, #aaa 120deg, transparent 120deg)",
     category: "rays",
-    config: {
-      rayCount: 40,
-      rayWidth: 120,
-      divergence: 1.6,
-      rayLength: 1.3,
-      opacity: 0.35,
-      blur: 22,
-      spread: 120,
-      direction: 180,
-      originX: 50,
-      originY: -20,
-      halo: 0.25,
-      haloSize: 0.5,
-      randomness: 50,
-      noise: 20,
-      blendMode: "screen",
-      fadeToTransparent: true,
-    },
+    layers: [
+      { type: "rays", direction: 180, spread: 120, originX: 50, originY: -20, rayCount: 40, rayWidth: 120, divergence: 1.6, rayLength: 1.3, opacity: 0.35, blendMode: "screen", fadeToTransparent: true, blur: 22, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 1337 },
+      { type: "halo", originX: 50, originY: 0, intensity: 0.25, size: 0.5, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_side_glow",
@@ -571,28 +559,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 174deg at 100% 0%, transparent 0deg, #aaa 87deg, transparent 87deg)",
     category: "rays",
-    config: {
-      rayCount: 16,
-      rayWidth: 85,
-      divergence: 2.15,
-      rayLength: 0.75,
-      opacity: 0.37,
-      blendMode: "screen",
-      direction: 217,
-      spread: 87,
-      originX: 105.59,
-      originY: -26.67,
-      haloBlendMode: "lighter",
-      halo: 0.39,
-      haloSize: 0.43,
-      haloOriginX: 19.88,
-      haloOriginY: 160.64,
-      blur: 16,
-      noise: 8,
-      grainSize: 1,
-      randomness: 53,
-      seed: 612616,
-    },
+    layers: [
+      { type: "rays", direction: 217, spread: 87, originX: 100.3, originY: -21.56, rayCount: 16, rayWidth: 85, divergence: 2.15, rayLength: 0.75, opacity: 0.37, blendMode: "screen", fadeToTransparent: true, blur: 26, randomnessWidth: 53, randomnessLength: 53, randomnessAngle: 53, seed: 612616 },
+      { type: "halo", originX: 57.95, originY: 62.17, intensity: 0.29, size: 0.26, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_mist",
@@ -600,24 +570,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 115deg at 50% 0%, transparent 0deg, #aaa 140deg, transparent 140deg)",
     category: "rays",
-    config: {
-      rayCount: 60,
-      rayWidth: 120,
-      divergence: 1.4,
-      rayLength: 1.5,
-      opacity: 0.3,
-      blur: 35,
-      spread: 140,
-      direction: 185,
-      originX: 50,
-      originY: -10,
-      halo: 0.25,
-      haloSize: 0.55,
-      randomness: 50,
-      noise: 15,
-      blendMode: "screen",
-      fadeToTransparent: true,
-    },
+    layers: [
+      { type: "rays", direction: 185, spread: 140, originX: 50, originY: -10, rayCount: 60, rayWidth: 120, divergence: 1.4, rayLength: 1.5, opacity: 0.3, blendMode: "screen", fadeToTransparent: true, blur: 35, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 1337 },
+      { type: "halo", originX: 50, originY: 0, intensity: 0.25, size: 0.55, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_fan",
@@ -625,29 +581,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 94deg at 0% 20%, transparent 0deg, #aaa 12deg, transparent 12deg)",
     category: "rays",
-    config: {
-      rayCount: 27,
-      rayWidth: 144,
-      divergence: 3.25,
-      rayLength: 1.6,
-      opacity: 0.51,
-      blendMode: "lighter",
-      blur: 21.5,
-      spread: 12,
-      direction: 100,
-      originX: -13.809,
-      originY: 19.398,
-      fadeToTransparent: true,
-      randomness: 100,
-      seed: 722896,
-      noise: 8,
-      grainSize: 1,
-      halo: 0.64,
-      haloSize: 0.44,
-      haloOriginX: 47.45,
-      haloOriginY: 56.637,
-      haloBlendMode: "lighter",
-    },
+    layers: [
+      { type: "rays", direction: 100, spread: 12, originX: -13.809, originY: 19.398, rayCount: 27, rayWidth: 144, divergence: 3.25, rayLength: 1.6, opacity: 0.51, blendMode: "lighter", fadeToTransparent: true, blur: 21.5, randomnessWidth: 100, randomnessLength: 100, randomnessAngle: 100, seed: 722896 },
+      { type: "halo", originX: 47.45, originY: 56.637, intensity: 0.64, size: 0.44, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_burst",
@@ -655,24 +592,9 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 0deg at 50% 50%, #aaa 0deg, transparent 20deg, #aaa 40deg, transparent 60deg, #aaa 80deg, transparent 100deg, #aaa 120deg, transparent 140deg, #aaa 160deg, transparent 180deg, #aaa 200deg, transparent 220deg, #aaa 240deg, transparent 260deg, #aaa 280deg, transparent 300deg, #aaa 320deg, transparent 340deg, #aaa 360deg)",
     category: "rays",
-    config: {
-      rayCount: 80,
-      rayWidth: 14,
-      divergence: 5,
-      rayLength: 0.4,
-      opacity: 0.5,
-      blendMode: "lighter",
-      blur: 21.5,
-      spread: 360,
-      direction: 90,
-      originX: 50,
-      originY: 50,
-      fadeToTransparent: true,
-      randomness: 20,
-      seed: 1337,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 90, spread: 360, originX: 50, originY: 50, rayCount: 80, rayWidth: 14, divergence: 5, rayLength: 0.4, opacity: 0.5, blendMode: "lighter", fadeToTransparent: true, blur: 21.5, randomnessWidth: 20, randomnessLength: 20, randomnessAngle: 20, seed: 1337 },
+    ],
   },
   {
     key: "r_sidelight",
@@ -680,28 +602,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 76deg at 0% 40%, transparent 0deg, #aaa 50deg, transparent 50deg)",
     category: "rays",
-    config: {
-      rayCount: 18,
-      rayWidth: 80,
-      divergence: 1.5,
-      rayLength: 1.6,
-      opacity: 0.82,
-      blendMode: "lighter",
-      blur: 14,
-      spread: 50,
-      direction: 101,
-      originX: -69.121,
-      originY: 21.873,
-      halo: 0.5,
-      haloSize: 0.35,
-      haloOriginX: 37.239,
-      haloOriginY: 36.782,
-      haloBlendMode: "lighter",
-      randomness: 30,
-      seed: 1337,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 101, spread: 50, originX: -69.121, originY: 21.873, rayCount: 18, rayWidth: 80, divergence: 1.5, rayLength: 1.6, opacity: 0.82, blendMode: "lighter", fadeToTransparent: true, blur: 14, randomnessWidth: 30, randomnessLength: 30, randomnessAngle: 30, seed: 1337 },
+      { type: "halo", originX: 37.239, originY: 36.782, intensity: 0.5, size: 0.35, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_rim_light",
@@ -709,28 +613,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 100deg at 0% 0%, transparent 0deg, #aaa 80deg, transparent 80deg)",
     category: "rays",
-    config: {
-      rayCount: 16,
-      rayWidth: 85,
-      divergence: 2.15,
-      rayLength: 0.75,
-      opacity: 0.37,
-      blendMode: "screen",
-      blur: 16,
-      spread: 80,
-      direction: 140,
-      originX: -8,
-      originY: -18,
-      halo: 0.39,
-      haloSize: 0.43,
-      haloOriginX: 80,
-      haloOriginY: 160,
-      haloBlendMode: "lighter",
-      randomness: 53,
-      seed: 515151,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 140, spread: 80, originX: -8, originY: -18, rayCount: 16, rayWidth: 85, divergence: 2.15, rayLength: 0.75, opacity: 0.37, blendMode: "screen", fadeToTransparent: true, blur: 16, randomnessWidth: 53, randomnessLength: 53, randomnessAngle: 53, seed: 515151 },
+      { type: "halo", originX: 6.43, originY: 7.63, intensity: 0.39, size: 0.43, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_rising",
@@ -738,29 +624,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 330deg at 50% 100%, transparent 0deg, #aaa 60deg, transparent 60deg)",
     category: "rays",
-    config: {
-      rayCount: 22,
-      rayWidth: 90,
-      divergence: 2.0,
-      rayLength: 1.6,
-      opacity: 0.5,
-      blendMode: "lighter",
-      blur: 20,
-      spread: 60,
-      direction: 0,
-      originX: 50,
-      originY: 115,
-      fadeToTransparent: true,
-      halo: 0.6,
-      haloSize: 0.32,
-      haloOriginX: 50,
-      haloOriginY: 88,
-      haloBlendMode: "lighter",
-      randomness: 35,
-      seed: 202020,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 0, spread: 60, originX: 50, originY: 115, rayCount: 22, rayWidth: 90, divergence: 2.0, rayLength: 1.6, opacity: 0.5, blendMode: "lighter", fadeToTransparent: true, blur: 20, randomnessWidth: 35, randomnessLength: 35, randomnessAngle: 35, seed: 202020 },
+      { type: "halo", originX: 50, originY: 88, intensity: 0.6, size: 0.32, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_sunburst",
@@ -768,29 +635,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 105deg at 50% 0%, transparent 0deg, #aaa 150deg, transparent 150deg)",
     category: "rays",
-    config: {
-      rayCount: 40,
-      rayWidth: 22,
-      divergence: 4.0,
-      rayLength: 1.8,
-      opacity: 0.55,
-      blendMode: "lighter",
-      blur: 22,
-      spread: 150,
-      direction: 180,
-      originX: 50,
-      originY: -8,
-      fadeToTransparent: true,
-      halo: 0.7,
-      haloSize: 0.22,
-      haloOriginX: 50,
-      haloOriginY: 0,
-      haloBlendMode: "lighter",
-      randomness: 30,
-      seed: 111222,
-      noise: 6,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 180, spread: 150, originX: 50, originY: -8, rayCount: 40, rayWidth: 22, divergence: 4.0, rayLength: 1.8, opacity: 0.55, blendMode: "lighter", fadeToTransparent: true, blur: 22, randomnessWidth: 30, randomnessLength: 30, randomnessAngle: 30, seed: 111222 },
+      { type: "halo", originX: 50, originY: 0, intensity: 0.7, size: 0.22, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_rake",
@@ -798,29 +646,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 25deg at 0% 100%, transparent 0deg, #aaa 40deg, transparent 40deg)",
     category: "rays",
-    config: {
-      rayCount: 16,
-      rayWidth: 80,
-      divergence: 1.8,
-      rayLength: 1.7,
-      opacity: 0.6,
-      blendMode: "lighter",
-      blur: 18,
-      spread: 40,
-      direction: 45,
-      originX: -10,
-      originY: 115,
-      fadeToTransparent: true,
-      halo: 0.5,
-      haloSize: 0.28,
-      haloOriginX: 25,
-      haloOriginY: 70,
-      haloBlendMode: "lighter",
-      randomness: 30,
-      seed: 303030,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 45, spread: 40, originX: -10, originY: 115, rayCount: 16, rayWidth: 80, divergence: 1.8, rayLength: 1.7, opacity: 0.6, blendMode: "lighter", fadeToTransparent: true, blur: 18, randomnessWidth: 30, randomnessLength: 30, randomnessAngle: 30, seed: 303030 },
+      { type: "halo", originX: 25, originY: 70, intensity: 0.5, size: 0.28, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_twilight",
@@ -828,29 +657,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 243deg at 100% 55%, transparent 0deg, #aaa 45deg, transparent 45deg)",
     category: "rays",
-    config: {
-      rayCount: 18,
-      rayWidth: 90,
-      divergence: 2.0,
-      rayLength: 1.4,
-      opacity: 0.48,
-      blendMode: "lighter",
-      blur: 20,
-      spread: 45,
-      direction: 265,
-      originX: 118,
-      originY: 55,
-      fadeToTransparent: true,
-      halo: 0.5,
-      haloSize: 0.38,
-      haloOriginX: 82,
-      haloOriginY: 50,
-      haloBlendMode: "lighter",
-      randomness: 40,
-      seed: 741852,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 265, spread: 45, originX: 118, originY: 55, rayCount: 18, rayWidth: 90, divergence: 2.0, rayLength: 1.4, opacity: 0.48, blendMode: "lighter", fadeToTransparent: true, blur: 20, randomnessWidth: 40, randomnessLength: 40, randomnessAngle: 40, seed: 741852 },
+      { type: "halo", originX: 82, originY: 50, intensity: 0.5, size: 0.38, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_eclipse",
@@ -858,29 +668,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 171deg at 50% 0%, transparent 0deg, #aaa 28deg, transparent 28deg)",
     category: "rays",
-    config: {
-      rayCount: 25,
-      rayWidth: 60,
-      divergence: 1.4,
-      rayLength: 2.0,
-      opacity: 0.55,
-      blendMode: "lighter",
-      blur: 16,
-      spread: 28,
-      direction: 185,
-      originX: 52,
-      originY: -90,
-      fadeToTransparent: true,
-      halo: 0.75,
-      haloSize: 0.25,
-      haloOriginX: 52,
-      haloOriginY: 10,
-      haloBlendMode: "lighter",
-      randomness: 20,
-      seed: 999111,
-      noise: 6,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 185, spread: 28, originX: 52, originY: -90, rayCount: 25, rayWidth: 60, divergence: 1.4, rayLength: 2.0, opacity: 0.55, blendMode: "lighter", fadeToTransparent: true, blur: 16, randomnessWidth: 20, randomnessLength: 20, randomnessAngle: 20, seed: 999111 },
+      { type: "halo", originX: 52, originY: 10, intensity: 0.75, size: 0.25, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_torch",
@@ -888,29 +679,10 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 307deg at 100% 100%, transparent 0deg, #aaa 30deg, transparent 30deg)",
     category: "rays",
-    config: {
-      rayCount: 16,
-      rayWidth: 85,
-      divergence: 1.8,
-      rayLength: 1.6,
-      opacity: 0.55,
-      blendMode: "lighter",
-      blur: 18,
-      spread: 30,
-      direction: 322,
-      originX: 115,
-      originY: 115,
-      fadeToTransparent: true,
-      halo: 0.5,
-      haloSize: 0.3,
-      haloOriginX: 75,
-      haloOriginY: 75,
-      haloBlendMode: "lighter",
-      randomness: 35,
-      seed: 852963,
-      noise: 8,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 322, spread: 30, originX: 115, originY: 115, rayCount: 16, rayWidth: 85, divergence: 1.8, rayLength: 1.6, opacity: 0.55, blendMode: "lighter", fadeToTransparent: true, blur: 18, randomnessWidth: 35, randomnessLength: 35, randomnessAngle: 35, seed: 852963 },
+      { type: "halo", originX: 75, originY: 75, intensity: 0.5, size: 0.3, blendMode: "lighter" },
+    ],
   },
   {
     key: "r_veil",
@@ -918,24 +690,9 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 130deg at 50% 0%, transparent 0deg, #aaa 90deg, transparent 90deg)",
     category: "rays",
-    config: {
-      rayCount: 30,
-      rayWidth: 150,
-      divergence: 1.02,
-      rayLength: 1.2,
-      opacity: 0.2,
-      blendMode: "screen",
-      blur: 40,
-      spread: 90,
-      direction: 175,
-      originX: 50,
-      originY: -5,
-      fadeToTransparent: true,
-      randomness: 60,
-      seed: 147258,
-      noise: 15,
-      grainSize: 2,
-    },
+    layers: [
+      { type: "rays", direction: 175, spread: 90, originX: 50, originY: -5, rayCount: 30, rayWidth: 150, divergence: 1.02, rayLength: 1.2, opacity: 0.2, blendMode: "screen", fadeToTransparent: true, blur: 40, randomnessWidth: 60, randomnessLength: 60, randomnessAngle: 60, seed: 147258 },
+    ],
   },
   {
     key: "r_radiance",
@@ -943,59 +700,14 @@ export const RAYS_PRESETS: RaysPreset[] = [
     thumb:
       "conic-gradient(from 0deg at 50% 50%, #777 0deg, transparent 30deg, #777 60deg, transparent 90deg, #777 120deg, transparent 150deg, #777 180deg, transparent 210deg, #777 240deg, transparent 270deg, #777 300deg, transparent 330deg, #777 360deg)",
     category: "rays",
-    config: {
-      rayCount: 20,
-      rayWidth: 30,
-      divergence: 3.5,
-      rayLength: 1.0,
-      opacity: 0.4,
-      blendMode: "lighter",
-      blur: 28,
-      spread: 360,
-      direction: 90,
-      originX: 50,
-      originY: 50,
-      fadeToTransparent: true,
-      halo: 0.85,
-      haloSize: 0.45,
-      haloOriginX: 50,
-      haloOriginY: 50,
-      haloBlendMode: "lighter",
-      randomness: 50,
-      seed: 369258,
-      noise: 10,
-      grainSize: 1,
-    },
-  },
-  {
-    key: "r_orb",
-    label: "Orb",
-    thumb:
-      "radial-gradient(circle at 50% 50%, #fff 0%, #aaa 30%, transparent 65%)",
-    category: "rays",
-    config: {
-      rayCount: 1,
-      rayWidth: 1,
-      divergence: 1,
-      rayLength: 0.1,
-      opacity: 0,
-      blendMode: "lighter",
-      blur: 0,
-      spread: 1,
-      direction: 180,
-      originX: 50,
-      originY: 50,
-      halo: 0.9,
-      haloSize: 0.6,
-      haloOriginX: 50,
-      haloOriginY: 50,
-      haloBlendMode: "lighter",
-      randomness: 0,
-      seed: 1,
-      noise: 5,
-      grainSize: 1,
-    },
+    layers: [
+      { type: "rays", direction: 90, spread: 360, originX: 50, originY: 50, rayCount: 20, rayWidth: 30, divergence: 3.5, rayLength: 1.0, opacity: 0.4, blendMode: "lighter", fadeToTransparent: true, blur: 28, randomnessWidth: 50, randomnessLength: 50, randomnessAngle: 50, seed: 369258 },
+      { type: "halo", originX: 50, originY: 50, intensity: 0.85, size: 0.45, blendMode: "lighter" },
+    ],
   },
 ];
 
-export const PRESETS: RaysPreset[] = [...COLOR_PRESETS, ...RAYS_PRESETS];
+export const PRESETS: (ColorPreset | RaysPreset)[] = [
+  ...COLOR_PRESETS,
+  ...RAYS_PRESETS,
+];

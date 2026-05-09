@@ -75,7 +75,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
-import { COLOR_PRESETS, RAYS_PRESETS, PRESETS } from "@/lib/presets";
+import { COLOR_PRESETS, RAYS_PRESETS, PRESETS, type ColorPreset, type RaysPreset, type PresetRayLayer, type PresetHaloLayer, type PresetLayer } from "@/lib/presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
@@ -153,17 +153,6 @@ function applyColorPreset(
           ...(flat.haloColor !== undefined && { color: flat.haloColor }),
         };
       }
-      if (layer.type === "background") {
-        return {
-          ...layer,
-          ...(flat.bgType !== undefined && { bgType: flat.bgType }),
-          ...(flat.bgColor !== undefined && { bgColor: flat.bgColor }),
-          ...(flat.bgColor2 !== undefined && { bgColor2: flat.bgColor2 }),
-          ...(flat.bgGradientAngle !== undefined && {
-            bgGradientAngle: flat.bgGradientAngle,
-          }),
-        };
-      }
       return layer;
     }) as Layer[],
   };
@@ -171,128 +160,45 @@ function applyColorPreset(
 
 function applyRaysPreset(
   scene: SceneConfig,
-  flat: Partial<GodRaysConfig>
+  layers: PresetLayer[]
 ): SceneConfig {
-  let firstRaysDone = false;
-  let firstHaloDone = false;
-  const mapped = scene.layers.map((layer) => {
-    if (layer.type === "rays" && !firstRaysDone) {
-      firstRaysDone = true;
+  // Extract current colors to preserve them
+  const existingRay = scene.layers.find((l): l is RayLayer => l.type === "rays");
+  const existingHalo = scene.layers.find((l): l is HaloLayer => l.type === "halo");
+  const rayColorStart = existingRay?.colorStart ?? DEFAULT_RAY_LAYER.colorStart;
+  const rayColorEnd = existingRay?.colorEnd ?? DEFAULT_RAY_LAYER.colorEnd;
+  const haloColor = existingHalo?.color ?? DEFAULT_HALO_LAYER.color;
+
+  // Keep only the background layer
+  const bgLayers = scene.layers.filter((l) => l.type === "background");
+
+  // Build new layers from preset, injecting current colors
+  let raysIndex = 0;
+  let halosIndex = 0;
+  const newLayers: Layer[] = layers.map((presetLayer) => {
+    if (presetLayer.type === "rays") {
+      raysIndex++;
       return {
-        ...DEFAULT_RAY_LAYER,
-        id: layer.id,
-        name: layer.name,
-        colorStart: layer.colorStart,
-        colorEnd: layer.colorEnd,
-        fadeToTransparent: layer.fadeToTransparent,
-        ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
-        ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
-        ...(flat.divergence !== undefined && { divergence: flat.divergence }),
-        ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
-        ...(flat.opacity !== undefined && { opacity: flat.opacity }),
-        ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
-        ...(flat.direction !== undefined && { direction: flat.direction }),
-        ...(flat.spread !== undefined && { spread: flat.spread }),
-        ...(flat.originX !== undefined && { originX: flat.originX }),
-        ...(flat.originY !== undefined && { originY: flat.originY }),
-        ...(flat.blur !== undefined && { blur: flat.blur }),
-        ...(flat.randomnessWidth !== undefined
-          ? { randomnessWidth: flat.randomnessWidth }
-          : flat.randomness !== undefined
-          ? { randomnessWidth: flat.randomness }
-          : {}),
-        ...(flat.randomnessLength !== undefined
-          ? { randomnessLength: flat.randomnessLength }
-          : flat.randomness !== undefined
-          ? { randomnessLength: flat.randomness }
-          : {}),
-        ...(flat.randomnessAngle !== undefined
-          ? { randomnessAngle: flat.randomnessAngle }
-          : flat.randomness !== undefined
-          ? { randomnessAngle: flat.randomness }
-          : {}),
-        ...(flat.seed !== undefined && { seed: flat.seed }),
+        ...presetLayer,
+        id: `rays-${Date.now() + raysIndex}`,
+        name: raysIndex === 1 ? "Rays" : `Rays ${raysIndex}`,
+        colorStart: rayColorStart,
+        colorEnd: rayColorEnd,
       } as RayLayer;
-    }
-    if (layer.type === "halo" && !firstHaloDone) {
-      firstHaloDone = true;
+    } else {
+      halosIndex++;
       return {
-        ...DEFAULT_HALO_LAYER,
-        id: layer.id,
-        name: layer.name,
-        color: layer.color,
-        ...(flat.halo !== undefined && { intensity: flat.halo }),
-        ...(flat.haloSize !== undefined && { size: flat.haloSize }),
-        ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
-        ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
-        ...(flat.haloBlendMode !== undefined && {
-          blendMode: flat.haloBlendMode,
-        }),
+        ...presetLayer,
+        id: `halo-${Date.now() + halosIndex}`,
+        name: halosIndex === 1 ? "Halo" : `Halo ${halosIndex}`,
+        color: haloColor,
       } as HaloLayer;
     }
-    return layer;
-  }) as Layer[];
-
-  // If no rays layer existed, create one from the preset
-  if (!firstRaysDone) {
-    const existingRay = scene.layers.find((l) => l.type === "rays") as
-      | RayLayer
-      | undefined;
-    mapped.push({
-      ...DEFAULT_RAY_LAYER,
-      id: `rays-${Date.now()}`,
-      name: "Rays",
-      colorStart: existingRay?.colorStart ?? DEFAULT_RAY_LAYER.colorStart,
-      colorEnd: existingRay?.colorEnd ?? DEFAULT_RAY_LAYER.colorEnd,
-      ...(flat.rayCount !== undefined && { rayCount: flat.rayCount }),
-      ...(flat.rayWidth !== undefined && { rayWidth: flat.rayWidth }),
-      ...(flat.divergence !== undefined && { divergence: flat.divergence }),
-      ...(flat.rayLength !== undefined && { rayLength: flat.rayLength }),
-      ...(flat.opacity !== undefined && { opacity: flat.opacity }),
-      ...(flat.blendMode !== undefined && { blendMode: flat.blendMode }),
-      ...(flat.direction !== undefined && { direction: flat.direction }),
-      ...(flat.spread !== undefined && { spread: flat.spread }),
-      ...(flat.originX !== undefined && { originX: flat.originX }),
-      ...(flat.originY !== undefined && { originY: flat.originY }),
-      ...(flat.blur !== undefined && { blur: flat.blur }),
-      ...(flat.randomness !== undefined && { randomness: flat.randomness }),
-      ...(flat.seed !== undefined && { seed: flat.seed }),
-    } as RayLayer);
-  }
-
-  // If preset has halo data but no halo layer existed, create one
-  const presetHasHalo = flat.halo !== undefined || flat.haloSize !== undefined;
-  if (!firstHaloDone && presetHasHalo) {
-    const existingHalo = scene.layers.find((l) => l.type === "halo") as
-      | HaloLayer
-      | undefined;
-    mapped.push({
-      ...DEFAULT_HALO_LAYER,
-      id: `halo-${Date.now()}`,
-      name: "Halo",
-      color: existingHalo?.color ?? DEFAULT_HALO_LAYER.color,
-      ...(flat.halo !== undefined && { intensity: flat.halo }),
-      ...(flat.haloSize !== undefined && { size: flat.haloSize }),
-      ...(flat.haloOriginX !== undefined && { originX: flat.haloOriginX }),
-      ...(flat.haloOriginY !== undefined && { originY: flat.haloOriginY }),
-      ...(flat.haloBlendMode !== undefined && {
-        blendMode: flat.haloBlendMode,
-      }),
-    } as HaloLayer);
-  }
-
-  // Ensure halos are always rendered on top of rays
-  const ordered: Layer[] = [
-    ...mapped.filter((l) => l.type === "background"),
-    ...mapped.filter((l) => l.type === "rays"),
-    ...mapped.filter((l) => l.type === "halo"),
-  ];
+  });
 
   return {
     ...scene,
-    noise: flat.noise ?? DEFAULT_SCENE.noise,
-    grainSize: flat.grainSize ?? DEFAULT_SCENE.grainSize,
-    layers: ordered,
+    layers: [...bgLayers, ...newLayers],
   };
 }
 
@@ -413,7 +319,7 @@ export function GodRaysGenerator() {
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
     };
     if (colorPreset) s = applyColorPreset(s, colorPreset.config);
-    if (raysPreset) s = applyRaysPreset(s, raysPreset.config);
+    if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     return s;
   });
 
@@ -1147,76 +1053,42 @@ export function GodRaysGenerator() {
 
   const handleRandomizeLayer = React.useCallback(() => {
     if (selectedRayLayer) {
-      const pick =
-        RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
+      const pick = RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
+      const presetRayLayer = pick.layers.find((l): l is PresetRayLayer => l.type === "rays");
+      if (!presetRayLayer) return;
       updateLayer(selectedRayLayer.id, {
-        ...(pick.config.rayCount !== undefined && {
-          rayCount: pick.config.rayCount,
-        }),
-        ...(pick.config.rayWidth !== undefined && {
-          rayWidth: pick.config.rayWidth,
-        }),
-        ...(pick.config.divergence !== undefined && {
-          divergence: pick.config.divergence,
-        }),
-        ...(pick.config.rayLength !== undefined && {
-          rayLength: pick.config.rayLength,
-        }),
-        ...(pick.config.opacity !== undefined && {
-          opacity: pick.config.opacity,
-        }),
-        ...(pick.config.blendMode !== undefined && {
-          blendMode: pick.config.blendMode,
-        }),
-        ...(pick.config.direction !== undefined && {
-          direction: pick.config.direction,
-        }),
-        ...(pick.config.spread !== undefined && { spread: pick.config.spread }),
-        ...(pick.config.originX !== undefined && {
-          originX: pick.config.originX,
-        }),
-        ...(pick.config.originY !== undefined && {
-          originY: pick.config.originY,
-        }),
-        ...(pick.config.blur !== undefined && { blur: pick.config.blur }),
-        ...(pick.config.randomnessWidth !== undefined
-          ? { randomnessWidth: pick.config.randomnessWidth }
-          : pick.config.randomness !== undefined
-          ? { randomnessWidth: pick.config.randomness }
-          : {}),
-        ...(pick.config.randomnessLength !== undefined
-          ? { randomnessLength: pick.config.randomnessLength }
-          : pick.config.randomness !== undefined
-          ? { randomnessLength: pick.config.randomness }
-          : {}),
-        ...(pick.config.randomnessAngle !== undefined
-          ? { randomnessAngle: pick.config.randomnessAngle }
-          : pick.config.randomness !== undefined
-          ? { randomnessAngle: pick.config.randomness }
-          : {}),
+        direction: presetRayLayer.direction,
+        spread: presetRayLayer.spread,
+        originX: presetRayLayer.originX,
+        originY: presetRayLayer.originY,
+        rayCount: presetRayLayer.rayCount,
+        rayWidth: presetRayLayer.rayWidth,
+        divergence: presetRayLayer.divergence,
+        rayLength: presetRayLayer.rayLength,
+        opacity: presetRayLayer.opacity,
+        blendMode: presetRayLayer.blendMode,
+        fadeToTransparent: presetRayLayer.fadeToTransparent,
+        blur: presetRayLayer.blur,
+        randomnessWidth: presetRayLayer.randomnessWidth,
+        randomnessLength: presetRayLayer.randomnessLength,
+        randomnessAngle: presetRayLayer.randomnessAngle,
         seed: Math.floor(Math.random() * 1_000_000),
       });
       setActiveRaysPreset(null);
     } else if (selectedHaloLayer) {
-      const haloPresets = RAYS_PRESETS.filter(
-        (p) => p.config.halo !== undefined || p.config.haloSize !== undefined
+      const presetsWithHalo = RAYS_PRESETS.filter((p) =>
+        p.layers.some((l) => l.type === "halo")
       );
-      const pool = haloPresets.length > 0 ? haloPresets : RAYS_PRESETS;
+      const pool = presetsWithHalo.length > 0 ? presetsWithHalo : RAYS_PRESETS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
+      const presetHaloLayer = pick.layers.find((l): l is PresetHaloLayer => l.type === "halo");
+      if (!presetHaloLayer) return;
       updateLayer(selectedHaloLayer.id, {
-        ...(pick.config.halo !== undefined && { intensity: pick.config.halo }),
-        ...(pick.config.haloSize !== undefined && {
-          size: pick.config.haloSize,
-        }),
-        ...(pick.config.haloOriginX !== undefined && {
-          originX: pick.config.haloOriginX,
-        }),
-        ...(pick.config.haloOriginY !== undefined && {
-          originY: pick.config.haloOriginY,
-        }),
-        ...(pick.config.haloBlendMode !== undefined && {
-          blendMode: pick.config.haloBlendMode,
-        }),
+        originX: presetHaloLayer.originX,
+        originY: presetHaloLayer.originY,
+        intensity: presetHaloLayer.intensity,
+        size: presetHaloLayer.size,
+        blendMode: presetHaloLayer.blendMode,
       });
       setActiveRaysPreset(null);
     }
@@ -1237,7 +1109,7 @@ export function GodRaysGenerator() {
     const raysPick = raysPool[Math.floor(Math.random() * raysPool.length)];
 
     setScene((s) =>
-      applyColorPreset(applyRaysPreset(s, raysPick.config), colorPick.config)
+      applyColorPreset(applyRaysPreset(s, raysPick.layers), colorPick.config)
     );
     setActiveColorPreset(colorPick.key);
     setActiveRaysPreset(raysPick.key);
@@ -1247,7 +1119,7 @@ export function GodRaysGenerator() {
     const candidates = RAYS_PRESETS.filter((p) => p.key !== activeRaysPreset);
     const pool = candidates.length > 0 ? candidates : RAYS_PRESETS;
     const pick = pool[Math.floor(Math.random() * pool.length)];
-    setScene((s) => applyRaysPreset(s, pick.config));
+    setScene((s) => applyRaysPreset(s, pick.layers));
     setActiveRaysPreset(pick.key);
   };
 
@@ -1259,7 +1131,7 @@ export function GodRaysGenerator() {
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
     };
     if (colorPreset) s = applyColorPreset(s, colorPreset.config);
-    if (raysPreset) s = applyRaysPreset(s, raysPreset.config);
+    if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     setScene(s);
     setSelectedLayerId(null);
     setActiveColorPreset("c_contentnow");
@@ -1272,10 +1144,10 @@ export function GodRaysGenerator() {
     const preset = PRESETS.find((p) => p.key === key);
     if (!preset) return;
     if (preset.category === "color") {
-      setScene((s) => applyColorPreset(s, preset.config));
+      setScene((s) => applyColorPreset(s, (preset as ColorPreset).config));
       setActiveColorPreset(key);
     } else {
-      setScene((s) => applyRaysPreset(s, preset.config));
+      setScene((s) => applyRaysPreset(s, (preset as RaysPreset).layers));
       setActiveRaysPreset(key);
     }
   };
