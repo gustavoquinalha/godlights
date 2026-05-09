@@ -459,6 +459,36 @@ export const COLOR_PRESETS: RaysPreset[] = [
 // Colors are left as-is (config is applied on top of current config)
 export const RAYS_PRESETS: RaysPreset[] = [
   {
+    key: "r_corner_flare",
+    label: "Corner flare",
+    thumb:
+      "conic-gradient(from 137deg at 15% 0%, transparent 0deg, #aaa 48deg, transparent 48deg), conic-gradient(from 174deg at 91% 0%, transparent 0deg, #888 10deg, transparent 10deg)",
+    category: "rays",
+    config: {
+      rayCount: 13,
+      rayWidth: 85,
+      divergence: 2.65,
+      rayLength: 0.6,
+      opacity: 0.39,
+      blendMode: "screen",
+      direction: 161,
+      spread: 48,
+      originX: 15.2,
+      originY: -32.15,
+      haloBlendMode: "lighter",
+      halo: 0.39,
+      haloSize: 0.43,
+      haloOriginX: 30,
+      haloOriginY: -20,
+      blur: 33,
+      noise: 8,
+      grainSize: 1,
+      randomness: 50,
+      seed: 869010,
+      fadeToTransparent: true,
+    },
+  },
+  {
     key: "r_warm_haze",
     label: "Warm haze",
     thumb:

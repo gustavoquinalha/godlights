@@ -1060,22 +1060,34 @@ export function GodRaysGenerator() {
   };
 
   const handleCopyPresetJson = async () => {
-    await navigator.clipboard.writeText(JSON.stringify(scene, null, 2));
+    const payload = isAnimating
+      ? { scene, animate: true, animParams }
+      : { scene };
+    await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     setCopiedJson(true);
     window.setTimeout(() => setCopiedJson(false), 1800);
   };
 
   const buildUsageSnippet = () => {
     const sceneJson = JSON.stringify(scene, null, 2).split("\n").join("\n  ");
-    return [
+    const lines = [
       `import { GodLights } from "@/components/GodLights";`,
       ``,
       `const scene = ${sceneJson};`,
+    ];
+    if (isAnimating) {
+      const animJson = JSON.stringify(animParams, null, 2).split("\n").join("\n  ");
+      lines.push(``, `const animParams = ${animJson};`);
+    }
+    lines.push(
       ``,
       `export default function MyComponent() {`,
-      `  return <GodLights scene={scene} className="w-full h-full" />;`,
+      isAnimating
+        ? `  return <GodLights scene={scene} animate animParams={animParams} className="w-full h-full" />;`
+        : `  return <GodLights scene={scene} className="w-full h-full" />;`,
       `}`,
-    ].join("\n");
+    );
+    return lines.join("\n");
   };
 
   const handleCopyComponent = () => setComponentDialogOpen(true);
