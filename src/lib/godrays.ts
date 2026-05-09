@@ -82,6 +82,28 @@ export interface SceneConfig {
   layers: Layer[];
 }
 
+/** Parameters that control the animation loop — not persisted in scene. */
+export interface AnimParams {
+  /** Time multiplier — higher = faster (default 1). */
+  speed: number;
+  /** Angle swing intensity 0–100 (default 50). */
+  angleAmp: number;
+  /** Ray length oscillation intensity 0–100 (default 50). */
+  lengthAmp: number;
+  /** Ray width oscillation intensity 0–100 (default 50). */
+  widthAmp: number;
+  /** Halo pulse intensity 0–100 (default 50). */
+  haloAmp: number;
+}
+
+export const DEFAULT_ANIM_PARAMS: AnimParams = {
+  speed: 1,
+  angleAmp: 50,
+  lengthAmp: 50,
+  widthAmp: 50,
+  haloAmp: 50,
+};
+
 // ── Defaults ───────────────────────────────────────────────────────────────
 
 export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
@@ -205,6 +227,9 @@ export const DEFAULT_CONFIG: GodRaysConfig = {
   noise: 8,
   grainSize: 1,
   randomness: 30,
+  randomnessWidth: 30,
+  randomnessLength: 18,
+  randomnessAngle: 30,
   seed: 1337,
 };
 
@@ -279,14 +304,18 @@ function renderHalo(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  layer: HaloLayer
+  layer: HaloLayer,
+  time = 0,
+  anim?: AnimParams
 ) {
   if (layer.intensity <= 0) return;
   ctx.save();
   ctx.globalCompositeOperation = layer.blendMode;
   const hox = (layer.originX / 100) * width;
   const hoy = (layer.originY / 100) * height;
-  const haloR = Math.hypot(width, height) * layer.size;
+  const haloAmpFactor = anim ? anim.haloAmp / 50 : 1;
+  const pulse = time !== 0 ? 1 + Math.sin(time * 0.4) * 0.04 * haloAmpFactor : 1;
+  const haloR = Math.hypot(width, height) * layer.size * pulse;
   const haloG = ctx.createRadialGradient(hox, hoy, 0, hox, hoy, haloR);
   const c = hexToRgb(layer.color);
   haloG.addColorStop(0, rgba(c, layer.intensity));
@@ -299,16 +328,16 @@ function renderHalo(
   ctx.restore();
 }
 
-function renderRays(
-  ctx: CanvasRenderingContext2D,
+type AnyCtx2D = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+
+function drawRaysShapes(
+  ctx: AnyCtx2D,
   width: number,
   height: number,
-  layer: RayLayer
+  layer: RayLayer,
+  time = 0,
+  anim?: AnimParams
 ) {
-  ctx.save();
-  ctx.globalCompositeOperation = layer.blendMode;
-  if (layer.blur > 0) ctx.filter = `blur(${layer.blur}px)`;
-
   const ox = (layer.originX / 100) * width;
   const oy = (layer.originY / 100) * height;
   const baseAngle = compassToCanvas(layer.direction);
@@ -331,10 +360,26 @@ function renderRays(
     const lenVar = 1 - rng() * (rndL / 100) * 0.6;
     const slot = layer.rayCount > 1 ? spread / (layer.rayCount - 1) : spread;
     const jitter = (rng() - 0.5) * (rndA / 100) * slot;
-    const angle = baseAngle - spread / 2 + spread * t + jitter;
-    const w0 = Math.max(1, layer.rayWidth * widthVar);
+
+    // Smooth per-ray oscillation — golden-ratio phase keeps rays independent
+    const phase = i * 2.399; // ~golden angle (rad), no extra RNG needed
+    const aAmp = anim ? anim.angleAmp / 50 : 1;
+    const lAmp = anim ? anim.lengthAmp / 50 : 1;
+    const wAmp = anim ? anim.widthAmp / 50 : 1;
+    const animAngle = time !== 0
+      ? Math.sin(time * 0.6 + phase) * (Math.max(rndA, 12) / 100) * slot * 0.55 * aAmp
+      : 0;
+    const animWidthVar = time !== 0
+      ? 1 + Math.sin(time * 0.45 + phase + 1.2) * (rndW / 400) * wAmp
+      : 1;
+    const animLenVar = time !== 0
+      ? 1 + Math.sin(time * 0.35 + phase + 2.5) * (rndL / 400) * lAmp
+      : 1;
+
+    const angle = baseAngle - spread / 2 + spread * t + jitter + animAngle;
+    const w0 = Math.max(1, layer.rayWidth * widthVar * animWidthVar);
     const w1 = Math.max(1, w0 * layer.divergence);
-    const len = Math.max(50, maxLen * lenVar);
+    const len = Math.max(50, maxLen * lenVar * animLenVar);
 
     ctx.save();
     ctx.translate(ox, oy);
@@ -357,13 +402,40 @@ function renderRays(
     ctx.fill();
     ctx.restore();
   }
+}
 
-  ctx.restore();
+function renderRays(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layer: RayLayer,
+  time = 0,
+  anim?: AnimParams
+) {
+  if (layer.blur > 0) {
+    // Draw all rays into an offscreen canvas first (no blur per-shape),
+    // then composite the whole layer with a single blur pass onto the main canvas.
+    // This reduces blur operations from rayCount → 1, a massive speedup.
+    const off = new OffscreenCanvas(width, height);
+    const offCtx = off.getContext("2d");
+    if (!offCtx) return;
+    drawRaysShapes(offCtx, width, height, layer, time, anim);
+    ctx.save();
+    ctx.globalCompositeOperation = layer.blendMode;
+    ctx.filter = `blur(${layer.blur}px)`;
+    ctx.drawImage(off, 0, 0);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.globalCompositeOperation = layer.blendMode;
+    drawRaysShapes(ctx, width, height, layer, time, anim);
+    ctx.restore();
+  }
 }
 
 /* ----------------- main scene render ----------------- */
 
-export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig): void {
+export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig, time = 0, anim?: AnimParams, skipGrain = false): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const { width, height } = canvas;
@@ -372,11 +444,11 @@ export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig): void {
 
   for (const layer of scene.layers) {
     if (layer.type === "background") renderBackground(ctx, width, height, layer);
-    else if (layer.type === "halo") renderHalo(ctx, width, height, layer);
-    else if (layer.type === "rays") renderRays(ctx, width, height, layer);
+    else if (layer.type === "halo") renderHalo(ctx, width, height, layer, time, anim);
+    else if (layer.type === "rays") renderRays(ctx, width, height, layer, time, anim);
   }
 
-  if (scene.noise > 0) {
+  if (!skipGrain && scene.noise > 0) {
     addGrain(ctx, width, height, scene.noise, scene.grainSize);
   }
 }
@@ -431,6 +503,9 @@ export function drawGodRays(
         fadeToTransparent: config.fadeToTransparent,
         blur: config.blur,
         randomness: config.randomness,
+        randomnessWidth: config.randomnessWidth,
+        randomnessLength: config.randomnessLength,
+        randomnessAngle: config.randomnessAngle,
         seed: config.seed,
       },
     ],

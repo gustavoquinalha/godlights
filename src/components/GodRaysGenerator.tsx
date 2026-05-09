@@ -23,9 +23,10 @@ import {
   SaveIcon,
   Trash2Icon,
   Dices,
-  MoreHorizontal,
   PanelLeft,
   PanelRight,
+  Component,
+  ExternalLink,
 } from "lucide-react";
 import {
   drawScene,
@@ -34,6 +35,8 @@ import {
   DEFAULT_SCENE,
   DEFAULT_RAY_LAYER,
   DEFAULT_HALO_LAYER,
+  DEFAULT_ANIM_PARAMS,
+  type AnimParams,
   type SceneConfig,
   type Layer,
   type RayLayer,
@@ -42,6 +45,8 @@ import {
   type BackgroundType,
   type GodRaysConfig,
 } from "@/lib/godrays";
+import godRaysRaw from "@/lib/godrays.ts?raw";
+import godLightsRaw from "@/components/GodLights.tsx?raw";
 import { OriginCrosshair } from "@/components/OriginCrosshair";
 import { BlendModeSelect } from "@/components/BlendModeSelect";
 import { OriginInputs } from "@/components/OriginInputs";
@@ -95,8 +100,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useTheme } from "@/components/theme-provider";
 import { Label } from "./ui/label";
+import { Switch } from "@/components/ui/switch";
+import { PREVIEW_STORAGE_KEY } from "@/pages/PreviewPage";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -343,7 +356,12 @@ function LeftPanelTrigger() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggle}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={toggle}
+        >
           <PanelLeft className="size-4" />
         </Button>
       </TooltipTrigger>
@@ -357,7 +375,12 @@ function RightPanelTrigger() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={toggleSidebar}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={toggleSidebar}
+        >
           <PanelRight className="size-4" />
         </Button>
       </TooltipTrigger>
@@ -536,18 +559,71 @@ export function GodRaysGenerator() {
   }, []);
   const [copiedJson, setCopiedJson] = React.useState(false);
   const [copiedCss, setCopiedCss] = React.useState(false);
+  const [copiedComponentSrc, setCopiedComponentSrc] = React.useState(false);
+  const [copiedComponentUsage, setCopiedComponentUsage] = React.useState(false);
+  const [componentDialogOpen, setComponentDialogOpen] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
   const [pan, setPan] = React.useState({ x: 0, y: 0 });
+  const [isMiddlePanning, setIsMiddlePanning] = React.useState(false);
   const zoomRef = React.useRef(1);
   const panRef = React.useRef({ x: 0, y: 0 });
+  const middlePanStartRef = React.useRef<{
+    mx: number;
+    my: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
   const containerSizeRef = React.useRef({ w: 0, h: 0 });
   const fittedSizeRef = React.useRef({ w: 0, h: 0 });
   const previewCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const previewWrapperRef = React.useRef<HTMLDivElement>(null);
   const previewContainerRef = React.useRef<HTMLDivElement>(null);
   const rafRef = React.useRef<number | null>(null);
+  const [isAnimating, setIsAnimating] = React.useState<boolean>(() => {
+    try {
+      const raw = localStorage.getItem("rays-anim");
+      if (raw) return (JSON.parse(raw) as { isAnimating: boolean }).isAnimating ?? false;
+    } catch { /* ignore */ }
+    return false;
+  });
+  const [animParams, setAnimParams] = React.useState<AnimParams>(() => {
+    try {
+      const raw = localStorage.getItem("rays-anim");
+      if (raw) return { ...DEFAULT_ANIM_PARAMS, ...(JSON.parse(raw) as { animParams?: Partial<AnimParams> }).animParams };
+    } catch { /* ignore */ }
+    return DEFAULT_ANIM_PARAMS;
+  });
+  const animParamsRef = React.useRef<AnimParams>(animParams);
+  React.useEffect(() => {
+    animParamsRef.current = animParams;
+  }, [animParams]);
+
+  // Persist animation config to localStorage (debounced)
+  React.useEffect(() => {
+    const id = window.setTimeout(() => {
+      try {
+        localStorage.setItem("rays-anim", JSON.stringify({ isAnimating, animParams }));
+      } catch { /* quota */ }
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [isAnimating, animParams]);
+
+  const isAnimatingRef = React.useRef(false);
+  const animTimeRef = React.useRef(0);
+  const animLastTsRef = React.useRef<number | null>(null);
+  const animRafRef = React.useRef<number | null>(null);
+  const fpsLabelRef = React.useRef<HTMLSpanElement>(null);
+  const fpsFramesRef = React.useRef<number[]>([]);
   const deferredScene = React.useDeferredValue(scene);
+  // Keep latest deferredScene accessible from animation loop without stale closure
+  const deferredSceneRef = React.useRef(deferredScene);
+  // Pre-scaled scene cached so the animation loop never recomputes it per-frame
+  const scaledSceneRef = React.useRef<SceneConfig>(scaleSceneForPreview(deferredScene));
+  React.useEffect(() => {
+    deferredSceneRef.current = deferredScene;
+    scaledSceneRef.current = scaleSceneForPreview(deferredScene);
+  }, [deferredScene]);
 
   // ── Derived layer state ──────────────────────────────────────────────────
 
@@ -754,11 +830,64 @@ export function GodRaysGenerator() {
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
+  // ── Middle-mouse pan ──────────────────────────────────────────────────────
+  React.useEffect(() => {
+    const el = previewContainerRef.current;
+    if (!el) return;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.button !== 1) return;
+      e.preventDefault();
+      middlePanStartRef.current = {
+        mx: e.clientX,
+        my: e.clientY,
+        panX: panRef.current.x,
+        panY: panRef.current.y,
+      };
+      setIsMiddlePanning(true);
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      if (!middlePanStartRef.current) return;
+      const dx = e.clientX - middlePanStartRef.current.mx;
+      const dy = e.clientY - middlePanStartRef.current.my;
+      const newPan = {
+        x: middlePanStartRef.current.panX + dx,
+        y: middlePanStartRef.current.panY + dy,
+      };
+      panRef.current = newPan;
+      setPan(newPan);
+    };
+
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button !== 1) return;
+      middlePanStartRef.current = null;
+      setIsMiddlePanning(false);
+    };
+
+    // Prevent default middle-click scroll/autoscroll
+    const onAuxClick = (e: MouseEvent) => {
+      if (e.button === 1) e.preventDefault();
+    };
+
+    el.addEventListener("mousedown", onMouseDown);
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    el.addEventListener("auxclick", onAuxClick);
+    return () => {
+      el.removeEventListener("mousedown", onMouseDown);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      el.removeEventListener("auxclick", onAuxClick);
+    };
+  }, []);
+
   // ── Canvas render ─────────────────────────────────────────────────────────
 
   React.useEffect(() => {
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
+    if (isAnimatingRef.current) return; // animation loop owns the canvas
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
       const scaled = scaleSceneForPreview(deferredScene);
@@ -770,6 +899,69 @@ export function GodRaysGenerator() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [deferredScene]);
+
+  // ── Animation loop ────────────────────────────────────────────────────────
+  React.useEffect(() => {
+    if (!isAnimating) {
+      isAnimatingRef.current = false;
+      if (animRafRef.current) cancelAnimationFrame(animRafRef.current);
+      animRafRef.current = null;
+      animLastTsRef.current = null;
+      fpsFramesRef.current = [];
+      if (fpsLabelRef.current) fpsLabelRef.current.textContent = "0 fps";
+      // Restore static render
+      const canvas = previewCanvasRef.current;
+      if (canvas) {
+        const scaled = scaleSceneForPreview(deferredSceneRef.current);
+        canvas.width = scaled.width;
+        canvas.height = scaled.height;
+        drawScene(canvas, scaled, 0);
+      }
+      return;
+    }
+
+    isAnimatingRef.current = true;
+
+    const frame = (ts: number) => {
+      if (!isAnimatingRef.current) return;
+      if (animLastTsRef.current !== null) {
+        animTimeRef.current +=
+          ((ts - animLastTsRef.current) / 1000) * animParamsRef.current.speed;
+      }
+      animLastTsRef.current = ts;
+
+      // FPS: keep timestamps of the last second, count them
+      const frames = fpsFramesRef.current;
+      frames.push(ts);
+      const cutoff = ts - 1000;
+      let i = 0;
+      while (i < frames.length && frames[i] < cutoff) i++;
+      fpsFramesRef.current = frames.slice(i);
+      if (fpsLabelRef.current) {
+        fpsLabelRef.current.textContent = fpsFramesRef.current.length + " fps";
+      }
+
+      const canvas = previewCanvasRef.current;
+      if (canvas) {
+        const scaled = scaledSceneRef.current;
+        // Only resize when dimensions actually change — avoids full buffer realloc every frame
+        if (canvas.width !== scaled.width || canvas.height !== scaled.height) {
+          canvas.width = scaled.width;
+          canvas.height = scaled.height;
+        }
+        // skipGrain=true: avoids getImageData/putImageData CPU↔GPU round-trip per frame
+        drawScene(canvas, scaled, animTimeRef.current, animParamsRef.current, true);
+      }
+      animRafRef.current = requestAnimationFrame(frame);
+    };
+
+    animRafRef.current = requestAnimationFrame(frame);
+
+    return () => {
+      isAnimatingRef.current = false;
+      if (animRafRef.current) cancelAnimationFrame(animRafRef.current);
+    };
+  }, [isAnimating]);
 
   // ── Drag to move origin ───────────────────────────────────────────────────
 
@@ -866,6 +1058,46 @@ export function GodRaysGenerator() {
     await navigator.clipboard.writeText(JSON.stringify(scene, null, 2));
     setCopiedJson(true);
     window.setTimeout(() => setCopiedJson(false), 1800);
+  };
+
+  const buildUsageSnippet = () => {
+    const sceneJson = JSON.stringify(scene, null, 2).split("\n").join("\n  ");
+    return [
+      `import { GodLights } from "@/components/GodLights";`,
+      ``,
+      `const scene = ${sceneJson};`,
+      ``,
+      `export default function MyComponent() {`,
+      `  return <GodLights scene={scene} className="w-full h-full" />;`,
+      `}`,
+    ].join("\n");
+  };
+
+  const handleCopyComponent = () => setComponentDialogOpen(true);
+
+  const handleOpenPreview = () => {
+    localStorage.setItem(
+      PREVIEW_STORAGE_KEY,
+      JSON.stringify({ scene, animate: isAnimating, animParams })
+    );
+    window.open("/preview", "_blank");
+  };
+
+  const downloadTextFile = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: "text/plain" });
+    downloadBlob(blob, filename);
+  };
+
+  const handleCopyComponentSrc = async () => {
+    await navigator.clipboard.writeText(godLightsRaw);
+    setCopiedComponentSrc(true);
+    window.setTimeout(() => setCopiedComponentSrc(false), 1800);
+  };
+
+  const handleCopyComponentUsage = async () => {
+    await navigator.clipboard.writeText(buildUsageSnippet());
+    setCopiedComponentUsage(true);
+    window.setTimeout(() => setCopiedComponentUsage(false), 1800);
   };
 
   // ── Presets & randomize ───────────────────────────────────────────────────
@@ -1392,7 +1624,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="w-full flex flex-col gap-6 px-2 pb-2">
+              <div className={cn("w-full flex flex-col gap-6 px-2 pb-2", isAnimating && "opacity-40 pointer-events-none select-none")}>
                 <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
@@ -1415,6 +1647,107 @@ export function GodRaysGenerator() {
                     onValueChange={([v]) => updateScene({ grainSize: v })}
                   />
                 </Field>
+                {isAnimating && (
+                  <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
+                    Ruído desativado no modo animado.
+                  </p>
+                )}
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
+          {/* ANIMATION */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Animação</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                <Field label={isAnimating ? "Animado" : "Estático"}>
+                  <Switch
+                    checked={isAnimating}
+                    onCheckedChange={setIsAnimating}
+                  />
+                </Field>
+
+                {isAnimating && (
+                  <>
+                    <Field
+                      label="Velocidade"
+                      value={animParams.speed.toFixed(2) + "×"}
+                    >
+                      <Slider
+                        min={0.1}
+                        max={3}
+                        step={0.05}
+                        value={[animParams.speed]}
+                        onValueChange={([v]) =>
+                          setAnimParams((p) => ({ ...p, speed: v }))
+                        }
+                      />
+                    </Field>
+                    <Field
+                      label="Ângulo"
+                      value={animParams.angleAmp.toFixed(0)}
+                      unit="%"
+                    >
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[animParams.angleAmp]}
+                        onValueChange={([v]) =>
+                          setAnimParams((p) => ({ ...p, angleAmp: v }))
+                        }
+                      />
+                    </Field>
+                    <Field
+                      label="Comprimento"
+                      value={animParams.lengthAmp.toFixed(0)}
+                      unit="%"
+                    >
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[animParams.lengthAmp]}
+                        onValueChange={([v]) =>
+                          setAnimParams((p) => ({ ...p, lengthAmp: v }))
+                        }
+                      />
+                    </Field>
+                    <Field
+                      label="Largura"
+                      value={animParams.widthAmp.toFixed(0)}
+                      unit="%"
+                    >
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[animParams.widthAmp]}
+                        onValueChange={([v]) =>
+                          setAnimParams((p) => ({ ...p, widthAmp: v }))
+                        }
+                      />
+                    </Field>
+                    <Field
+                      label="Halo"
+                      value={animParams.haloAmp.toFixed(0)}
+                      unit="%"
+                    >
+                      <Slider
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={[animParams.haloAmp]}
+                        onValueChange={([v]) =>
+                          setAnimParams((p) => ({ ...p, haloAmp: v }))
+                        }
+                      />
+                    </Field>
+                  </>
+                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1506,1031 +1839,1177 @@ export function GodRaysGenerator() {
 
       {/* ── CENTER: Preview ───────────────────────────────────────────── */}
       <LeftSidebarBridge>
-      <SidebarProvider className="flex-1 min-h-0">
-        <SidebarInset className="relative w-full">
-          <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
-            <div className="flex gap-2">
-              <LeftPanelTrigger />
+        <SidebarProvider className="flex-1 min-h-0">
+          <SidebarInset className="relative w-full">
+            <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
+              <div className="flex gap-2">
+                <LeftPanelTrigger />
 
-              <div className="flex md:hidden items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
-                    <Sparkles className="size-4 text-primary-foreground" />
+                <div className="flex md:hidden items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
+                      <Sparkles className="size-4 text-primary-foreground" />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">
+                      Godlights
+                    </span>
                   </div>
-                  <span className="text-sm font-semibold tracking-tight">
-                    Godlights
-                  </span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleTheme}
-                  className="h-7 w-7"
-                  title={dark ? "Modo claro" : "Modo escuro"}
-                >
-                  {dark ? (
-                    <Sun className="size-3" />
-                  ) : (
-                    <Moon className="size-3" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* lg+: botões inline */}
-              <div className="hidden lg:flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyPresetJson}
-                  className="py-1 h-8"
-                >
-                  {copiedJson ? (
-                    <Check className="size-3" />
-                  ) : (
-                    <Copy className="size-2.5" />
-                  )}
-                  {copiedJson ? "Copiado" : "Copiar JSON"}
-                </Button>
-
-                <Button
-                  className="py-1 h-8"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCopyCss}
-                >
-                  {copiedCss ? (
-                    <Check className="size-3" />
-                  ) : (
-                    <Code2 className="size-3" />
-                  )}
-                  {copiedCss ? "Copiado" : "Copiar CSS"}
-                </Button>
-
-                <Button
-                  className="py-1 h-8"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleExport("jpg")}
-                  disabled={exporting !== null}
-                >
-                  <ImageIcon className="size-3" /> JPG
-                </Button>
-
-                <Button
-                  className="py-1 h-8"
-                  size="sm"
-                  onClick={() => handleExport("png")}
-                  disabled={exporting !== null}
-                >
-                  <Download className="size-3" /> PNG
-                </Button>
-              </div>
-
-              {/* <lg: dropdown dots */}
-              <Popover>
-                <PopoverTrigger asChild>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
-                    className="h-8 w-8 lg:hidden"
+                    onClick={toggleTheme}
+                    className="h-7 w-7"
+                    title={dark ? "Modo claro" : "Modo escuro"}
                   >
-                    <MoreHorizontal className="size-4" />
+                    {dark ? (
+                      <Sun className="size-3" />
+                    ) : (
+                      <Moon className="size-3" />
+                    )}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-44 p-1.5">
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      onClick={handleCopyPresetJson}
-                      className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      {copiedJson ? (
-                        <Check className="size-3.5 shrink-0" />
-                      ) : (
-                        <Copy className="size-3.5 shrink-0" />
-                      )}
-                      {copiedJson ? "Copiado!" : "Copiar JSON"}
-                    </button>
-                    <button
-                      onClick={handleCopyCss}
-                      className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                    >
-                      {copiedCss ? (
-                        <Check className="size-3.5 shrink-0" />
-                      ) : (
-                        <Code2 className="size-3.5 shrink-0" />
-                      )}
-                      {copiedCss ? "Copiado!" : "Copiar CSS"}
-                    </button>
-                    <div className="my-1 h-px bg-border" />
-                    <button
-                      onClick={() => handleExport("jpg")}
-                      disabled={exporting !== null}
-                      className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <ImageIcon className="size-3.5 shrink-0" /> Exportar JPG
-                    </button>
-                    <button
-                      onClick={() => handleExport("png")}
-                      disabled={exporting !== null}
-                      className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-                    >
-                      <Download className="size-3.5 shrink-0" /> Exportar PNG
-                    </button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                </div>
+              </div>
 
-              <RightPanelTrigger />
+              <div className="flex items-center gap-2">
+                {/* Preview */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5"
+                  onClick={handleOpenPreview}
+                >
+                  <ExternalLink className="size-3.5" />
+                  Preview
+                </Button>
+
+                {/* Exportar dropdown */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                      <Download className="size-3.5" />
+                      Exportar
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-48 p-1.5">
+                    <div className="flex flex-col gap-0.5">
+                      <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Copiar
+                      </p>
+                      <button
+                        onClick={handleCopyPresetJson}
+                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {copiedJson ? (
+                          <Check className="size-3.5 shrink-0" />
+                        ) : (
+                          <Copy className="size-3.5 shrink-0" />
+                        )}
+                        {copiedJson ? "Copiado!" : "JSON"}
+                      </button>
+                      <button
+                        onClick={handleCopyCss}
+                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        {copiedCss ? (
+                          <Check className="size-3.5 shrink-0" />
+                        ) : (
+                          <Code2 className="size-3.5 shrink-0" />
+                        )}
+                        {copiedCss ? "Copiado!" : "CSS"}
+                      </button>
+                      <button
+                        onClick={handleCopyComponent}
+                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Component className="size-3.5 shrink-0" />
+                        Componente JSX
+                      </button>
+                      <div className="my-1 h-px bg-border" />
+                      <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Download
+                      </p>
+                      <button
+                        onClick={() => handleExport("jpg")}
+                        disabled={exporting !== null}
+                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <ImageIcon className="size-3.5 shrink-0" /> JPG
+                      </button>
+                      <button
+                        onClick={() => handleExport("png")}
+                        disabled={exporting !== null}
+                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <Download className="size-3.5 shrink-0" /> PNG
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                <RightPanelTrigger />
+              </div>
             </div>
-          </div>
 
-          <div
-            ref={previewContainerRef}
-            className="relative flex-1 overflow-hidden bg-muted/20"
-            onClick={() => setSelectedLayerId(null)}
-          >
             <div
-              ref={previewWrapperRef}
-              className="absolute select-none"
-              style={{
-                width: fittedSize.w ? `${fittedSize.w}px` : "0px",
-                height: fittedSize.h ? `${fittedSize.h}px` : "0px",
-                left: containerSize.w / 2 - fittedSize.w / 2 + pan.x,
-                top: containerSize.h / 2 - fittedSize.h / 2 + pan.y,
-                transform: `scale(${zoom})`,
-                transformOrigin: "center center",
-              }}
+              ref={previewContainerRef}
+              className={cn(
+                "relative flex-1 overflow-hidden bg-muted/20",
+                isMiddlePanning ? "cursor-grabbing" : "cursor-default"
+              )}
+              onClick={() => setSelectedLayerId(null)}
             >
-              <canvas
-                ref={previewCanvasRef}
-                className="block h-full w-full rounded-2xl shadow-2xl"
-              />
+              <div
+                ref={previewWrapperRef}
+                className="absolute select-none"
+                style={{
+                  width: fittedSize.w ? `${fittedSize.w}px` : "0px",
+                  height: fittedSize.h ? `${fittedSize.h}px` : "0px",
+                  left: containerSize.w / 2 - fittedSize.w / 2 + pan.x,
+                  top: containerSize.h / 2 - fittedSize.h / 2 + pan.y,
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "center center",
+                }}
+              >
+                {/* Wrapper holds visual styles so canvas repaints don't re-trigger shadow/radius compositing */}
+                <div className="block h-full w-full rounded-2xl shadow-2xl overflow-hidden">
+                  <canvas
+                    ref={previewCanvasRef}
+                    className="block h-full w-full"
+                  />
+                </div>
 
-              {/* Hit areas for all non-background layers */}
-              {nonBgLayers.map((layer) => {
-                const bounds = layerBounds.get(layer.id);
-                if (!bounds) return null;
-                const isSelected = layer.id === selectedLayerId;
-                const isRay = layer.type === "rays";
+                {/* Hit areas for all non-background layers */}
+                {nonBgLayers.map((layer) => {
+                  const bounds = layerBounds.get(layer.id);
+                  if (!bounds) return null;
+                  const isSelected = layer.id === selectedLayerId;
+                  const isRay = layer.type === "rays";
 
-                if (isSelected) {
-                  // Full drag overlay for selected layer
+                  if (isSelected) {
+                    // Full drag overlay for selected layer
+                    return (
+                      <div
+                        key={layer.id}
+                        className={cn(
+                          "absolute",
+                          isDragging ? "cursor-grabbing" : "cursor-grab"
+                        )}
+                        style={{
+                          left: bounds.bbox.x,
+                          top: bounds.bbox.y,
+                          width: bounds.bbox.w,
+                          height: bounds.bbox.h,
+                        }}
+                        onPointerDown={onOverlayPointerDown}
+                        onPointerMove={onOverlayPointerMove}
+                        onPointerUp={onOverlayPointerUp}
+                        onPointerCancel={onOverlayPointerUp}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {isRay ? (
+                          <>
+                            <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
+                            <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                              {layer.name}
+                            </span>
+                            <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                            <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                            <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
+                            <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
+                            {raysBBox && (
+                              <OriginCrosshair
+                                color="blue"
+                                style={{
+                                  left:
+                                    (layer.originX / 100) * fittedSize.w -
+                                    raysBBox.x,
+                                  top:
+                                    (layer.originY / 100) * fittedSize.h -
+                                    raysBBox.y,
+                                }}
+                              />
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
+                            <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                              {layer.name}
+                            </span>
+                            <OriginCrosshair
+                              color="amber"
+                              className="left-1/2 top-1/2"
+                            />
+                          </>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Click-to-select area for unselected layers
                   return (
                     <div
                       key={layer.id}
-                      className={cn(
-                        "absolute",
-                        isDragging ? "cursor-grabbing" : "cursor-grab"
-                      )}
+                      className="group absolute cursor-pointer"
                       style={{
                         left: bounds.bbox.x,
                         top: bounds.bbox.y,
                         width: bounds.bbox.w,
                         height: bounds.bbox.h,
                       }}
-                      onPointerDown={onOverlayPointerDown}
-                      onPointerMove={onOverlayPointerMove}
-                      onPointerUp={onOverlayPointerUp}
-                      onPointerCancel={onOverlayPointerUp}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLayerId(layer.id);
+                      }}
                     >
-                      {isRay ? (
-                        <>
-                          <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
-                          <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                            {layer.name}
-                          </span>
-                          <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                          <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                          <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
-                          <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
-                          {raysBBox && (
-                            <OriginCrosshair
-                              color="blue"
-                              style={{
-                                left:
-                                  (layer.originX / 100) * fittedSize.w -
-                                  raysBBox.x,
-                                top:
-                                  (layer.originY / 100) * fittedSize.h -
-                                  raysBBox.y,
-                              }}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
-                          <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
-                            {layer.name}
-                          </span>
-                          <OriginCrosshair
-                            color="amber"
-                            className="left-1/2 top-1/2"
-                          />
-                        </>
-                      )}
+                      <div
+                        className={cn(
+                          "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
+                          isRay
+                            ? "group-hover:border-blue-400/50"
+                            : "rounded-full group-hover:border-amber-400/50"
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
+                          isRay ? "left-0" : "left-1/2 -translate-x-1/2"
+                        )}
+                        style={{
+                          background: isRay ? "#60a5fa" : "#fbbf24",
+                          color: isRay ? "white" : "black",
+                        }}
+                      >
+                        {layer.name}
+                      </span>
                     </div>
                   );
-                }
-
-                // Click-to-select area for unselected layers
-                return (
-                  <div
-                    key={layer.id}
-                    className="group absolute cursor-pointer"
-                    style={{
-                      left: bounds.bbox.x,
-                      top: bounds.bbox.y,
-                      width: bounds.bbox.w,
-                      height: bounds.bbox.h,
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedLayerId(layer.id);
-                    }}
-                  >
-                    <div
-                      className={cn(
-                        "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
-                        isRay
-                          ? "group-hover:border-blue-400/50"
-                          : "rounded-full group-hover:border-amber-400/50"
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
-                        isRay ? "left-0" : "left-1/2 -translate-x-1/2"
-                      )}
-                      style={{
-                        background: isRay ? "#60a5fa" : "#fbbf24",
-                        color: isRay ? "white" : "black",
-                      }}
-                    >
-                      {layer.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Floating controls */}
-            <div
-              className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Zoom controls */}
-              <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => changeZoom(-ZOOM_STEP)}
-                  disabled={zoom <= MIN_ZOOM}
-                  className="h-7 w-7 rounded-full hidden md:flex"
-                  title="Diminuir zoom"
-                >
-                  <ZoomOut className="size-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={resetView}
-                  className="h-7 min-w-13 px-1 text-xs font-medium tabular-nums"
-                  title="Resetar zoom"
-                >
-                  {Math.round(zoom * 100)}%
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => changeZoom(ZOOM_STEP)}
-                  disabled={zoom >= MAX_ZOOM}
-                  className="h-7 w-7 rounded-full hidden md:flex"
-                  title="Aumentar zoom"
-                >
-                  <ZoomIn className="size-3" />
-                </Button>
-                <div className="mx-1 h-4 w-px bg-border" />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={resetView}
-                  className="h-7 w-7 rounded-full"
-                  title="Zoom 100%"
-                >
-                  <Maximize2 className="h-3.5 w-3.5" />
-                </Button>
+                })}
               </div>
 
-              {/* Dice: randomize color + rays */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="icon"
-                    onClick={handleRandomizeAll}
-                    className="h-7 w-7 rounded-full"
+              {/* FPS counter — DOM ref to avoid React re-renders on every frame */}
+              {isAnimating && (
+                <div className="absolute top-3 right-3 pointer-events-none">
+                  <span
+                    ref={fpsLabelRef}
+                    className="rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm"
                   >
-                    <Dices className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Randomizar</TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
-          {/* ── SAVES BAR ─────────────────────────────────────────────── */}
-          <div
-            className="border-t bg-background flex h-32 w-full shrink-0"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Thumbnails */}
-            <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
-              <ScrollAreaPrimitive.Viewport className="h-full w-full">
-                <div className="flex h-full items-center gap-2 px-3 py-2">
-                  {saves.length === 0 && (
-                    <div className="w-full flex flex-col items-center justify-center h-26">
-                      <p className="text-xs text-muted-foreground/60">
-                        Nenhum save ainda!
-                      </p>
-                      <p className="text-xs text-muted-foreground/60">
-                        Clique em <strong>Salvar</strong> para guardar a cena
-                        atual.
-                      </p>
-                    </div>
-                  )}
-                  {saves.map((save) => (
-                    <div
-                      key={save.id}
-                      className={cn(
-                        "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
-                        selectedSaveId === save.id
-                          ? "border-primary shadow-md"
-                          : "border-transparent hover:border-border"
-                      )}
-                      style={{
-                        aspectRatio: `${save.scene.width} / ${save.scene.height}`,
-                      }}
-                      onClick={() => handleLoadSave(save)}
-                      title={new Date(save.createdAt).toLocaleString("pt-BR")}
-                    >
-                      <img
-                        src={save.thumb}
-                        alt="save"
-                        className="h-full w-full object-cover"
-                      />
-                      {/* Delete button on hover */}
-                      <button
-                        className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteSave(save.id);
-                        }}
-                        title="Remover"
-                      >
-                        <Trash2Icon className="size-2.5" />
-                      </button>
-                    </div>
-                  ))}
+                    0 fps
+                  </span>
                 </div>
-              </ScrollAreaPrimitive.Viewport>
-              <ScrollAreaPrimitive.Scrollbar
-                orientation="horizontal"
-                className="flex h-2.5 flex-col border-t border-t-transparent p-px touch-none select-none transition-colors"
+              )}
+
+              {/* Floating controls */}
+              <div
+                className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2"
+                onClick={(e) => e.stopPropagation()}
               >
-                <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
-              </ScrollAreaPrimitive.Scrollbar>
-              <ScrollAreaPrimitive.Corner />
-            </ScrollAreaPrimitive.Root>
-
-            {/* Actions */}
-            <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon-xs" onClick={handleSaveSlot}>
-                    <SaveIcon className="size-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Salvar cena atual</TooltipContent>
-              </Tooltip>
-
-              <AlertDialog>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        size="icon-xs"
-                        variant="outline"
-                        disabled={saves.length === 0}
-                      >
-                        <Trash2Icon className="size-3" />
-                      </Button>
-                    </AlertDialogTrigger>
-                  </TooltipTrigger>
-                  <TooltipContent>Remover todos os saves</TooltipContent>
-                </Tooltip>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Remover todos os saves?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Essa ação não pode ser desfeita. Todos os {saves.length}{" "}
-                      {saves.length === 1 ? "save salvo" : "saves salvos"} serão
-                      removidos permanentemente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => {
-                        setSaves([]);
-                        setSelectedSaveId(null);
-                      }}
-                    >
-                      Remover todos
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
-            <span>
-              {scene.width} × {scene.height}px ·{" "}
-              {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
-            </span>
-          </div>
-        </SidebarInset>
-
-        {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
-        <Sidebar side="right">
-          {/* Header */}
-          <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
-            {selectedLayerId === null ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-bold tracking-tight">
-                    Camadas
-                  </h2>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
+                {/* Zoom controls */}
+                <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                    onClick={() => setSelectedLayerId(null)}
-                    title="Voltar para camadas"
+                    onClick={() => changeZoom(-ZOOM_STEP)}
+                    disabled={zoom <= MIN_ZOOM}
+                    className="h-7 w-7 rounded-full hidden md:flex"
+                    title="Diminuir zoom"
                   >
-                    <ChevronLeft className="size-3" />
+                    <ZoomOut className="size-3" />
                   </Button>
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-bold tracking-tight truncate">
-                      {selectedLayer?.type === "rays" &&
-                        (selectedLayer as RayLayer).name}
-                      {selectedLayer?.type === "halo" &&
-                        (selectedLayer as HaloLayer).name}
+                  <Button
+                    variant="ghost"
+                    onClick={resetView}
+                    className="h-7 min-w-13 px-1 text-xs font-medium tabular-nums"
+                    title="Resetar zoom"
+                  >
+                    {Math.round(zoom * 100)}%
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => changeZoom(ZOOM_STEP)}
+                    disabled={zoom >= MAX_ZOOM}
+                    className="h-7 w-7 rounded-full hidden md:flex"
+                    title="Aumentar zoom"
+                  >
+                    <ZoomIn className="size-3" />
+                  </Button>
+                  <div className="mx-1 h-4 w-px bg-border" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={resetView}
+                    className="h-7 w-7 rounded-full"
+                    title="Zoom 100%"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                {/* Dice: randomize color + rays */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      onClick={handleRandomizeAll}
+                      className="h-7 w-7 rounded-full"
+                    >
+                      <Dices className="size-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Randomizar</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* ── SAVES BAR ─────────────────────────────────────────────── */}
+            <div
+              className="border-t bg-background flex h-32 w-full shrink-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Thumbnails */}
+              <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
+                <ScrollAreaPrimitive.Viewport className="h-full w-full">
+                  <div className="flex h-full items-center gap-2 px-3 py-2">
+                    {saves.length === 0 && (
+                      <div className="w-full flex flex-col items-center justify-center h-26">
+                        <p className="text-xs text-muted-foreground/60">
+                          Nenhum save ainda!
+                        </p>
+                        <p className="text-xs text-muted-foreground/60">
+                          Clique em <strong>Salvar</strong> para guardar a cena
+                          atual.
+                        </p>
+                      </div>
+                    )}
+                    {saves.map((save) => (
+                      <div
+                        key={save.id}
+                        className={cn(
+                          "group relative h-full shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
+                          selectedSaveId === save.id
+                            ? "border-primary shadow-md"
+                            : "border-transparent hover:border-border"
+                        )}
+                        style={{
+                          aspectRatio: `${save.scene.width} / ${save.scene.height}`,
+                        }}
+                        onClick={() => handleLoadSave(save)}
+                        title={new Date(save.createdAt).toLocaleString("pt-BR")}
+                      >
+                        <img
+                          src={save.thumb}
+                          alt="save"
+                          className="h-full w-full object-cover"
+                        />
+                        {/* Delete button on hover */}
+                        <button
+                          className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSave(save.id);
+                          }}
+                          title="Remover"
+                        >
+                          <Trash2Icon className="size-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollAreaPrimitive.Viewport>
+                <ScrollAreaPrimitive.Scrollbar
+                  orientation="horizontal"
+                  className="flex h-2.5 flex-col border-t border-t-transparent p-px touch-none select-none transition-colors"
+                >
+                  <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+                </ScrollAreaPrimitive.Scrollbar>
+                <ScrollAreaPrimitive.Corner />
+              </ScrollAreaPrimitive.Root>
+
+              {/* Actions */}
+              <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon-xs" onClick={handleSaveSlot}>
+                      <SaveIcon className="size-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Salvar cena atual</TooltipContent>
+                </Tooltip>
+
+                <AlertDialog>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="icon-xs"
+                          variant="outline"
+                          disabled={saves.length === 0}
+                        >
+                          <Trash2Icon className="size-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>Remover todos os saves</TooltipContent>
+                  </Tooltip>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Remover todos os saves?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Essa ação não pode ser desfeita. Todos os {saves.length}{" "}
+                        {saves.length === 1 ? "save salvo" : "saves salvos"}{" "}
+                        serão removidos permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => {
+                          setSaves([]);
+                          setSelectedSaveId(null);
+                        }}
+                      >
+                        Remover todos
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
+              <span>
+                {scene.width} × {scene.height}px ·{" "}
+                {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
+              </span>
+            </div>
+          </SidebarInset>
+
+          {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
+          <Sidebar side="right">
+            {/* Header */}
+            <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
+              {selectedLayerId === null ? (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-bold tracking-tight">
+                      Camadas
                     </h2>
                   </div>
                 </div>
-                {(selectedRayLayer || selectedHaloLayer) && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 shrink-0"
-                        onClick={handleRandomizeLayer}
-                      >
-                        <Shuffle className="size-3" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Randomizar camada</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-            )}
-          </SidebarHeader>
-
-          <SidebarContent>
-            {/* ── LAYERS LIST ──────────────────────────────────────────── */}
-            {selectedLayerId === null && (
-              <div className="flex flex-col">
-                {/* Add layer buttons */}
-                <div className="flex gap-2 border-b border-sidebar-border p-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 gap-1.5 text-xs"
-                    onClick={() => addLayer("rays")}
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Rays
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 gap-1.5 text-xs"
-                    onClick={() => addLayer("halo")}
-                  >
-                    <Plus className="h-3.5 w-3.5" /> Halo
-                  </Button>
-                </div>
-
-                {/* Layer cards */}
-                <div className="flex flex-col gap-2 p-3">
-                  {/* Non-background layers in reverse visual order (top of stack first) */}
-                  {[...nonBgLayers].reverse().map((layer) => {
-                    const arrayIdx = scene.layers.findIndex(
-                      (l) => l.id === layer.id
-                    );
-                    const canMoveUp = arrayIdx < scene.layers.length - 1;
-                    const canMoveDown = arrayIdx > 1;
-
-                    return (
-                      <div
-                        key={layer.id}
-                        className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
-                      >
-                        {/* Clickable area */}
-                        <button
-                          className="w-full p-3 text-left cursor-pointer"
-                          onClick={() => setSelectedLayerId(layer.id)}
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                      onClick={() => setSelectedLayerId(null)}
+                      title="Voltar para camadas"
+                    >
+                      <ChevronLeft className="size-3" />
+                    </Button>
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-bold tracking-tight truncate">
+                        {selectedLayer?.type === "rays" &&
+                          (selectedLayer as RayLayer).name}
+                        {selectedLayer?.type === "halo" &&
+                          (selectedLayer as HaloLayer).name}
+                      </h2>
+                    </div>
+                  </div>
+                  {(selectedRayLayer || selectedHaloLayer) && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={handleRandomizeLayer}
                         >
-                          <div className="mb-2.5 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                                {layer.type === "rays" ? (
-                                  <Move className="h-3 w-3" />
-                                ) : (
-                                  <Sparkles className="h-3 w-3" />
-                                )}
+                          <Shuffle className="size-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Randomizar camada</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
+            </SidebarHeader>
+
+            <SidebarContent>
+              {/* ── LAYERS LIST ──────────────────────────────────────────── */}
+              {selectedLayerId === null && (
+                <div className="flex flex-col">
+                  {/* Add layer buttons */}
+                  <div className="flex gap-2 border-b border-sidebar-border p-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 text-xs"
+                      onClick={() => addLayer("rays")}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Rays
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5 text-xs"
+                      onClick={() => addLayer("halo")}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Halo
+                    </Button>
+                  </div>
+
+                  {/* Layer cards */}
+                  <div className="flex flex-col gap-2 p-3">
+                    {/* Non-background layers in reverse visual order (top of stack first) */}
+                    {[...nonBgLayers].reverse().map((layer) => {
+                      const arrayIdx = scene.layers.findIndex(
+                        (l) => l.id === layer.id
+                      );
+                      const canMoveUp = arrayIdx < scene.layers.length - 1;
+                      const canMoveDown = arrayIdx > 1;
+
+                      return (
+                        <div
+                          key={layer.id}
+                          className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
+                        >
+                          {/* Clickable area */}
+                          <button
+                            className="w-full p-3 text-left cursor-pointer"
+                            onClick={() => setSelectedLayerId(layer.id)}
+                          >
+                            <div className="mb-2.5 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                                  {layer.type === "rays" ? (
+                                    <Move className="h-3 w-3" />
+                                  ) : (
+                                    <Sparkles className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <span className="text-sm font-semibold">
+                                  {layer.name}
+                                </span>
                               </div>
-                              <span className="text-sm font-semibold">
-                                {layer.name}
-                              </span>
+                              <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
                             </div>
-                            <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
-                          </div>
 
-                          {/* Color preview */}
-                          {layer.type === "rays" && (
-                            <div
-                              className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
-                              style={{
-                                background: `linear-gradient(135deg, ${
-                                  layer.colorStart
-                                }, ${
-                                  layer.fadeToTransparent
-                                    ? "transparent"
-                                    : layer.colorEnd
-                                })`,
-                              }}
-                            />
-                          )}
-                          {layer.type === "halo" && (
-                            <div
-                              className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
-                              style={{
-                                background: `radial-gradient(ellipse at center, ${layer.color} 0%, transparent 70%)`,
-                              }}
-                            />
-                          )}
-                        </button>
+                            {/* Color preview */}
+                            {layer.type === "rays" && (
+                              <div
+                                className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
+                                style={{
+                                  background: `linear-gradient(135deg, ${
+                                    layer.colorStart
+                                  }, ${
+                                    layer.fadeToTransparent
+                                      ? "transparent"
+                                      : layer.colorEnd
+                                  })`,
+                                }}
+                              />
+                            )}
+                            {layer.type === "halo" && (
+                              <div
+                                className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
+                                style={{
+                                  background: `radial-gradient(ellipse at center, ${layer.color} 0%, transparent 70%)`,
+                                }}
+                              />
+                            )}
+                          </button>
 
-                        {/* Layer controls */}
-                        <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
-                          <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
-                            {layer.type}
-                          </span>
-                          <div className="flex items-center gap-0.5">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
-                              disabled={!canMoveUp}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                moveLayerUp(layer.id);
-                              }}
-                              title="Mover para cima"
-                            >
-                              <ArrowUp className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
-                              disabled={!canMoveDown}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                moveLayerDown(layer.id);
-                              }}
-                              title="Mover para baixo"
-                            >
-                              <ArrowDown className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                duplicateLayer(layer.id);
-                              }}
-                              title="Duplicar camada"
-                            >
-                              <CopyPlus className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeLayer(layer.id);
-                              }}
-                              title="Remover camada"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
+                          {/* Layer controls */}
+                          <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
+                            <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
+                              {layer.type}
+                            </span>
+                            <div className="flex items-center gap-0.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                disabled={!canMoveUp}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveLayerUp(layer.id);
+                                }}
+                                title="Mover para cima"
+                              >
+                                <ArrowUp className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                disabled={!canMoveDown}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  moveLayerDown(layer.id);
+                                }}
+                                title="Mover para baixo"
+                              >
+                                <ArrowDown className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  duplicateLayer(layer.id);
+                                }}
+                                title="Duplicar camada"
+                              >
+                                <CopyPlus className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeLayer(layer.id);
+                                }}
+                                title="Remover camada"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* ── RAYS PROPERTIES ──────────────────────────────────────── */}
-            {selectedRayLayer && (
-              <>
-                <SidebarGroup>
-                  <SidebarGroupLabel>Cores</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <div className="space-y-3 px-2 pb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={selectedRayLayer.colorStart}
-                            onChange={(v) =>
+              {/* ── RAYS PROPERTIES ──────────────────────────────────────── */}
+              {selectedRayLayer && (
+                <>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Cores</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <div className="space-y-3 px-2 pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <ColorPicker
+                              value={selectedRayLayer.colorStart}
+                              onChange={(v) =>
+                                updateLayer(selectedRayLayer.id, {
+                                  colorStart: v,
+                                })
+                              }
+                            />
+                          </div>
+                          <div
+                            className="h-9 flex-1 rounded-lg ring-1 ring-border"
+                            style={{
+                              background: `linear-gradient(to right, ${
+                                selectedRayLayer.colorStart
+                              }, ${
+                                selectedRayLayer.fadeToTransparent
+                                  ? "transparent"
+                                  : selectedRayLayer.colorEnd
+                              })`,
+                            }}
+                          />
+                          <div className="flex flex-col items-center gap-1.5">
+                            <ColorPicker
+                              value={selectedRayLayer.colorEnd}
+                              onChange={(v) =>
+                                updateLayer(selectedRayLayer.id, {
+                                  colorEnd: v,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={selectedRayLayer.fadeToTransparent}
+                            onCheckedChange={(v) =>
                               updateLayer(selectedRayLayer.id, {
-                                colorStart: v,
+                                fadeToTransparent: v === true,
                               })
                             }
                           />
-                        </div>
-                        <div
-                          className="h-9 flex-1 rounded-lg ring-1 ring-border"
-                          style={{
-                            background: `linear-gradient(to right, ${
-                              selectedRayLayer.colorStart
-                            }, ${
-                              selectedRayLayer.fadeToTransparent
-                                ? "transparent"
-                                : selectedRayLayer.colorEnd
-                            })`,
-                          }}
-                        />
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={selectedRayLayer.colorEnd}
-                            onChange={(v) =>
-                              updateLayer(selectedRayLayer.id, { colorEnd: v })
+                          Desvanecer para transparente
+                        </label>
+                      </div>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarSeparator />
+
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Forma</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                        <Field
+                          label="Quantidade"
+                          value={selectedRayLayer.rayCount}
+                        >
+                          <Slider
+                            min={1}
+                            max={200}
+                            step={1}
+                            value={[selectedRayLayer.rayCount]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { rayCount: v })
                             }
                           />
+                        </Field>
+                        <Field
+                          label="Largura base"
+                          unit="px"
+                          value={selectedRayLayer.rayWidth.toFixed(0)}
+                        >
+                          <Slider
+                            min={1}
+                            max={400}
+                            step={1}
+                            value={[selectedRayLayer.rayWidth]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { rayWidth: v })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Divergência"
+                          value={selectedRayLayer.divergence.toFixed(2)}
+                          hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
+                        >
+                          <Slider
+                            min={0.1}
+                            max={5}
+                            step={0.05}
+                            value={[selectedRayLayer.divergence]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, {
+                                divergence: v,
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Comprimento"
+                          value={selectedRayLayer.rayLength.toFixed(2)}
+                          unit="× diag"
+                        >
+                          <Slider
+                            min={0.2}
+                            max={2.5}
+                            step={0.05}
+                            value={[selectedRayLayer.rayLength]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { rayLength: v })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Opacidade"
+                          value={(selectedRayLayer.opacity * 100).toFixed(0)}
+                          unit="%"
+                        >
+                          <Slider
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={[selectedRayLayer.opacity]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { opacity: v })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Blur"
+                          value={selectedRayLayer.blur.toFixed(1)}
+                          unit="px"
+                        >
+                          <Slider
+                            min={0}
+                            max={80}
+                            step={0.5}
+                            value={[selectedRayLayer.blur]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { blur: v })
+                            }
+                          />
+                        </Field>
+                        <Field label="Blend mode">
+                          <BlendModeSelect
+                            value={selectedRayLayer.blendMode}
+                            onChange={(v) =>
+                              updateLayer(selectedRayLayer.id, { blendMode: v })
+                            }
+                          />
+                        </Field>
+                      </div>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarSeparator />
+
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                        <Field
+                          label="Direção"
+                          value={selectedRayLayer.direction.toFixed(0)}
+                          unit="°"
+                          hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
+                        >
+                          <Slider
+                            min={0}
+                            max={360}
+                            step={1}
+                            value={[selectedRayLayer.direction]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { direction: v })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Abertura (spread)"
+                          value={selectedRayLayer.spread.toFixed(0)}
+                          unit="°"
+                        >
+                          <Slider
+                            min={0}
+                            max={360}
+                            step={1}
+                            value={[selectedRayLayer.spread]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, { spread: v })
+                            }
+                          />
+                        </Field>
+                        <OriginInputs
+                          x={selectedRayLayer.originX}
+                          y={selectedRayLayer.originY}
+                          onXChange={(v) =>
+                            updateLayer(selectedRayLayer.id, { originX: v })
+                          }
+                          onYChange={(v) =>
+                            updateLayer(selectedRayLayer.id, { originY: v })
+                          }
+                        />
+                      </div>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+
+                  <SidebarSeparator />
+
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                        <Field
+                          label="Largura"
+                          value={selectedRayLayer.randomnessWidth.toFixed(0)}
+                          unit="%"
+                        >
+                          <Slider
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[selectedRayLayer.randomnessWidth]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, {
+                                randomnessWidth: v,
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Comprimento"
+                          value={selectedRayLayer.randomnessLength.toFixed(0)}
+                          unit="%"
+                        >
+                          <Slider
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[selectedRayLayer.randomnessLength]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, {
+                                randomnessLength: v,
+                              })
+                            }
+                          />
+                        </Field>
+                        <Field
+                          label="Ângulo"
+                          value={selectedRayLayer.randomnessAngle.toFixed(0)}
+                          unit="%"
+                        >
+                          <Slider
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={[selectedRayLayer.randomnessAngle]}
+                            onValueChange={([v]) =>
+                              updateLayer(selectedRayLayer.id, {
+                                randomnessAngle: v,
+                              })
+                            }
+                          />
+                        </Field>
+                        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                          <Field label="Seed" value={selectedRayLayer.seed}>
+                            <Input
+                              type="number"
+                              value={selectedRayLayer.seed}
+                              onChange={(e) =>
+                                updateLayer(selectedRayLayer.id, {
+                                  seed: clampNum(e.target.value, 0, 1_000_000),
+                                })
+                              }
+                            />
+                          </Field>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={handleRandomize}
+                            title="Sortear nova seed"
+                          >
+                            <Shuffle className="size-3" />
+                          </Button>
                         </div>
                       </div>
-                      <label className="flex cursor-pointer items-center gap-2 text-sm">
-                        <Checkbox
-                          checked={selectedRayLayer.fadeToTransparent}
-                          onCheckedChange={(v) =>
-                            updateLayer(selectedRayLayer.id, {
-                              fadeToTransparent: v === true,
-                            })
-                          }
-                        />
-                        Desvanecer para transparente
-                      </label>
-                    </div>
-                  </SidebarGroupContent>
-                </SidebarGroup>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
+              )}
 
-                <SidebarSeparator />
-
+              {/* ── HALO PROPERTIES ──────────────────────────────────────── */}
+              {selectedHaloLayer && (
                 <SidebarGroup>
-                  <SidebarGroupLabel>Forma</SidebarGroupLabel>
+                  <SidebarGroupLabel>Halo</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                      <Field
-                        label="Quantidade"
-                        value={selectedRayLayer.rayCount}
-                      >
-                        <Slider
-                          min={1}
-                          max={200}
-                          step={1}
-                          value={[selectedRayLayer.rayCount]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { rayCount: v })
-                          }
-                        />
+                      <Field label="Cor">
+                        <div className="flex items-center gap-2">
+                          <ColorPicker
+                            value={selectedHaloLayer.color}
+                            onChange={(v) =>
+                              updateLayer(selectedHaloLayer.id, { color: v })
+                            }
+                          />
+                          <span className="font-mono text-xs text-sidebar-foreground/60">
+                            {selectedHaloLayer.color}
+                          </span>
+                        </div>
                       </Field>
                       <Field
-                        label="Largura base"
-                        unit="px"
-                        value={selectedRayLayer.rayWidth.toFixed(0)}
-                      >
-                        <Slider
-                          min={1}
-                          max={400}
-                          step={1}
-                          value={[selectedRayLayer.rayWidth]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { rayWidth: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Divergência"
-                        value={selectedRayLayer.divergence.toFixed(2)}
-                        hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
-                      >
-                        <Slider
-                          min={0.1}
-                          max={5}
-                          step={0.05}
-                          value={[selectedRayLayer.divergence]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { divergence: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Comprimento"
-                        value={selectedRayLayer.rayLength.toFixed(2)}
-                        unit="× diag"
-                      >
-                        <Slider
-                          min={0.2}
-                          max={2.5}
-                          step={0.05}
-                          value={[selectedRayLayer.rayLength]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { rayLength: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Opacidade"
-                        value={(selectedRayLayer.opacity * 100).toFixed(0)}
+                        label="Intensidade"
+                        value={(selectedHaloLayer.intensity * 100).toFixed(0)}
                         unit="%"
                       >
                         <Slider
                           min={0}
                           max={1}
                           step={0.01}
-                          value={[selectedRayLayer.opacity]}
+                          value={[selectedHaloLayer.intensity]}
                           onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { opacity: v })
+                            updateLayer(selectedHaloLayer.id, { intensity: v })
                           }
                         />
                       </Field>
                       <Field
-                        label="Blur"
-                        value={selectedRayLayer.blur.toFixed(1)}
-                        unit="px"
+                        label="Tamanho"
+                        value={(selectedHaloLayer.size * 100).toFixed(0)}
+                        unit="%"
                       >
                         <Slider
-                          min={0}
-                          max={80}
-                          step={0.5}
-                          value={[selectedRayLayer.blur]}
+                          min={0.05}
+                          max={1.5}
+                          step={0.01}
+                          value={[selectedHaloLayer.size]}
                           onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { blur: v })
+                            updateLayer(selectedHaloLayer.id, { size: v })
                           }
                         />
                       </Field>
                       <Field label="Blend mode">
                         <BlendModeSelect
-                          value={selectedRayLayer.blendMode}
+                          value={selectedHaloLayer.blendMode}
                           onChange={(v) =>
-                            updateLayer(selectedRayLayer.id, { blendMode: v })
-                          }
-                        />
-                      </Field>
-                    </div>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-
-                <SidebarSeparator />
-
-                <SidebarGroup>
-                  <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                      <Field
-                        label="Direção"
-                        value={selectedRayLayer.direction.toFixed(0)}
-                        unit="°"
-                        hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
-                      >
-                        <Slider
-                          min={0}
-                          max={360}
-                          step={1}
-                          value={[selectedRayLayer.direction]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { direction: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Abertura (spread)"
-                        value={selectedRayLayer.spread.toFixed(0)}
-                        unit="°"
-                      >
-                        <Slider
-                          min={0}
-                          max={360}
-                          step={1}
-                          value={[selectedRayLayer.spread]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { spread: v })
+                            updateLayer(selectedHaloLayer.id, { blendMode: v })
                           }
                         />
                       </Field>
                       <OriginInputs
-                        x={selectedRayLayer.originX}
-                        y={selectedRayLayer.originY}
+                        x={selectedHaloLayer.originX}
+                        y={selectedHaloLayer.originY}
                         onXChange={(v) =>
-                          updateLayer(selectedRayLayer.id, { originX: v })
+                          updateLayer(selectedHaloLayer.id, { originX: v })
                         }
                         onYChange={(v) =>
-                          updateLayer(selectedRayLayer.id, { originY: v })
+                          updateLayer(selectedHaloLayer.id, { originY: v })
                         }
                       />
                     </div>
                   </SidebarGroupContent>
                 </SidebarGroup>
-
-                <SidebarSeparator />
-
-                <SidebarGroup>
-                  <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                      <Field
-                        label="Largura"
-                        value={selectedRayLayer.randomnessWidth.toFixed(0)}
-                        unit="%"
-                      >
-                        <Slider
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[selectedRayLayer.randomnessWidth]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { randomnessWidth: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Comprimento"
-                        value={selectedRayLayer.randomnessLength.toFixed(0)}
-                        unit="%"
-                      >
-                        <Slider
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[selectedRayLayer.randomnessLength]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { randomnessLength: v })
-                          }
-                        />
-                      </Field>
-                      <Field
-                        label="Ângulo"
-                        value={selectedRayLayer.randomnessAngle.toFixed(0)}
-                        unit="%"
-                      >
-                        <Slider
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={[selectedRayLayer.randomnessAngle]}
-                          onValueChange={([v]) =>
-                            updateLayer(selectedRayLayer.id, { randomnessAngle: v })
-                          }
-                        />
-                      </Field>
-                      <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-                        <Field label="Seed" value={selectedRayLayer.seed}>
-                          <Input
-                            type="number"
-                            value={selectedRayLayer.seed}
-                            onChange={(e) =>
-                              updateLayer(selectedRayLayer.id, {
-                                seed: clampNum(e.target.value, 0, 1_000_000),
-                              })
-                            }
-                          />
-                        </Field>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={handleRandomize}
-                          title="Sortear nova seed"
-                        >
-                          <Shuffle className="size-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </>
-            )}
-
-            {/* ── HALO PROPERTIES ──────────────────────────────────────── */}
-            {selectedHaloLayer && (
-              <SidebarGroup>
-                <SidebarGroupLabel>Halo</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                    <Field label="Cor">
-                      <div className="flex items-center gap-2">
-                        <ColorPicker
-                          value={selectedHaloLayer.color}
-                          onChange={(v) =>
-                            updateLayer(selectedHaloLayer.id, { color: v })
-                          }
-                        />
-                        <span className="font-mono text-xs text-sidebar-foreground/60">
-                          {selectedHaloLayer.color}
-                        </span>
-                      </div>
-                    </Field>
-                    <Field
-                      label="Intensidade"
-                      value={(selectedHaloLayer.intensity * 100).toFixed(0)}
-                      unit="%"
-                    >
-                      <Slider
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={[selectedHaloLayer.intensity]}
-                        onValueChange={([v]) =>
-                          updateLayer(selectedHaloLayer.id, { intensity: v })
-                        }
-                      />
-                    </Field>
-                    <Field
-                      label="Tamanho"
-                      value={(selectedHaloLayer.size * 100).toFixed(0)}
-                      unit="%"
-                    >
-                      <Slider
-                        min={0.05}
-                        max={1.5}
-                        step={0.01}
-                        value={[selectedHaloLayer.size]}
-                        onValueChange={([v]) =>
-                          updateLayer(selectedHaloLayer.id, { size: v })
-                        }
-                      />
-                    </Field>
-                    <Field label="Blend mode">
-                      <BlendModeSelect
-                        value={selectedHaloLayer.blendMode}
-                        onChange={(v) =>
-                          updateLayer(selectedHaloLayer.id, { blendMode: v })
-                        }
-                      />
-                    </Field>
-                    <OriginInputs
-                      x={selectedHaloLayer.originX}
-                      y={selectedHaloLayer.originY}
-                      onXChange={(v) =>
-                        updateLayer(selectedHaloLayer.id, { originX: v })
-                      }
-                      onYChange={(v) =>
-                        updateLayer(selectedHaloLayer.id, { originY: v })
-                      }
-                    />
-                  </div>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            )}
-          </SidebarContent>
-        </Sidebar>
-      </SidebarProvider>
+              )}
+            </SidebarContent>
+          </Sidebar>
+        </SidebarProvider>
       </LeftSidebarBridge>
+
+      {/* ── Component export dialog ──────────────────────────────────── */}
+      <Dialog open={componentDialogOpen} onOpenChange={setComponentDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-5 border-b border-border shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Component className="size-4" />
+              Exportar como Componente React
+            </DialogTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Adicione os arquivos ao seu projeto e use o componente com a cena
+              configurada.
+            </p>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-6">
+            {/* Step 1 */}
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">1. Componente</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Adicione{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    GodLights.tsx
+                  </code>{" "}
+                  à pasta{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    src/components/
+                  </code>{" "}
+                  do seu projeto:
+                </p>
+              </div>
+              <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    GodLights.tsx
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleCopyComponentSrc}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {copiedComponentSrc ? (
+                        <Check className="size-3" />
+                      ) : (
+                        <Copy className="size-3" />
+                      )}
+                      {copiedComponentSrc ? "Copiado!" : "Copiar"}
+                    </button>
+                    <button
+                      onClick={() =>
+                        downloadTextFile(godLightsRaw, "GodLights.tsx")
+                      }
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Download className="size-3" />
+                      Download
+                    </button>
+                  </div>
+                </div>
+                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-56 overflow-y-auto">
+                  <code>{godLightsRaw}</code>
+                </pre>
+              </div>
+            </section>
+
+            {/* Step 2 */}
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">2. Dependência</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Adicione{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    godrays.ts
+                  </code>{" "}
+                  à pasta{" "}
+                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
+                    src/lib/
+                  </code>{" "}
+                  — contém toda a lógica de renderização:
+                </p>
+              </div>
+              <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    godrays.ts
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(godRaysRaw);
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Copy className="size-3" />
+                      Copiar
+                    </button>
+                    <button
+                      onClick={() => downloadTextFile(godRaysRaw, "godrays.ts")}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Download className="size-3" />
+                      Download
+                    </button>
+                  </div>
+                </div>
+                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-56 overflow-y-auto">
+                  <code>{godRaysRaw}</code>
+                </pre>
+              </div>
+            </section>
+
+            {/* Step 3 */}
+            <section className="flex flex-col gap-3">
+              <div>
+                <h3 className="text-sm font-semibold">3. Uso</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Importe o componente e passe a cena configurada como prop:
+                </p>
+              </div>
+              <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
+                  <span className="text-[11px] font-mono text-muted-foreground">
+                    MyComponent.tsx
+                  </span>
+                  <button
+                    onClick={handleCopyComponentUsage}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {copiedComponentUsage ? (
+                      <Check className="size-3" />
+                    ) : (
+                      <Copy className="size-3" />
+                    )}
+                    {copiedComponentUsage ? "Copiado!" : "Copiar"}
+                  </button>
+                </div>
+                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-72 overflow-y-auto">
+                  <code>{buildUsageSnippet()}</code>
+                </pre>
+              </div>
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
