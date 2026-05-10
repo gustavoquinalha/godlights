@@ -19,10 +19,9 @@ export function ColorPicker({ value, onChange, className }: ColorPickerProps) {
     <Popover>
       <PopoverTrigger asChild>
         <Button
-          size={"icon-sm"}
           type="button"
           className={cn(
-            "transition-transform p-0 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer ring-1 ring-border",
+            "transition-transform p-0 size-10 aspect-square hover:scale-110 cursor-pointer border border-input",
             className
           )}
           style={{ background: value }}

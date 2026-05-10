@@ -74,6 +74,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
+import { HexInput } from "@/components/HexInput";
 import { Field } from "@/components/ControlSection";
 import { RAYS_PRESETS, type RaysPreset, type PresetRayLayer, type PresetHaloLayer, type PresetLayer } from "@/lib/presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -1322,9 +1323,12 @@ export function GodRaysGenerator() {
                           updateLayer("background", { bgColor: v })
                         }
                       />
-                      <span className="font-mono text-xs text-sidebar-foreground/60">
-                        {bgLayer.bgColor}
-                      </span>
+                      <HexInput
+                        value={bgLayer.bgColor}
+                        onChange={(v) =>
+                          updateLayer("background", { bgColor: v })
+                        }
+                      />
                     </div>
                   </div>
                 )}
@@ -2271,11 +2275,14 @@ export function GodRaysGenerator() {
                               })
                             }
                           />
-                          <div
-                            className="h-9 flex-1 rounded-lg ring-1 ring-border"
-                            style={{
-                              background: `linear-gradient(to right, ${selectedRayLayer.colorStart}, transparent)`,
-                            }}
+                          <HexInput
+                            value={selectedRayLayer.colorStart}
+                            onChange={(v) =>
+                              updateLayer(selectedRayLayer.id, {
+                                colorStart: v,
+                                colorEnd: v,
+                              })
+                            }
                           />
                         </div>
                       </div>
@@ -2540,9 +2547,12 @@ export function GodRaysGenerator() {
                               updateLayer(selectedHaloLayer.id, { color: v })
                             }
                           />
-                          <span className="font-mono text-xs text-sidebar-foreground/60">
-                            {selectedHaloLayer.color}
-                          </span>
+                          <HexInput
+                            value={selectedHaloLayer.color}
+                            onChange={(v) =>
+                              updateLayer(selectedHaloLayer.id, { color: v })
+                            }
+                          />
                         </div>
                       </Field>
                       <Field
