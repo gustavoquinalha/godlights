@@ -1634,11 +1634,6 @@ export function GodRaysGenerator() {
                     </TabsTrigger>
                     <TabsTrigger value="salvos" className="text-xs px-3">
                       Salvos
-                      {saves.length > 0 && (
-                        <span className="ml-1.5 tabular-nums opacity-60">
-                          {saves.length}
-                        </span>
-                      )}
                     </TabsTrigger>
                   </TabsList>
 
@@ -2086,8 +2081,8 @@ export function GodRaysGenerator() {
               >
                 <div className="flex flex-1 flex-col overflow-hidden">
                   {/* Actions bar */}
-                  <div className="flex items-center justify-between border-b border-border bg-background px-4 py-2">
-                    <span className="text-xs text-muted-foreground">
+                  <div className="container flex items-center justify-between px-4 pt-4 pb-2">
+                    <span className="text-base text-muted-foreground">
                       {saves.length} {saves.length === 1 ? "save" : "saves"}
                     </span>
                     <div className="flex items-center gap-2">
@@ -2095,7 +2090,7 @@ export function GodRaysGenerator() {
                         <AlertDialogTrigger asChild>
                           <Button
                             size="sm"
-                            variant="outline"
+                            variant="ghost"
                             className="h-7 gap-1.5"
                             disabled={saves.length === 0}
                           >
