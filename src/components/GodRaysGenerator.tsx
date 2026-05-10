@@ -1093,13 +1093,6 @@ export function GodRaysGenerator() {
     setActiveRaysPreset(pick.key);
   };
 
-  const handleRandomizeRaysPreset = () => {
-    const candidates = RAYS_PRESETS.filter((p) => p.key !== activeRaysPreset);
-    const pool = candidates.length > 0 ? candidates : RAYS_PRESETS;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    setScene((s) => applyRaysPreset(s, pick.layers));
-    setActiveRaysPreset(pick.key);
-  };
 
   const handleReset = () => {
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
