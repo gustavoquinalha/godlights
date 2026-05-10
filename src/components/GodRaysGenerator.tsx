@@ -299,6 +299,18 @@ export function GodRaysGenerator() {
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
+    // If coming from /presets with ?preset=key, apply that preset (skip localStorage)
+    const urlPresetKey = new URLSearchParams(window.location.search).get("preset");
+    if (urlPresetKey) {
+      const urlPreset = RAYS_PRESETS.find((p) => p.key === urlPresetKey);
+      if (urlPreset) {
+        const s: SceneConfig = {
+          ...DEFAULT_SCENE,
+          layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
+        };
+        return applyRaysPreset(s, urlPreset.layers);
+      }
+    }
     try {
       const saved = localStorage.getItem("rays-scene");
       if (saved) return migrateScene(JSON.parse(saved) as SceneConfig);
@@ -1095,6 +1107,7 @@ export function GodRaysGenerator() {
     const pick = pool[Math.floor(Math.random() * pool.length)];
     setScene((s) => applyRaysPreset(s, pick.layers));
     setActiveRaysPreset(pick.key);
+    setSelectedLayerId(null);
   };
 
   const handleReset = () => {
@@ -1116,6 +1129,7 @@ export function GodRaysGenerator() {
     if (!preset) return;
     setScene((s) => applyRaysPreset(s, preset.layers));
     setActiveRaysPreset(key);
+    setSelectedLayerId(null);
   };
 
   // ── Fitted canvas size ────────────────────────────────────────────────────
@@ -1238,14 +1252,14 @@ export function GodRaysGenerator() {
       <Sidebar side="left">
         <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <a href="/" className="flex items-center gap-2">
               <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
                 <Sparkles className="size-4 text-primary-foreground" />
               </div>
               <span className="text-sm font-semibold tracking-tight">
                 Godlights
               </span>
-            </div>
+            </a>
             <Button
               variant="ghost"
               size="icon"
@@ -1628,14 +1642,14 @@ export function GodRaysGenerator() {
                     </TabsTrigger>
                   </TabsList>
 
-                  <div className="flex md:hidden items-center gap-2">
+                  <a href="/" className="flex md:hidden items-center gap-2">
                     <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
                       <Sparkles className="size-4 text-primary-foreground" />
                     </div>
                     <span className="text-sm font-semibold tracking-tight">
                       Godlights
                     </span>
-                  </div>
+                  </a>
                 </div>
 
                 <div className="flex items-center gap-2 flex-1 justify-end">
@@ -1799,6 +1813,7 @@ export function GodRaysGenerator() {
 
               <TabsContent
                 value="criando"
+                forceMount
                 className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
               >
                 <ScrollAreaPrimitive.Root className="relative flex-1 overflow-hidden bg-muted/20">
@@ -2066,6 +2081,7 @@ export function GodRaysGenerator() {
               {/* ── SALVOS tab ─────────────────────────────────────────────── */}
               <TabsContent
                 value="salvos"
+                forceMount
                 className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
               >
                 <div className="flex flex-1 flex-col overflow-hidden">
