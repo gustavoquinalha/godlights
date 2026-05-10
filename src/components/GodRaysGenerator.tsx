@@ -1351,7 +1351,7 @@ export function GodRaysGenerator() {
                         <button
                           onClick={() => applyPreset(p.key)}
                           className={cn(
-                            "relative border aspect-square w-full overflow-hidden rounded-md transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                            "relative border cursor-pointer aspect-square w-full overflow-hidden rounded-md",
                             activeRaysPreset === p.key && "border-primary"
                           )}
                         >
