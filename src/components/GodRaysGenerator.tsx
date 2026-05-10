@@ -26,7 +26,9 @@ import {
   PanelLeft,
   PanelRight,
   Component,
-  ExternalLink,
+  MoreHorizontal,
+  Clapperboard,
+  BookmarkCheck,
 } from "lucide-react";
 import {
   drawScene,
@@ -52,6 +54,15 @@ import { OriginInputs } from "@/components/OriginInputs";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -111,7 +122,6 @@ import {
 import { useTheme } from "@/components/theme-provider";
 import { Label } from "./ui/label";
 import { Switch } from "@/components/ui/switch";
-import { PREVIEW_STORAGE_KEY } from "@/pages/PreviewPage";
 
 const DIMENSION_PRESETS: { label: string; w: number; h: number }[] = [
   { label: "Square 1:1", w: 1080, h: 1080 },
@@ -374,6 +384,8 @@ export function GodRaysGenerator() {
       /* quota */
     }
   }, [activeRaysPreset]);
+
+  const [mainTab, setMainTab] = React.useState<"criando" | "salvos">("criando");
 
   const generateThumb = React.useCallback(
     async (s: SceneConfig): Promise<string> => {
@@ -992,14 +1004,6 @@ export function GodRaysGenerator() {
 
   const handleCopyComponent = () => setComponentDialogOpen(true);
 
-  const handleOpenPreview = () => {
-    localStorage.setItem(
-      PREVIEW_STORAGE_KEY,
-      JSON.stringify({ scene, animate: isAnimating, animParams })
-    );
-    window.open("/preview", "_blank");
-  };
-
   const downloadTextFile = (content: string, filename: string) => {
     const blob = new Blob([content], { type: "text/plain" });
     downloadBlob(blob, filename);
@@ -1092,7 +1096,6 @@ export function GodRaysGenerator() {
     setScene((s) => applyRaysPreset(s, pick.layers));
     setActiveRaysPreset(pick.key);
   };
-
 
   const handleReset = () => {
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
@@ -1256,6 +1259,72 @@ export function GodRaysGenerator() {
         </SidebarHeader>
 
         <SidebarContent>
+          {/* DIMENSIONS */}
+          <SidebarGroup>
+            <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                <Field label="Preset">
+                  <Select
+                    value={String(
+                      DIMENSION_PRESETS.findIndex(
+                        (p) => p.w === scene.width && p.h === scene.height
+                      )
+                    )}
+                    onValueChange={(v) => {
+                      const p = DIMENSION_PRESETS[parseInt(v, 10)];
+                      if (p) updateScene({ width: p.w, height: p.h });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="-1" disabled>
+                        Personalizado
+                      </SelectItem>
+                      {DIMENSION_PRESETS.map((p, i) => (
+                        <SelectItem key={p.label} value={String(i)}>
+                          {p.label} — {p.w}×{p.h}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Largura" unit="px" value={scene.width}>
+                    <Input
+                      type="number"
+                      min={64}
+                      max={8000}
+                      value={scene.width}
+                      onChange={(e) =>
+                        updateScene({
+                          width: clampNum(e.target.value, 64, 8000),
+                        })
+                      }
+                    />
+                  </Field>
+                  <Field label="Altura" unit="px" value={scene.height}>
+                    <Input
+                      type="number"
+                      min={64}
+                      max={8000}
+                      value={scene.height}
+                      onChange={(e) =>
+                        updateScene({
+                          height: clampNum(e.target.value, 64, 8000),
+                        })
+                      }
+                    />
+                  </Field>
+                </div>
+              </div>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          <SidebarSeparator />
+
           {/* PRESETS */}
           <SidebarGroup>
             <SidebarGroupLabel>Presets</SidebarGroupLabel>
@@ -1295,7 +1364,7 @@ export function GodRaysGenerator() {
             <SidebarGroupLabel>Background</SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                <Field label="Tipo">
+                <Field>
                   <Select
                     value={bgLayer.bgType}
                     onValueChange={(v) =>
@@ -1379,61 +1448,14 @@ export function GodRaysGenerator() {
 
           <SidebarSeparator />
 
-          {/* EFFECTS (global) */}
-          <SidebarGroup>
-            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div
-                className={cn(
-                  "w-full flex flex-col gap-6 px-2 pb-2",
-                  isAnimating && "opacity-40 pointer-events-none select-none"
-                )}
-              >
-                <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
-                  <Slider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={[scene.noise]}
-                    onValueChange={([v]) => updateScene({ noise: v })}
-                  />
-                </Field>
-                <Field
-                  label="Tamanho do grão"
-                  value={scene.grainSize.toFixed(0)}
-                  unit="px"
-                >
-                  <Slider
-                    min={1}
-                    max={6}
-                    step={1}
-                    value={[scene.grainSize]}
-                    onValueChange={([v]) => updateScene({ grainSize: v })}
-                  />
-                </Field>
-                {isAnimating && (
-                  <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
-                    Ruído desativado no modo animado.
-                  </p>
-                )}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarSeparator />
-
           {/* ANIMATION */}
           <SidebarGroup>
-            <SidebarGroupLabel>Animação</SidebarGroupLabel>
+            <SidebarGroupLabel className="items-center justify-between">
+              Animação
+              <Switch checked={isAnimating} onCheckedChange={setIsAnimating} />
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                <Field label={isAnimating ? "Animado" : "Estático"}>
-                  <Switch
-                    checked={isAnimating}
-                    onCheckedChange={setIsAnimating}
-                  />
-                </Field>
-
                 {isAnimating && (
                   <>
                     <Field
@@ -1518,66 +1540,43 @@ export function GodRaysGenerator() {
 
           <SidebarSeparator />
 
-          {/* DIMENSIONS */}
+          {/* EFFECTS (global) */}
           <SidebarGroup>
-            <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
+            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                <Field label="Preset">
-                  <Select
-                    value={String(
-                      DIMENSION_PRESETS.findIndex(
-                        (p) => p.w === scene.width && p.h === scene.height
-                      )
-                    )}
-                    onValueChange={(v) => {
-                      const p = DIMENSION_PRESETS[parseInt(v, 10)];
-                      if (p) updateScene({ width: p.w, height: p.h });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="-1" disabled>
-                        Personalizado
-                      </SelectItem>
-                      {DIMENSION_PRESETS.map((p, i) => (
-                        <SelectItem key={p.label} value={String(i)}>
-                          {p.label} — {p.w}×{p.h}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div
+                className={cn(
+                  "w-full flex flex-col gap-6 px-2 pb-2",
+                  isAnimating && "opacity-40 pointer-events-none select-none"
+                )}
+              >
+                <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
+                  <Slider
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={[scene.noise]}
+                    onValueChange={([v]) => updateScene({ noise: v })}
+                  />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Largura" unit="px" value={scene.width}>
-                    <Input
-                      type="number"
-                      min={64}
-                      max={8000}
-                      value={scene.width}
-                      onChange={(e) =>
-                        updateScene({
-                          width: clampNum(e.target.value, 64, 8000),
-                        })
-                      }
-                    />
-                  </Field>
-                  <Field label="Altura" unit="px" value={scene.height}>
-                    <Input
-                      type="number"
-                      min={64}
-                      max={8000}
-                      value={scene.height}
-                      onChange={(e) =>
-                        updateScene({
-                          height: clampNum(e.target.value, 64, 8000),
-                        })
-                      }
-                    />
-                  </Field>
-                </div>
+                <Field
+                  label="Tamanho do grão"
+                  value={scene.grainSize.toFixed(0)}
+                  unit="px"
+                >
+                  <Slider
+                    min={1}
+                    max={6}
+                    step={1}
+                    value={[scene.grainSize]}
+                    onValueChange={([v]) => updateScene({ grainSize: v })}
+                  />
+                </Field>
+                {isAnimating && (
+                  <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
+                    Ruído desativado no modo animado.
+                  </p>
+                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1604,13 +1603,32 @@ export function GodRaysGenerator() {
       {/* ── CENTER: Preview ───────────────────────────────────────────── */}
       <LeftSidebarBridge>
         <SidebarProvider className="flex-1 min-h-0">
-          <SidebarInset className="relative w-full">
-            <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
-              <div className="flex gap-2">
-                <LeftPanelTrigger />
+          <SidebarInset className="relative w-full overflow-hidden">
+            <Tabs
+              value={mainTab}
+              onValueChange={(v) => setMainTab(v as "criando" | "salvos")}
+              className="flex flex-col h-full"
+            >
+              <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
+                <div className="flex gap-2 flex-1">
+                  <LeftPanelTrigger />
 
-                <div className="flex md:hidden items-center gap-2">
-                  <div className="flex items-center gap-2">
+                  {/* ── Tabs (desktop only) ── */}
+                  <TabsList className="hidden lg:inline-flex h-8">
+                    <TabsTrigger value="criando" className="text-xs px-3">
+                      Criando
+                    </TabsTrigger>
+                    <TabsTrigger value="salvos" className="text-xs px-3">
+                      Salvos
+                      {saves.length > 0 && (
+                        <span className="ml-1.5 tabular-nums opacity-60">
+                          {saves.length}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <div className="flex md:hidden items-center gap-2">
                     <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
                       <Sparkles className="size-4 text-primary-foreground" />
                     </div>
@@ -1618,452 +1636,556 @@ export function GodRaysGenerator() {
                       Godlights
                     </span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={toggleTheme}
-                    className="h-7 w-7"
-                    title={dark ? "Modo claro" : "Modo escuro"}
-                  >
-                    {dark ? (
-                      <Sun className="size-3" />
-                    ) : (
-                      <Moon className="size-3" />
-                    )}
-                  </Button>
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                {/* Preview */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5"
-                  onClick={handleOpenPreview}
-                >
-                  <ExternalLink className="size-3.5" />
-                  Preview
-                </Button>
-
-                {/* Exportar dropdown */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-8 gap-1.5">
-                      <Download className="size-3.5" />
-                      Exportar
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-48 p-1.5">
-                    <div className="flex flex-col gap-0.5">
-                      <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Copiar
-                      </p>
-                      <button
-                        onClick={handleCopyPresetJson}
-                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                <div className="flex items-center gap-2 flex-1 justify-end">
+                  {/* Exportar dropdown — desktop only */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="hidden lg:inline-flex h-8 gap-1.5"
                       >
+                        <Download className="size-3.5" />
+                        Exportar
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-48 p-1.5">
+                      <div className="flex flex-col gap-0.5">
+                        <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Copiar
+                        </p>
+                        <button
+                          onClick={handleCopyPresetJson}
+                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          {copiedJson ? (
+                            <Check className="size-3.5 shrink-0" />
+                          ) : (
+                            <Copy className="size-3.5 shrink-0" />
+                          )}
+                          {copiedJson ? "Copiado!" : "JSON"}
+                        </button>
+                        <button
+                          onClick={handleCopyCss}
+                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          {copiedCss ? (
+                            <Check className="size-3.5 shrink-0" />
+                          ) : (
+                            <Code2 className="size-3.5 shrink-0" />
+                          )}
+                          {copiedCss ? "Copiado!" : "CSS"}
+                        </button>
+                        <button
+                          onClick={handleCopyComponent}
+                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <Component className="size-3.5 shrink-0" />
+                          Componente JSX
+                        </button>
+                        <div className="my-1 h-px bg-border" />
+                        <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                          Download
+                        </p>
+                        <button
+                          onClick={() => handleExport("jpg")}
+                          disabled={exporting !== null}
+                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                        >
+                          <ImageIcon className="size-3.5 shrink-0" /> JPG
+                        </button>
+                        <button
+                          onClick={() => handleExport("png")}
+                          disabled={exporting !== null}
+                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                        >
+                          <Download className="size-3.5 shrink-0" /> PNG
+                        </button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  {/* ── Dots menu — mobile/tablet only ── */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="lg:hidden h-8 w-8"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={toggleTheme}>
+                        {dark ? (
+                          <Sun className="size-3.5 shrink-0" />
+                        ) : (
+                          <Moon className="size-3.5 shrink-0" />
+                        )}
+                        {dark ? "Modo claro" : "Modo escuro"}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        Visualização
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => setMainTab("criando")}>
+                        <Clapperboard className="size-3.5 shrink-0" />
+                        Criando
+                        {mainTab === "criando" && (
+                          <Check className="size-3.5 ml-auto shrink-0 opacity-60" />
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setMainTab("salvos")}>
+                        <BookmarkCheck className="size-3.5 shrink-0" />
+                        Salvos
+                        {mainTab === "salvos" && (
+                          <Check className="size-3.5 ml-auto shrink-0 opacity-60" />
+                        )}
+                        {saves.length > 0 && (
+                          <span className="ml-auto tabular-nums text-xs opacity-60">
+                            {saves.length}
+                          </span>
+                        )}
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                        Copiar
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem onClick={handleCopyPresetJson}>
                         {copiedJson ? (
                           <Check className="size-3.5 shrink-0" />
                         ) : (
                           <Copy className="size-3.5 shrink-0" />
                         )}
                         {copiedJson ? "Copiado!" : "JSON"}
-                      </button>
-                      <button
-                        onClick={handleCopyCss}
-                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleCopyCss}>
                         {copiedCss ? (
                           <Check className="size-3.5 shrink-0" />
                         ) : (
                           <Code2 className="size-3.5 shrink-0" />
                         )}
                         {copiedCss ? "Copiado!" : "CSS"}
-                      </button>
-                      <button
-                        onClick={handleCopyComponent}
-                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
-                      >
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleCopyComponent}>
                         <Component className="size-3.5 shrink-0" />
                         Componente JSX
-                      </button>
-                      <div className="my-1 h-px bg-border" />
-                      <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                         Download
-                      </p>
-                      <button
+                      </DropdownMenuLabel>
+                      <DropdownMenuItem
                         onClick={() => handleExport("jpg")}
                         disabled={exporting !== null}
-                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
                       >
                         <ImageIcon className="size-3.5 shrink-0" /> JPG
-                      </button>
-                      <button
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         onClick={() => handleExport("png")}
                         disabled={exporting !== null}
-                        className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
                       >
                         <Download className="size-3.5 shrink-0" /> PNG
-                      </button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
-                <RightPanelTrigger />
-              </div>
-            </div>
-
-            <div
-              ref={previewContainerRef}
-              className={cn(
-                "relative flex-1 overflow-hidden bg-muted/20",
-                isMiddlePanning ? "cursor-grabbing" : "cursor-default"
-              )}
-              onClick={() => setSelectedLayerId(null)}
-            >
-              <div
-                ref={previewWrapperRef}
-                className="absolute select-none"
-                style={{
-                  width: fittedSize.w ? `${fittedSize.w}px` : "0px",
-                  height: fittedSize.h ? `${fittedSize.h}px` : "0px",
-                  left: containerSize.w / 2 - fittedSize.w / 2 + pan.x,
-                  top: containerSize.h / 2 - fittedSize.h / 2 + pan.y,
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "center center",
-                }}
-              >
-                {/* Wrapper holds visual styles so canvas repaints don't re-trigger shadow/radius compositing */}
-                <div className="block h-full w-full rounded-2xl shadow-2xl overflow-hidden">
-                  <canvas
-                    ref={previewCanvasRef}
-                    className="block h-full w-full"
-                  />
+                  <RightPanelTrigger />
                 </div>
+              </div>
 
-                {/* Hit areas for all non-background layers — selected layer rendered last so its drag overlay is always on top */}
-                {[
-                  ...nonBgLayers.filter((l) => l.id !== selectedLayerId),
-                  ...nonBgLayers.filter((l) => l.id === selectedLayerId),
-                ].map((layer) => {
-                  const bounds = layerBounds.get(layer.id);
-                  if (!bounds) return null;
-                  const isSelected = layer.id === selectedLayerId;
-                  const isRay = layer.type === "rays";
-
-                  if (isSelected) {
-                    // Full drag overlay for selected layer
-                    return (
-                      <div
-                        key={layer.id}
-                        className={cn(
-                          "absolute",
-                          isDragging ? "cursor-grabbing" : "cursor-grab"
-                        )}
-                        style={{
-                          left: bounds.bbox.x,
-                          top: bounds.bbox.y,
-                          width: bounds.bbox.w,
-                          height: bounds.bbox.h,
-                        }}
-                        onPointerDown={onOverlayPointerDown}
-                        onPointerMove={onOverlayPointerMove}
-                        onPointerUp={onOverlayPointerUp}
-                        onPointerCancel={onOverlayPointerUp}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {isRay ? (
-                          <>
-                            <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
-                            <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                              {layer.name}
-                            </span>
-                            <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                            <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
-                            <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
-                            <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
-                            {raysBBox && (
-                              <OriginCrosshair
-                                color="blue"
-                                style={{
-                                  left:
-                                    (layer.originX / 100) * fittedSize.w -
-                                    raysBBox.x,
-                                  top:
-                                    (layer.originY / 100) * fittedSize.h -
-                                    raysBBox.y,
-                                }}
-                              />
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
-                            <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
-                              {layer.name}
-                            </span>
-                            <OriginCrosshair
-                              color="amber"
-                              className="left-1/2 top-1/2"
-                            />
-                          </>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // Click-to-select area for unselected layers
-                  const isHovered = layer.id === hoveredLayerId;
-                  return (
+              <TabsContent
+                value="criando"
+                className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
+              >
+                <ScrollAreaPrimitive.Root className="relative flex-1 overflow-hidden bg-muted/20">
+                  <ScrollAreaPrimitive.Viewport
+                    ref={previewContainerRef}
+                    className={cn(
+                      "h-full w-full",
+                      isMiddlePanning ? "cursor-grabbing" : "cursor-default"
+                    )}
+                    onClick={() => setSelectedLayerId(null)}
+                  >
                     <div
-                      key={layer.id}
-                      className="group absolute cursor-pointer"
+                      ref={previewWrapperRef}
+                      className="absolute select-none"
                       style={{
-                        left: bounds.bbox.x,
-                        top: bounds.bbox.y,
-                        width: bounds.bbox.w,
-                        height: bounds.bbox.h,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedLayerId(layer.id);
+                        width: fittedSize.w ? `${fittedSize.w}px` : "0px",
+                        height: fittedSize.h ? `${fittedSize.h}px` : "0px",
+                        left: containerSize.w / 2 - fittedSize.w / 2 + pan.x,
+                        top: containerSize.h / 2 - fittedSize.h / 2 + pan.y,
+                        transform: `scale(${zoom})`,
+                        transformOrigin: "center center",
                       }}
                     >
-                      <div
-                        className={cn(
-                          "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
-                          isRay
-                            ? "group-hover:border-blue-400/50"
-                            : "rounded-full group-hover:border-amber-400/50",
-                          isHovered &&
-                            isRay &&
-                            "border-dashed border-blue-400/50",
-                          isHovered &&
-                            !isRay &&
-                            "rounded-full border-dashed border-amber-400/50"
-                        )}
-                      />
-                      <span
-                        className={cn(
-                          "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
-                          isRay ? "left-0" : "left-1/2 -translate-x-1/2",
-                          isHovered && "block"
-                        )}
-                        style={{
-                          background: isRay ? "#60a5fa" : "#fbbf24",
-                          color: isRay ? "white" : "black",
-                        }}
-                      >
-                        {layer.name}
-                      </span>
+                      {/* Wrapper holds visual styles so canvas repaints don't re-trigger shadow/radius compositing */}
+                      <div className="block h-full w-full rounded-2xl shadow-2xl overflow-hidden">
+                        <canvas
+                          ref={previewCanvasRef}
+                          className="block h-full w-full"
+                        />
+                      </div>
+
+                      {/* Hit areas for all non-background layers — selected layer rendered last so its drag overlay is always on top */}
+                      {[
+                        ...nonBgLayers.filter((l) => l.id !== selectedLayerId),
+                        ...nonBgLayers.filter((l) => l.id === selectedLayerId),
+                      ].map((layer) => {
+                        const bounds = layerBounds.get(layer.id);
+                        if (!bounds) return null;
+                        const isSelected = layer.id === selectedLayerId;
+                        const isRay = layer.type === "rays";
+
+                        if (isSelected) {
+                          // Full drag overlay for selected layer
+                          return (
+                            <div
+                              key={layer.id}
+                              className={cn(
+                                "absolute",
+                                isDragging ? "cursor-grabbing" : "cursor-grab"
+                              )}
+                              style={{
+                                left: bounds.bbox.x,
+                                top: bounds.bbox.y,
+                                width: bounds.bbox.w,
+                                height: bounds.bbox.h,
+                              }}
+                              onPointerDown={onOverlayPointerDown}
+                              onPointerMove={onOverlayPointerMove}
+                              onPointerUp={onOverlayPointerUp}
+                              onPointerCancel={onOverlayPointerUp}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {isRay ? (
+                                <>
+                                  <div className="pointer-events-none absolute inset-0 border border-dashed border-blue-400/80" />
+                                  <span className="pointer-events-none absolute -top-5 left-0 rounded bg-blue-400 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                    {layer.name}
+                                  </span>
+                                  <span className="pointer-events-none absolute -left-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                                  <span className="pointer-events-none absolute -right-1 -top-1 h-2 w-2 rounded-sm bg-blue-400" />
+                                  <span className="pointer-events-none absolute -bottom-1 -left-1 h-2 w-2 rounded-sm bg-blue-400" />
+                                  <span className="pointer-events-none absolute -bottom-1 -right-1 h-2 w-2 rounded-sm bg-blue-400" />
+                                  {raysBBox && (
+                                    <OriginCrosshair
+                                      color="blue"
+                                      style={{
+                                        left:
+                                          (layer.originX / 100) * fittedSize.w -
+                                          raysBBox.x,
+                                        top:
+                                          (layer.originY / 100) * fittedSize.h -
+                                          raysBBox.y,
+                                      }}
+                                    />
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <div className="pointer-events-none absolute inset-0 rounded-full border border-dashed border-amber-400/80" />
+                                  <span className="pointer-events-none absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-semibold text-black">
+                                    {layer.name}
+                                  </span>
+                                  <OriginCrosshair
+                                    color="amber"
+                                    className="left-1/2 top-1/2"
+                                  />
+                                </>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        // Click-to-select area for unselected layers
+                        const isHovered = layer.id === hoveredLayerId;
+                        return (
+                          <div
+                            key={layer.id}
+                            className="group absolute cursor-pointer"
+                            style={{
+                              left: bounds.bbox.x,
+                              top: bounds.bbox.y,
+                              width: bounds.bbox.w,
+                              height: bounds.bbox.h,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedLayerId(layer.id);
+                            }}
+                          >
+                            <div
+                              className={cn(
+                                "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
+                                isRay
+                                  ? "group-hover:border-blue-400/50"
+                                  : "rounded-full group-hover:border-amber-400/50",
+                                isHovered &&
+                                  isRay &&
+                                  "border-dashed border-blue-400/50",
+                                isHovered &&
+                                  !isRay &&
+                                  "rounded-full border-dashed border-amber-400/50"
+                              )}
+                            />
+                            <span
+                              className={cn(
+                                "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
+                                isRay ? "left-0" : "left-1/2 -translate-x-1/2",
+                                isHovered && "block"
+                              )}
+                              style={{
+                                background: isRay ? "#60a5fa" : "#fbbf24",
+                                color: isRay ? "white" : "black",
+                              }}
+                            >
+                              {layer.name}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
 
-              {/* FPS counter — DOM ref to avoid React re-renders on every frame */}
-              {isAnimating && (
-                <div className="absolute top-3 right-3 pointer-events-none">
-                  <span
-                    ref={fpsLabelRef}
-                    className="rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm"
-                  >
-                    0 fps
-                  </span>
-                </div>
-              )}
-
-              {/* Floating controls */}
-              <div
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {/* Zoom controls */}
-                <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => changeZoom(-ZOOM_STEP)}
-                    disabled={zoom <= MIN_ZOOM}
-                    className="h-7 w-7 rounded-full hidden md:flex"
-                    title="Diminuir zoom"
-                  >
-                    <ZoomOut className="size-3" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={resetView}
-                    className="h-7 min-w-13 px-1 text-xs font-medium tabular-nums"
-                    title="Resetar zoom"
-                  >
-                    {Math.round(zoom * 100)}%
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => changeZoom(ZOOM_STEP)}
-                    disabled={zoom >= MAX_ZOOM}
-                    className="h-7 w-7 rounded-full hidden md:flex"
-                    title="Aumentar zoom"
-                  >
-                    <ZoomIn className="size-3" />
-                  </Button>
-                  <div className="mx-1 h-4 w-px bg-border" />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={resetView}
-                    className="h-7 w-7 rounded-full"
-                    title="Zoom 100%"
-                  >
-                    <Maximize2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-
-                {/* Dice: randomize color + rays */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      onClick={handleRandomizeAll}
-                      className="h-7 w-7 rounded-full"
-                    >
-                      <Dices className="size-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Randomizar</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* ── SAVES BAR ─────────────────────────────────────────────── */}
-            <div
-              className="border-t bg-background flex w-full shrink-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Thumbnails */}
-              <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
-                <ScrollAreaPrimitive.Viewport className="h-full w-full">
-                  <div className="flex h-full items-center gap-2 px-3 py-2">
-                    {saves.length === 0 && (
-                      <div className="w-full flex flex-col items-center justify-center h-26">
-                        <p className="text-xs text-muted-foreground/60">
-                          Nenhum save ainda!
-                        </p>
-                        <p className="text-xs text-muted-foreground/60">
-                          Clique em <strong>Salvar</strong> para guardar a cena
-                          atual.
-                        </p>
+                    {/* FPS counter — DOM ref to avoid React re-renders on every frame */}
+                    {isAnimating && (
+                      <div className="absolute top-3 right-3 pointer-events-none">
+                        <span
+                          ref={fpsLabelRef}
+                          className="rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm"
+                        >
+                          0 fps
+                        </span>
                       </div>
                     )}
-                    {saves.map((save) => (
-                      <div
-                        key={save.id}
-                        className={cn(
-                          "group relative shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 transition-all",
-                          selectedSaveId === save.id
-                            ? "border-primary shadow-md"
-                            : "border-transparent hover:border-border"
-                        )}
-                        style={{
-                          height: "96px",
-                          width: `${Math.round(
-                            96 * (save.scene.width / save.scene.height)
-                          )}px`,
-                        }}
-                        onClick={() => handleLoadSave(save)}
-                        title={new Date(save.createdAt).toLocaleString("pt-BR")}
-                      >
-                        <img
-                          src={save.thumb}
-                          alt="save"
-                          className="h-full w-full object-cover"
-                        />
-                        {/* Delete button on hover */}
-                        <button
-                          className="absolute right-1 top-1 hidden rounded-sm bg-black/60 p-0.5 text-white hover:bg-destructive group-hover:flex items-center justify-center"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteSave(save.id);
-                          }}
-                          title="Remover"
-                        >
-                          <Trash2Icon className="size-2.5" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollAreaPrimitive.Viewport>
-                <ScrollAreaPrimitive.Scrollbar
-                  orientation="horizontal"
-                  className="flex h-2.5 flex-col border-t border-t-transparent p-px touch-none select-none transition-colors"
-                >
-                  <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
-                </ScrollAreaPrimitive.Scrollbar>
-                <ScrollAreaPrimitive.Corner />
-              </ScrollAreaPrimitive.Root>
 
-              {/* Actions */}
-              <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-l px-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="icon-xs" onClick={handleSaveSlot}>
-                      <SaveIcon className="size-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Salvar cena atual</TooltipContent>
-                </Tooltip>
-
-                <AlertDialog>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertDialogTrigger asChild>
+                    {/* Floating controls */}
+                    <div
+                      className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* Zoom controls */}
+                      <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
                         <Button
-                          size="icon-xs"
-                          variant="outline"
-                          disabled={saves.length === 0}
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => changeZoom(-ZOOM_STEP)}
+                          disabled={zoom <= MIN_ZOOM}
+                          className="h-7 w-7 rounded-full hidden md:flex"
+                          title="Diminuir zoom"
                         >
-                          <Trash2Icon className="size-3" />
+                          <ZoomOut className="size-3" />
                         </Button>
-                      </AlertDialogTrigger>
-                    </TooltipTrigger>
-                    <TooltipContent>Remover todos os saves</TooltipContent>
-                  </Tooltip>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        Remover todos os saves?
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Essa ação não pode ser desfeita. Todos os {saves.length}{" "}
-                        {saves.length === 1 ? "save salvo" : "saves salvos"}{" "}
-                        serão removidos permanentemente.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        onClick={() => {
-                          setSaves([]);
-                          setSelectedSaveId(null);
-                        }}
-                      >
-                        Remover todos
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
+                        <Button
+                          variant="ghost"
+                          onClick={resetView}
+                          className="h-7 min-w-13 px-1 text-xs font-medium tabular-nums"
+                          title="Resetar zoom"
+                        >
+                          {Math.round(zoom * 100)}%
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => changeZoom(ZOOM_STEP)}
+                          disabled={zoom >= MAX_ZOOM}
+                          className="h-7 w-7 rounded-full hidden md:flex"
+                          title="Aumentar zoom"
+                        >
+                          <ZoomIn className="size-3" />
+                        </Button>
+                        <div className="mx-1 h-4 w-px bg-border" />
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={resetView}
+                          className="h-7 w-7 rounded-full"
+                          title="Zoom 100%"
+                        >
+                          <Maximize2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
 
-            <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
-              <span>
-                {scene.width} × {scene.height}px ·{" "}
-                {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
-              </span>
-            </div>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            size="icon"
+                            className="h-8 w-8 rounded-full"
+                            onClick={() => {
+                              handleSaveSlot();
+                            }}
+                          >
+                            <SaveIcon className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Salvar local</TooltipContent>
+                      </Tooltip>
+
+                      {/* Dice: randomize color + rays */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            size="icon"
+                            onClick={handleRandomizeAll}
+                            className="h-8 w-8 rounded-full"
+                          >
+                            <Dices className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Randomizar</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </ScrollAreaPrimitive.Viewport>
+                  <ScrollAreaPrimitive.Scrollbar
+                    orientation="vertical"
+                    className="flex w-2 touch-none select-none p-0.5"
+                  >
+                    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+                  </ScrollAreaPrimitive.Scrollbar>
+                  <ScrollAreaPrimitive.Scrollbar
+                    orientation="horizontal"
+                    className="flex h-2 touch-none select-none flex-col p-0.5"
+                  >
+                    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+                  </ScrollAreaPrimitive.Scrollbar>
+                  <ScrollAreaPrimitive.Corner />
+                </ScrollAreaPrimitive.Root>
+
+                <div className="flex items-center justify-between gap-3 bg-background border-t border-border px-5 py-2 text-xs text-muted-foreground">
+                  <span>
+                    {scene.width} × {scene.height}px ·{" "}
+                    {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
+                  </span>
+                </div>
+              </TabsContent>
+
+              {/* ── SALVOS tab ─────────────────────────────────────────────── */}
+              <TabsContent
+                value="salvos"
+                className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
+              >
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  {/* Actions bar */}
+                  <div className="flex items-center justify-between border-b border-border bg-background px-4 py-2">
+                    <span className="text-xs text-muted-foreground">
+                      {saves.length} {saves.length === 1 ? "save" : "saves"}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1.5"
+                            disabled={saves.length === 0}
+                          >
+                            <Trash2Icon className="size-3" />
+                            Limpar tudo
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Remover todos os saves?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Essa ação não pode ser desfeita. Todos os{" "}
+                              {saves.length}{" "}
+                              {saves.length === 1
+                                ? "save salvo"
+                                : "saves salvos"}{" "}
+                              serão removidos permanentemente.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              onClick={() => {
+                                setSaves([]);
+                                setSelectedSaveId(null);
+                              }}
+                            >
+                              Remover todos
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+
+                  {/* Grid */}
+                  <ScrollAreaPrimitive.Root className="flex-1 overflow-hidden">
+                    <ScrollAreaPrimitive.Viewport className="h-full w-full">
+                      {saves.length === 0 ? (
+                        <div className="flex h-full flex-col items-center justify-center gap-2 text-center p-8">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Nenhum save ainda
+                          </p>
+                          <p className="text-xs text-muted-foreground/60">
+                            Clique em "Salvar atual" para guardar a cena.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4">
+                          {saves.map((save) => (
+                            <div
+                              key={save.id}
+                              className={cn(
+                                "group relative cursor-pointer overflow-hidden rounded-xl border-2 transition-all",
+                                selectedSaveId === save.id
+                                  ? "border-primary shadow-md"
+                                  : "border-transparent hover:border-border"
+                              )}
+                              onClick={() => {
+                                handleLoadSave(save);
+                                setMainTab("criando");
+                              }}
+                              title={new Date(save.createdAt).toLocaleString(
+                                "pt-BR"
+                              )}
+                            >
+                              <img
+                                src={save.thumb}
+                                alt="save"
+                                className="w-full object-cover aspect-video"
+                              />
+                              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                                <span className="text-[10px] text-white/80">
+                                  {new Date(save.createdAt).toLocaleDateString(
+                                    "pt-BR"
+                                  )}
+                                </span>
+                                <button
+                                  className="rounded p-0.5 text-white hover:text-red-400"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSave(save.id);
+                                  }}
+                                  title="Remover"
+                                >
+                                  <Trash2Icon className="size-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollAreaPrimitive.Viewport>
+                    <ScrollAreaPrimitive.Scrollbar
+                      orientation="vertical"
+                      className="flex w-2 touch-none select-none p-0.5"
+                    >
+                      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-border" />
+                    </ScrollAreaPrimitive.Scrollbar>
+                  </ScrollAreaPrimitive.Root>
+                </div>
+              </TabsContent>
+            </Tabs>
           </SidebarInset>
 
           {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}

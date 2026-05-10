@@ -42,7 +42,7 @@ export function ControlSection({
 }
 
 interface FieldProps {
-  label: string;
+  label?: string;
   hint?: string;
   value?: number | string;
   unit?: string;
@@ -54,9 +54,11 @@ export function Field({ label, hint, value, unit, children }: FieldProps) {
     <div className="w-full flex flex-col gap-2">
       <div className="w-full flex items-baseline justify-between">
         <div className="flex gap-1 items-center">
-          <Label className="text-sm font-medium text-foreground/90">
-            {label}
-          </Label>
+          {label && (
+            <Label className="text-sm font-medium text-foreground/90">
+              {label}
+            </Label>
+          )}
           {hint && (
             <Tooltip>
               <TooltipTrigger>
