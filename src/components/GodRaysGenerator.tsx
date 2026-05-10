@@ -283,7 +283,7 @@ function RightPanelTrigger() {
           <PanelRight className="size-4" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent>Painel de camadas</TooltipContent>
+      <TooltipContent>Layers panel</TooltipContent>
     </Tooltip>
   );
 }
@@ -397,7 +397,7 @@ export function GodRaysGenerator() {
     }
   }, [activeRaysPreset]);
 
-  const [mainTab, setMainTab] = React.useState<"criando" | "salvos">("criando");
+  const [mainTab, setMainTab] = React.useState<"editor" | "saved">("editor");
 
   const generateThumb = React.useCallback(
     async (s: SceneConfig): Promise<string> => {
@@ -1265,7 +1265,7 @@ export function GodRaysGenerator() {
               size="icon"
               onClick={toggleTheme}
               className="h-7 w-7"
-              title={dark ? "Modo claro" : "Modo escuro"}
+              title={dark ? "Light mode" : "Dark mode"}
             >
               {dark ? <Sun className="size-3" /> : <Moon className="size-3" />}
             </Button>
@@ -1275,7 +1275,7 @@ export function GodRaysGenerator() {
         <SidebarContent>
           {/* DIMENSIONS */}
           <SidebarGroup>
-            <SidebarGroupLabel>Dimensões</SidebarGroupLabel>
+            <SidebarGroupLabel>Dimensions</SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="w-full flex flex-col gap-6 px-2 pb-2">
                 <Field label="Preset">
@@ -1295,7 +1295,7 @@ export function GodRaysGenerator() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="-1" disabled>
-                        Personalizado
+                        Custom
                       </SelectItem>
                       {DIMENSION_PRESETS.map((p, i) => (
                         <SelectItem key={p.label} value={String(i)}>
@@ -1306,7 +1306,7 @@ export function GodRaysGenerator() {
                   </Select>
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Largura" unit="px" value={scene.width}>
+                  <Field label="Width" unit="px" value={scene.width}>
                     <Input
                       type="number"
                       min={64}
@@ -1319,7 +1319,7 @@ export function GodRaysGenerator() {
                       }
                     />
                   </Field>
-                  <Field label="Altura" unit="px" value={scene.height}>
+                  <Field label="Height" unit="px" value={scene.height}>
                     <Input
                       type="number"
                       min={64}
@@ -1391,9 +1391,9 @@ export function GodRaysGenerator() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="transparent">Transparente</SelectItem>
-                      <SelectItem value="solid">Cor sólida</SelectItem>
-                      <SelectItem value="gradient">Gradiente</SelectItem>
+                      <SelectItem value="transparent">Transparent</SelectItem>
+                      <SelectItem value="solid">Solid color</SelectItem>
+                      <SelectItem value="gradient">Gradient</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>
@@ -1401,7 +1401,7 @@ export function GodRaysGenerator() {
                 {bgLayer.bgType === "solid" && (
                   <div className="w-full flex flex-col gap-2">
                     <Label className="text-sm font-medium text-foreground/90">
-                      Cores
+                      Color
                     </Label>
                     <ColorField
                       value={bgLayer.bgColor}
@@ -1415,7 +1415,7 @@ export function GodRaysGenerator() {
                   <>
                     <div className="w-full flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground/90">
-                        Cores
+                        Colors
                       </Label>
                       <div className="flex flex-col gap-2">
                         <ColorField
@@ -1440,7 +1440,7 @@ export function GodRaysGenerator() {
                     </div>
 
                     <Field
-                      label="Ângulo"
+                      label="Angle"
                       value={bgLayer.bgGradientAngle.toFixed(0)}
                       unit="°"
                     >
@@ -1465,7 +1465,7 @@ export function GodRaysGenerator() {
           {/* ANIMATION */}
           <SidebarGroup>
             <SidebarGroupLabel className="items-center justify-between">
-              Animação
+              Animation
               <Switch checked={isAnimating} onCheckedChange={setIsAnimating} />
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -1473,7 +1473,7 @@ export function GodRaysGenerator() {
                 {isAnimating && (
                   <>
                     <Field
-                      label="Velocidade"
+                      label="Speed"
                       value={animParams.speed.toFixed(2) + "×"}
                     >
                       <Slider
@@ -1487,7 +1487,7 @@ export function GodRaysGenerator() {
                       />
                     </Field>
                     <Field
-                      label="Ângulo"
+                      label="Angle"
                       value={animParams.angleAmp.toFixed(0)}
                       unit="%"
                     >
@@ -1502,7 +1502,7 @@ export function GodRaysGenerator() {
                       />
                     </Field>
                     <Field
-                      label="Comprimento"
+                      label="Length"
                       value={animParams.lengthAmp.toFixed(0)}
                       unit="%"
                     >
@@ -1517,7 +1517,7 @@ export function GodRaysGenerator() {
                       />
                     </Field>
                     <Field
-                      label="Largura"
+                      label="Width"
                       value={animParams.widthAmp.toFixed(0)}
                       unit="%"
                     >
@@ -1556,7 +1556,7 @@ export function GodRaysGenerator() {
 
           {/* EFFECTS (global) */}
           <SidebarGroup>
-            <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
+            <SidebarGroupLabel>Effects</SidebarGroupLabel>
             <SidebarGroupContent>
               <div
                 className={cn(
@@ -1564,7 +1564,7 @@ export function GodRaysGenerator() {
                   isAnimating && "opacity-40 pointer-events-none select-none"
                 )}
               >
-                <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
+                <Field label="Noise / grain" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
                     max={100}
@@ -1574,7 +1574,7 @@ export function GodRaysGenerator() {
                   />
                 </Field>
                 <Field
-                  label="Tamanho do grão"
+                  label="Grain size"
                   value={scene.grainSize.toFixed(0)}
                   unit="px"
                 >
@@ -1588,7 +1588,7 @@ export function GodRaysGenerator() {
                 </Field>
                 {isAnimating && (
                   <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
-                    Ruído desativado no modo animado.
+                    Noise disabled in animation mode.
                   </p>
                 )}
               </div>
@@ -1606,7 +1606,7 @@ export function GodRaysGenerator() {
                   onClick={handleReset}
                   className="w-full"
                 >
-                  <RotateCcw className="size-3" /> Resetar
+                  <RotateCcw className="size-3" /> Reset
                 </Button>
               </div>
             </SidebarGroupContent>
@@ -1620,7 +1620,7 @@ export function GodRaysGenerator() {
           <SidebarInset className="relative w-full overflow-hidden">
             <Tabs
               value={mainTab}
-              onValueChange={(v) => setMainTab(v as "criando" | "salvos")}
+              onValueChange={(v) => setMainTab(v as "editor" | "saved")}
               className="flex flex-col h-full"
             >
               <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
@@ -1629,11 +1629,11 @@ export function GodRaysGenerator() {
 
                   {/* ── Tabs (desktop only) ── */}
                   <TabsList className="hidden lg:inline-flex h-8">
-                    <TabsTrigger value="criando" className="text-xs px-3">
-                      Criando
+                    <TabsTrigger value="editor" className="text-xs px-3">
+                      Editor
                     </TabsTrigger>
-                    <TabsTrigger value="salvos" className="text-xs px-3">
-                      Salvos
+                    <TabsTrigger value="saved" className="text-xs px-3">
+                      Saved
                     </TabsTrigger>
                   </TabsList>
 
@@ -1657,13 +1657,13 @@ export function GodRaysGenerator() {
                         className="hidden lg:inline-flex h-8 gap-1.5"
                       >
                         <Download className="size-3.5" />
-                        Exportar
+                        Export
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent align="end" className="w-48 p-1.5">
                       <div className="flex flex-col gap-0.5">
                         <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Copiar
+                          Copy
                         </p>
                         <button
                           onClick={handleCopyPresetJson}
@@ -1674,7 +1674,7 @@ export function GodRaysGenerator() {
                           ) : (
                             <Copy className="size-3.5 shrink-0" />
                           )}
-                          {copiedJson ? "Copiado!" : "JSON"}
+                          {copiedJson ? "Copied!" : "JSON"}
                         </button>
                         <button
                           onClick={handleCopyCss}
@@ -1685,14 +1685,14 @@ export function GodRaysGenerator() {
                           ) : (
                             <Code2 className="size-3.5 shrink-0" />
                           )}
-                          {copiedCss ? "Copiado!" : "CSS"}
+                          {copiedCss ? "Copied!" : "CSS"}
                         </button>
                         <button
                           onClick={handleCopyComponent}
                           className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
                         >
                           <Component className="size-3.5 shrink-0" />
-                          Componente JSX
+                          JSX Component
                         </button>
                         <div className="my-1 h-px bg-border" />
                         <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1734,23 +1734,23 @@ export function GodRaysGenerator() {
                         ) : (
                           <Moon className="size-3.5 shrink-0" />
                         )}
-                        {dark ? "Modo claro" : "Modo escuro"}
+                        {dark ? "Light mode" : "Dark mode"}
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        Visualização
+                        View
                       </DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => setMainTab("criando")}>
+                      <DropdownMenuItem onClick={() => setMainTab("editor")}>
                         <Clapperboard className="size-3.5 shrink-0" />
-                        Criando
-                        {mainTab === "criando" && (
+                        Editor
+                        {mainTab === "editor" && (
                           <Check className="size-3.5 ml-auto shrink-0 opacity-60" />
                         )}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setMainTab("salvos")}>
+                      <DropdownMenuItem onClick={() => setMainTab("saved")}>
                         <BookmarkCheck className="size-3.5 shrink-0" />
-                        Salvos
-                        {mainTab === "salvos" && (
+                        Saved
+                        {mainTab === "saved" && (
                           <Check className="size-3.5 ml-auto shrink-0 opacity-60" />
                         )}
                         {saves.length > 0 && (
@@ -1761,7 +1761,7 @@ export function GodRaysGenerator() {
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-                        Copiar
+                        Copy
                       </DropdownMenuLabel>
                       <DropdownMenuItem onClick={handleCopyPresetJson}>
                         {copiedJson ? (
@@ -1769,7 +1769,7 @@ export function GodRaysGenerator() {
                         ) : (
                           <Copy className="size-3.5 shrink-0" />
                         )}
-                        {copiedJson ? "Copiado!" : "JSON"}
+                        {copiedJson ? "Copied!" : "JSON"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleCopyCss}>
                         {copiedCss ? (
@@ -1777,11 +1777,11 @@ export function GodRaysGenerator() {
                         ) : (
                           <Code2 className="size-3.5 shrink-0" />
                         )}
-                        {copiedCss ? "Copiado!" : "CSS"}
+                        {copiedCss ? "Copied!" : "CSS"}
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleCopyComponent}>
                         <Component className="size-3.5 shrink-0" />
-                        Componente JSX
+                        JSX Component
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -1807,7 +1807,7 @@ export function GodRaysGenerator() {
               </div>
 
               <TabsContent
-                value="criando"
+                value="editor"
                 forceMount
                 className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
               >
@@ -2032,7 +2032,7 @@ export function GodRaysGenerator() {
                             <SaveIcon className="size-3.5" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Salvar local</TooltipContent>
+                        <TooltipContent>Save</TooltipContent>
                       </Tooltip>
 
                       {/* Dice: randomize color + rays */}
@@ -2046,7 +2046,7 @@ export function GodRaysGenerator() {
                             <Dices className="size-3.5" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Randomizar</TooltipContent>
+                        <TooltipContent>Randomize</TooltipContent>
                       </Tooltip>
                     </div>
                   </ScrollAreaPrimitive.Viewport>
@@ -2073,9 +2073,9 @@ export function GodRaysGenerator() {
                 </div>
               </TabsContent>
 
-              {/* ── SALVOS tab ─────────────────────────────────────────────── */}
+              {/* ── SAVED tab ──────────────────────────────────────────────── */}
               <TabsContent
-                value="salvos"
+                value="saved"
                 forceMount
                 className="flex flex-col flex-1 overflow-hidden mt-0 data-[state=inactive]:hidden"
               >
@@ -2083,7 +2083,7 @@ export function GodRaysGenerator() {
                   {/* Actions bar */}
                   <div className="container flex items-center justify-between px-4 pt-4 pb-2">
                     <span className="text-base text-muted-foreground">
-                      {saves.length} {saves.length === 1 ? "save" : "saves"}
+                      {saves.length} {saves.length === 1 ? "save" : "saves"} saved
                     </span>
                     <div className="flex items-center gap-2">
                       <AlertDialog>
@@ -2095,25 +2095,23 @@ export function GodRaysGenerator() {
                             disabled={saves.length === 0}
                           >
                             <Trash2Icon className="size-3" />
-                            Limpar tudo
+                            Clear all
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>
-                              Remover todos os saves?
+                              Remove all saves?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              Essa ação não pode ser desfeita. Todos os{" "}
+                              This action cannot be undone. All{" "}
                               {saves.length}{" "}
-                              {saves.length === 1
-                                ? "save salvo"
-                                : "saves salvos"}{" "}
-                              serão removidos permanentemente.
+                              {saves.length === 1 ? "save" : "saves"}{" "}
+                              will be permanently deleted.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               onClick={() => {
@@ -2121,7 +2119,7 @@ export function GodRaysGenerator() {
                                 setSelectedSaveId(null);
                               }}
                             >
-                              Remover todos
+                              Remove all
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -2135,10 +2133,10 @@ export function GodRaysGenerator() {
                       {saves.length === 0 ? (
                         <div className="flex h-full flex-col items-center justify-center gap-2 text-center p-8">
                           <p className="text-sm font-medium text-muted-foreground">
-                            Nenhum save ainda
+                            No saves yet
                           </p>
                           <p className="text-xs text-muted-foreground/60">
-                            Clique em "Salvar atual" para guardar a cena.
+                            Click the save button to store the current scene.
                           </p>
                         </div>
                       ) : (
@@ -2154,11 +2152,9 @@ export function GodRaysGenerator() {
                               )}
                               onClick={() => {
                                 handleLoadSave(save);
-                                setMainTab("criando");
+                                setMainTab("editor");
                               }}
-                              title={new Date(save.createdAt).toLocaleString(
-                                "pt-BR"
-                              )}
+                              title={new Date(save.createdAt).toLocaleString()}
                             >
                               <img
                                 src={save.thumb}
@@ -2167,9 +2163,7 @@ export function GodRaysGenerator() {
                               />
                               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 <span className="text-[10px] text-white/80">
-                                  {new Date(save.createdAt).toLocaleDateString(
-                                    "pt-BR"
-                                  )}
+                                  {new Date(save.createdAt).toLocaleDateString()}
                                 </span>
                                 <button
                                   className="rounded p-0.5 text-white hover:text-red-400"
@@ -2177,7 +2171,7 @@ export function GodRaysGenerator() {
                                     e.stopPropagation();
                                     handleDeleteSave(save.id);
                                   }}
-                                  title="Remover"
+                                  title="Remove"
                                 >
                                   <Trash2Icon className="size-3" />
                                 </button>
@@ -2207,7 +2201,7 @@ export function GodRaysGenerator() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-base font-bold tracking-tight">
-                      Camadas
+                      Layers
                     </h2>
                   </div>
                 </div>
@@ -2219,7 +2213,7 @@ export function GodRaysGenerator() {
                       size="icon"
                       className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
                       onClick={() => setSelectedLayerId(null)}
-                      title="Voltar para camadas"
+                      title="Back to layers"
                     >
                       <ChevronLeft className="size-3" />
                     </Button>
@@ -2244,7 +2238,7 @@ export function GodRaysGenerator() {
                           <Shuffle className="size-3" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Randomizar camada</TooltipContent>
+                      <TooltipContent>Randomize layer</TooltipContent>
                     </Tooltip>
                   )}
                 </div>
@@ -2347,7 +2341,7 @@ export function GodRaysGenerator() {
                                   e.stopPropagation();
                                   moveLayerUp(layer.id);
                                 }}
-                                title="Mover para cima"
+                                title="Move up"
                               >
                                 <ArrowUp className="h-3 w-3" />
                               </Button>
@@ -2360,7 +2354,7 @@ export function GodRaysGenerator() {
                                   e.stopPropagation();
                                   moveLayerDown(layer.id);
                                 }}
-                                title="Mover para baixo"
+                                title="Move down"
                               >
                                 <ArrowDown className="h-3 w-3" />
                               </Button>
@@ -2372,7 +2366,7 @@ export function GodRaysGenerator() {
                                   e.stopPropagation();
                                   duplicateLayer(layer.id);
                                 }}
-                                title="Duplicar camada"
+                                title="Duplicate layer"
                               >
                                 <CopyPlus className="h-3 w-3" />
                               </Button>
@@ -2384,7 +2378,7 @@ export function GodRaysGenerator() {
                                   e.stopPropagation();
                                   removeLayer(layer.id);
                                 }}
-                                title="Remover camada"
+                                title="Remove layer"
                               >
                                 <Trash2 className="h-3 w-3" />
                               </Button>
@@ -2401,7 +2395,7 @@ export function GodRaysGenerator() {
               {selectedRayLayer && (
                 <>
                   <SidebarGroup>
-                    <SidebarGroupLabel>Cores</SidebarGroupLabel>
+                    <SidebarGroupLabel>Color</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="px-2 pb-2">
                         <ColorField
@@ -2420,11 +2414,11 @@ export function GodRaysGenerator() {
                   <SidebarSeparator />
 
                   <SidebarGroup>
-                    <SidebarGroupLabel>Forma</SidebarGroupLabel>
+                    <SidebarGroupLabel>Shape</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="w-full flex flex-col gap-6 px-2 pb-2">
                         <Field
-                          label="Quantidade"
+                          label="Count"
                           value={selectedRayLayer.rayCount}
                         >
                           <Slider
@@ -2438,7 +2432,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Largura base"
+                          label="Base width"
                           unit="px"
                           value={selectedRayLayer.rayWidth.toFixed(0)}
                         >
@@ -2453,9 +2447,9 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Divergência"
+                          label="Divergence"
                           value={selectedRayLayer.divergence.toFixed(2)}
-                          hint="1 = paralelos, >1 = abrem para a ponta, <1 = fecham"
+                          hint="1 = parallel, >1 = spread outward, <1 = converge"
                         >
                           <Slider
                             min={0.1}
@@ -2470,7 +2464,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Comprimento"
+                          label="Length"
                           value={selectedRayLayer.rayLength.toFixed(2)}
                           unit="× diag"
                         >
@@ -2485,7 +2479,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Opacidade"
+                          label="Opacity"
                           value={(selectedRayLayer.opacity * 100).toFixed(0)}
                           unit="%"
                         >
@@ -2529,14 +2523,14 @@ export function GodRaysGenerator() {
                   <SidebarSeparator />
 
                   <SidebarGroup>
-                    <SidebarGroupLabel>Direção e origem</SidebarGroupLabel>
+                    <SidebarGroupLabel>Direction &amp; origin</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="w-full flex flex-col gap-6 px-2 pb-2">
                         <Field
-                          label="Direção"
+                          label="Direction"
                           value={selectedRayLayer.direction.toFixed(0)}
                           unit="°"
-                          hint="0° aponta para cima · 90° direita · 180° baixo · 270° esquerda"
+                          hint="0° up · 90° right · 180° down · 270° left"
                         >
                           <Slider
                             min={0}
@@ -2549,7 +2543,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Abertura (spread)"
+                          label="Spread"
                           value={selectedRayLayer.spread.toFixed(0)}
                           unit="°"
                         >
@@ -2580,11 +2574,11 @@ export function GodRaysGenerator() {
                   <SidebarSeparator />
 
                   <SidebarGroup>
-                    <SidebarGroupLabel>Aleatoriedade</SidebarGroupLabel>
+                    <SidebarGroupLabel>Randomness</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="w-full flex flex-col gap-6 px-2 pb-2">
                         <Field
-                          label="Largura"
+                          label="Width"
                           value={selectedRayLayer.randomnessWidth.toFixed(0)}
                           unit="%"
                         >
@@ -2601,7 +2595,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Comprimento"
+                          label="Length"
                           value={selectedRayLayer.randomnessLength.toFixed(0)}
                           unit="%"
                         >
@@ -2618,7 +2612,7 @@ export function GodRaysGenerator() {
                           />
                         </Field>
                         <Field
-                          label="Ângulo"
+                          label="Angle"
                           value={selectedRayLayer.randomnessAngle.toFixed(0)}
                           unit="%"
                         >
@@ -2650,7 +2644,7 @@ export function GodRaysGenerator() {
                             variant="outline"
                             size="icon"
                             onClick={handleRandomize}
-                            title="Sortear nova seed"
+                            title="New random seed"
                           >
                             <Shuffle className="size-3" />
                           </Button>
@@ -2667,7 +2661,7 @@ export function GodRaysGenerator() {
                   <SidebarGroupLabel>Halo</SidebarGroupLabel>
                   <SidebarGroupContent>
                     <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                      <Field label="Cor">
+                      <Field label="Color">
                         <ColorField
                           value={selectedHaloLayer.color}
                           onChange={(v) =>
@@ -2676,7 +2670,7 @@ export function GodRaysGenerator() {
                         />
                       </Field>
                       <Field
-                        label="Intensidade"
+                        label="Intensity"
                         value={(selectedHaloLayer.intensity * 100).toFixed(0)}
                         unit="%"
                       >
@@ -2691,7 +2685,7 @@ export function GodRaysGenerator() {
                         />
                       </Field>
                       <Field
-                        label="Tamanho"
+                        label="Size"
                         value={(selectedHaloLayer.size * 100).toFixed(0)}
                         unit="%"
                       >
@@ -2738,11 +2732,10 @@ export function GodRaysGenerator() {
           <DialogHeader className="px-6 py-5 border-b border-border shrink-0">
             <DialogTitle className="flex items-center gap-2">
               <Component className="size-4" />
-              Exportar como Componente React
+              Export as React Component
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Adicione os arquivos ao seu projeto e use o componente com a cena
-              configurada.
+              Add the files to your project and use the component with the configured scene.
             </p>
           </DialogHeader>
 
@@ -2750,17 +2743,17 @@ export function GodRaysGenerator() {
             {/* Step 1 */}
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">1. Componente</h3>
+                <h3 className="text-sm font-semibold">1. Component</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Adicione{" "}
+                  Add{" "}
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     GodLights.tsx
                   </code>{" "}
-                  à pasta{" "}
+                  to your{" "}
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     src/components/
                   </code>{" "}
-                  do seu projeto:
+                  folder:
                 </p>
               </div>
               <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
@@ -2778,7 +2771,7 @@ export function GodRaysGenerator() {
                       ) : (
                         <Copy className="size-3" />
                       )}
-                      {copiedComponentSrc ? "Copiado!" : "Copiar"}
+                      {copiedComponentSrc ? "Copied!" : "Copy"}
                     </button>
                     <button
                       onClick={() =>
@@ -2800,17 +2793,17 @@ export function GodRaysGenerator() {
             {/* Step 2 */}
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">2. Dependência</h3>
+                <h3 className="text-sm font-semibold">2. Dependency</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Adicione{" "}
+                  Add{" "}
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     godrays.ts
                   </code>{" "}
-                  à pasta{" "}
+                  to your{" "}
                   <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
                     src/lib/
                   </code>{" "}
-                  — contém toda a lógica de renderização:
+                  — contains all rendering logic:
                 </p>
               </div>
               <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
@@ -2826,7 +2819,7 @@ export function GodRaysGenerator() {
                       className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Copy className="size-3" />
-                      Copiar
+                      Copy
                     </button>
                     <button
                       onClick={() => downloadTextFile(godRaysRaw, "godrays.ts")}
@@ -2846,9 +2839,9 @@ export function GodRaysGenerator() {
             {/* Step 3 */}
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">3. Uso</h3>
+                <h3 className="text-sm font-semibold">3. Usage</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Importe o componente e passe a cena configurada como prop:
+                  Import the component and pass your configured scene as a prop:
                 </p>
               </div>
               <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
@@ -2865,7 +2858,7 @@ export function GodRaysGenerator() {
                     ) : (
                       <Copy className="size-3" />
                     )}
-                    {copiedComponentUsage ? "Copiado!" : "Copiar"}
+                    {copiedComponentUsage ? "Copied!" : "Copy"}
                   </button>
                 </div>
                 <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-72 overflow-y-auto">
