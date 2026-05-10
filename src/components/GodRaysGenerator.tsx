@@ -43,7 +43,6 @@ import {
   type HaloLayer,
   type BackgroundLayer,
   type BackgroundType,
-  type GodRaysConfig,
 } from "@/lib/godrays";
 import godRaysRaw from "@/lib/godrays.ts?raw";
 import godLightsRaw from "@/components/GodLights.tsx?raw";
@@ -60,7 +59,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   SidebarProvider,
   Sidebar,
@@ -73,11 +71,14 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { ColorPicker } from "@/components/ColorPicker";
-import { HexInput } from "@/components/HexInput";
+import { ColorField } from "@/components/ColorField";
 import { Field } from "@/components/ControlSection";
-import { RAYS_PRESETS, type RaysPreset, type PresetRayLayer, type PresetHaloLayer, type PresetLayer } from "@/lib/presets";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  RAYS_PRESETS,
+  type PresetRayLayer,
+  type PresetHaloLayer,
+  type PresetLayer,
+} from "@/lib/presets";
 import {
   Popover,
   PopoverTrigger,
@@ -131,16 +132,21 @@ const ZOOM_STEP = 0.1;
 
 // ── Preset helpers ─────────────────────────────────────────────────────────
 
-
 function applyRaysPreset(
   scene: SceneConfig,
   layers: PresetLayer[]
 ): SceneConfig {
   // Extract current colors to preserve them, cross-referencing when one type is missing
-  const existingRay = scene.layers.find((l): l is RayLayer => l.type === "rays");
-  const existingHalo = scene.layers.find((l): l is HaloLayer => l.type === "halo");
+  const existingRay = scene.layers.find(
+    (l): l is RayLayer => l.type === "rays"
+  );
+  const existingHalo = scene.layers.find(
+    (l): l is HaloLayer => l.type === "halo"
+  );
   const rayColorStart =
-    existingRay?.colorStart ?? existingHalo?.color ?? DEFAULT_RAY_LAYER.colorStart;
+    existingRay?.colorStart ??
+    existingHalo?.color ??
+    DEFAULT_RAY_LAYER.colorStart;
   const rayColorEnd =
     existingRay?.colorEnd ?? existingHalo?.color ?? DEFAULT_RAY_LAYER.colorEnd;
   const haloColor =
@@ -289,7 +295,7 @@ export function GodRaysGenerator() {
     } catch {
       /* ignore corrupt data */
     }
-    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
+    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
@@ -348,12 +354,12 @@ export function GodRaysGenerator() {
           const parsed = JSON.parse(raw) as {
             activeRaysPreset?: string | null;
           };
-          return parsed.activeRaysPreset ?? "r_side_glow";
+          return parsed.activeRaysPreset ?? "r_corner_flare";
         }
       } catch {
         /* ignore */
       }
-      return "r_side_glow";
+      return "r_corner_flare";
     }
   );
 
@@ -414,7 +420,9 @@ export function GodRaysGenerator() {
   const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
     null
   );
-  const [hoveredLayerId, setHoveredLayerId] = React.useState<string | null>(null);
+  const [hoveredLayerId, setHoveredLayerId] = React.useState<string | null>(
+    null
+  );
 
   const handleLoadSave = React.useCallback((save: SavedScene) => {
     setScene(migrateScene(save.scene));
@@ -448,15 +456,27 @@ export function GodRaysGenerator() {
   const [isAnimating, setIsAnimating] = React.useState<boolean>(() => {
     try {
       const raw = localStorage.getItem("rays-anim");
-      if (raw) return (JSON.parse(raw) as { isAnimating: boolean }).isAnimating ?? false;
-    } catch { /* ignore */ }
+      if (raw)
+        return (
+          (JSON.parse(raw) as { isAnimating: boolean }).isAnimating ?? false
+        );
+    } catch {
+      /* ignore */
+    }
     return false;
   });
   const [animParams, setAnimParams] = React.useState<AnimParams>(() => {
     try {
       const raw = localStorage.getItem("rays-anim");
-      if (raw) return { ...DEFAULT_ANIM_PARAMS, ...(JSON.parse(raw) as { animParams?: Partial<AnimParams> }).animParams };
-    } catch { /* ignore */ }
+      if (raw)
+        return {
+          ...DEFAULT_ANIM_PARAMS,
+          ...(JSON.parse(raw) as { animParams?: Partial<AnimParams> })
+            .animParams,
+        };
+    } catch {
+      /* ignore */
+    }
     return DEFAULT_ANIM_PARAMS;
   });
   const animParamsRef = React.useRef<AnimParams>(animParams);
@@ -468,8 +488,13 @@ export function GodRaysGenerator() {
   React.useEffect(() => {
     const id = window.setTimeout(() => {
       try {
-        localStorage.setItem("rays-anim", JSON.stringify({ isAnimating, animParams }));
-      } catch { /* quota */ }
+        localStorage.setItem(
+          "rays-anim",
+          JSON.stringify({ isAnimating, animParams })
+        );
+      } catch {
+        /* quota */
+      }
     }, 500);
     return () => window.clearTimeout(id);
   }, [isAnimating, animParams]);
@@ -484,7 +509,9 @@ export function GodRaysGenerator() {
   // Keep latest deferredScene accessible from animation loop without stale closure
   const deferredSceneRef = React.useRef(deferredScene);
   // Pre-scaled scene cached so the animation loop never recomputes it per-frame
-  const scaledSceneRef = React.useRef<SceneConfig>(scaleSceneForPreview(deferredScene));
+  const scaledSceneRef = React.useRef<SceneConfig>(
+    scaleSceneForPreview(deferredScene)
+  );
   React.useEffect(() => {
     deferredSceneRef.current = deferredScene;
     scaledSceneRef.current = scaleSceneForPreview(deferredScene);
@@ -820,7 +847,13 @@ export function GodRaysGenerator() {
           canvas.height = scaled.height;
         }
         // skipGrain=true: avoids getImageData/putImageData CPU↔GPU round-trip per frame
-        drawScene(canvas, scaled, animTimeRef.current, animParamsRef.current, true);
+        drawScene(
+          canvas,
+          scaled,
+          animTimeRef.current,
+          animParamsRef.current,
+          true
+        );
       }
       animRafRef.current = requestAnimationFrame(frame);
     };
@@ -941,7 +974,9 @@ export function GodRaysGenerator() {
       `const scene = ${sceneJson};`,
     ];
     if (isAnimating) {
-      const animJson = JSON.stringify(animParams, null, 2).split("\n").join("\n  ");
+      const animJson = JSON.stringify(animParams, null, 2)
+        .split("\n")
+        .join("\n  ");
       lines.push(``, `const animParams = ${animJson};`);
     }
     lines.push(
@@ -950,7 +985,7 @@ export function GodRaysGenerator() {
       isAnimating
         ? `  return <GodLights scene={scene} animate animParams={animParams} className="w-full h-full" />;`
         : `  return <GodLights scene={scene} className="w-full h-full" />;`,
-      `}`,
+      `}`
     );
     return lines.join("\n");
   };
@@ -1002,11 +1037,13 @@ export function GodRaysGenerator() {
     setActiveRaysPreset(null);
   };
 
-
   const handleRandomizeLayer = React.useCallback(() => {
     if (selectedRayLayer) {
-      const pick = RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
-      const presetRayLayer = pick.layers.find((l): l is PresetRayLayer => l.type === "rays");
+      const pick =
+        RAYS_PRESETS[Math.floor(Math.random() * RAYS_PRESETS.length)];
+      const presetRayLayer = pick.layers.find(
+        (l): l is PresetRayLayer => l.type === "rays"
+      );
       if (!presetRayLayer) return;
       updateLayer(selectedRayLayer.id, {
         direction: presetRayLayer.direction,
@@ -1033,7 +1070,9 @@ export function GodRaysGenerator() {
       );
       const pool = presetsWithHalo.length > 0 ? presetsWithHalo : RAYS_PRESETS;
       const pick = pool[Math.floor(Math.random() * pool.length)];
-      const presetHaloLayer = pick.layers.find((l): l is PresetHaloLayer => l.type === "halo");
+      const presetHaloLayer = pick.layers.find(
+        (l): l is PresetHaloLayer => l.type === "halo"
+      );
       if (!presetHaloLayer) return;
       updateLayer(selectedHaloLayer.id, {
         originX: presetHaloLayer.originX,
@@ -1063,7 +1102,7 @@ export function GodRaysGenerator() {
   };
 
   const handleReset = () => {
-    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
+    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
@@ -1071,7 +1110,7 @@ export function GodRaysGenerator() {
     if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     setScene(s);
     setSelectedLayerId(null);
-    setActiveRaysPreset("r_side_glow");
+    setActiveRaysPreset("r_corner_flare");
     localStorage.removeItem("rays-scene");
     localStorage.removeItem("rays-ui-state");
   };
@@ -1224,63 +1263,35 @@ export function GodRaysGenerator() {
         </SidebarHeader>
 
         <SidebarContent>
-          {/* RAYS / HALO PRESETS */}
+          {/* PRESETS */}
           <SidebarGroup>
             <SidebarGroupLabel>Presets</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className="flex flex-col gap-3 w-full">
-                <div>
-                  <div className="w-full flex gap-2 items-center justify-between mb-1.5">
-                    <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-                      Rays / Halo
-                    </p>
+              <div className="px-2 w-full grid grid-cols-7 gap-1 pb-1">
+                {RAYS_PRESETS.map((p) => (
+                  <div className="w-full aspect-square" key={p.key}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={handleRandomizeRaysPreset}
-                          className="p-0!"
-                          title="Rays aleatório"
+                        <button
+                          onClick={() => applyPreset(p.key)}
+                          className={cn(
+                            "relative border aspect-square w-full overflow-hidden rounded-md transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
+                            activeRaysPreset === p.key && "border-primary"
+                          )}
                         >
-                          <Shuffle className="size-2.5" />
-                        </Button>
+                          <div
+                            className="absolute inset-0 scale-150"
+                            style={{
+                              background: p.thumb,
+                              filter: "blur(3px)",
+                            }}
+                          />
+                        </button>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Rays aleatório</p>
-                      </TooltipContent>
+                      <TooltipContent>{p.label}</TooltipContent>
                     </Tooltip>
                   </div>
-                  <ScrollArea className="h-22 p-1">
-                    <div className="grid grid-cols-6 pb-1">
-                      {RAYS_PRESETS.map((p) => (
-                        <div className="p-1 w-full aspect-square" key={p.key}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => applyPreset(p.key)}
-                                className={cn(
-                                  "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
-                                  activeRaysPreset === p.key &&
-                                    "ring-2 ring-primary"
-                                )}
-                              >
-                                <div
-                                  className="absolute inset-0 scale-150"
-                                  style={{
-                                    background: p.thumb,
-                                    filter: "blur(3px)",
-                                  }}
-                                />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{p.label}</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
+                ))}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1316,20 +1327,12 @@ export function GodRaysGenerator() {
                     <Label className="text-sm font-medium text-foreground/90">
                       Cores
                     </Label>
-                    <div className="flex items-center gap-2">
-                      <ColorPicker
-                        value={bgLayer.bgColor}
-                        onChange={(v) =>
-                          updateLayer("background", { bgColor: v })
-                        }
-                      />
-                      <HexInput
-                        value={bgLayer.bgColor}
-                        onChange={(v) =>
-                          updateLayer("background", { bgColor: v })
-                        }
-                      />
-                    </div>
+                    <ColorField
+                      value={bgLayer.bgColor}
+                      onChange={(v) =>
+                        updateLayer("background", { bgColor: v })
+                      }
+                    />
                   </div>
                 )}
                 {bgLayer.bgType === "gradient" && (
@@ -1338,29 +1341,25 @@ export function GodRaysGenerator() {
                       <Label className="text-sm font-medium text-foreground/90">
                         Cores
                       </Label>
-                      <div className="flex items-center gap-2">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={bgLayer.bgColor}
-                            onChange={(v) =>
-                              updateLayer("background", { bgColor: v })
-                            }
-                          />
-                        </div>
+                      <div className="flex flex-col gap-2">
+                        <ColorField
+                          value={bgLayer.bgColor}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor: v })
+                          }
+                        />
                         <div
-                          className="h-9 flex-1 rounded-lg ring-1 ring-border"
+                          className="h-4 w-full rounded-lg ring-1 ring-border"
                           style={{
                             background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
                           }}
                         />
-                        <div className="flex flex-col items-center gap-1.5">
-                          <ColorPicker
-                            value={bgLayer.bgColor2}
-                            onChange={(v) =>
-                              updateLayer("background", { bgColor2: v })
-                            }
-                          />
-                        </div>
+                        <ColorField
+                          value={bgLayer.bgColor2}
+                          onChange={(v) =>
+                            updateLayer("background", { bgColor2: v })
+                          }
+                        />
                       </div>
                     </div>
 
@@ -1391,7 +1390,12 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Efeitos</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div className={cn("w-full flex flex-col gap-6 px-2 pb-2", isAnimating && "opacity-40 pointer-events-none select-none")}>
+              <div
+                className={cn(
+                  "w-full flex flex-col gap-6 px-2 pb-2",
+                  isAnimating && "opacity-40 pointer-events-none select-none"
+                )}
+              >
                 <Field label="Ruído / grão" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
@@ -1746,7 +1750,10 @@ export function GodRaysGenerator() {
                 </div>
 
                 {/* Hit areas for all non-background layers — selected layer rendered last so its drag overlay is always on top */}
-                {[...nonBgLayers.filter(l => l.id !== selectedLayerId), ...nonBgLayers.filter(l => l.id === selectedLayerId)].map((layer) => {
+                {[
+                  ...nonBgLayers.filter((l) => l.id !== selectedLayerId),
+                  ...nonBgLayers.filter((l) => l.id === selectedLayerId),
+                ].map((layer) => {
                   const bounds = layerBounds.get(layer.id);
                   if (!bounds) return null;
                   const isSelected = layer.id === selectedLayerId;
@@ -1836,8 +1843,12 @@ export function GodRaysGenerator() {
                           isRay
                             ? "group-hover:border-blue-400/50"
                             : "rounded-full group-hover:border-amber-400/50",
-                          isHovered && isRay && "border-dashed border-blue-400/50",
-                          isHovered && !isRay && "rounded-full border-dashed border-amber-400/50"
+                          isHovered &&
+                            isRay &&
+                            "border-dashed border-blue-400/50",
+                          isHovered &&
+                            !isRay &&
+                            "rounded-full border-dashed border-amber-400/50"
                         )}
                       />
                       <span
@@ -1964,7 +1975,9 @@ export function GodRaysGenerator() {
                         )}
                         style={{
                           height: "96px",
-                          width: `${Math.round(96 * (save.scene.width / save.scene.height))}px`,
+                          width: `${Math.round(
+                            96 * (save.scene.width / save.scene.height)
+                          )}px`,
                         }}
                         onClick={() => handleLoadSave(save)}
                         title={new Date(save.createdAt).toLocaleString("pt-BR")}
@@ -2265,26 +2278,15 @@ export function GodRaysGenerator() {
                     <SidebarGroupLabel>Cores</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="px-2 pb-2">
-                        <div className="flex items-center gap-2">
-                          <ColorPicker
-                            value={selectedRayLayer.colorStart}
-                            onChange={(v) =>
-                              updateLayer(selectedRayLayer.id, {
-                                colorStart: v,
-                                colorEnd: v,
-                              })
-                            }
-                          />
-                          <HexInput
-                            value={selectedRayLayer.colorStart}
-                            onChange={(v) =>
-                              updateLayer(selectedRayLayer.id, {
-                                colorStart: v,
-                                colorEnd: v,
-                              })
-                            }
-                          />
-                        </div>
+                        <ColorField
+                          value={selectedRayLayer.colorStart}
+                          onChange={(v) =>
+                            updateLayer(selectedRayLayer.id, {
+                              colorStart: v,
+                              colorEnd: v,
+                            })
+                          }
+                        />
                       </div>
                     </SidebarGroupContent>
                   </SidebarGroup>
@@ -2540,20 +2542,12 @@ export function GodRaysGenerator() {
                   <SidebarGroupContent>
                     <div className="w-full flex flex-col gap-6 px-2 pb-2">
                       <Field label="Cor">
-                        <div className="flex items-center gap-2">
-                          <ColorPicker
-                            value={selectedHaloLayer.color}
-                            onChange={(v) =>
-                              updateLayer(selectedHaloLayer.id, { color: v })
-                            }
-                          />
-                          <HexInput
-                            value={selectedHaloLayer.color}
-                            onChange={(v) =>
-                              updateLayer(selectedHaloLayer.id, { color: v })
-                            }
-                          />
-                        </div>
+                        <ColorField
+                          value={selectedHaloLayer.color}
+                          onChange={(v) =>
+                            updateLayer(selectedHaloLayer.id, { color: v })
+                          }
+                        />
                       </Field>
                       <Field
                         label="Intensidade"

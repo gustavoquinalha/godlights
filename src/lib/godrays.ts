@@ -118,8 +118,8 @@ export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
   rayLength: 1.4,
   opacity: 0.6,
   blendMode: "lighter",
-  colorStart: "#ffd28a",
-  colorEnd: "#ffd28a",
+  colorStart: "#ffffff",
+  colorEnd: "#ffffff",
   fadeToTransparent: true,
   blur: 8,
   randomnessWidth: 30,
@@ -134,16 +134,16 @@ export const DEFAULT_HALO_LAYER: Omit<HaloLayer, "id" | "name"> = {
   originY: 0,
   intensity: 0.5,
   size: 0.25,
-  color: "#ffd28a",
+  color: "#ffffff",
   blendMode: "lighter",
 };
 
 export const DEFAULT_BACKGROUND_LAYER: BackgroundLayer = {
   id: "background",
   type: "background",
-  bgType: "gradient",
-  bgColor: "#0b1024",
-  bgColor2: "#1a1340",
+  bgType: "solid",
+  bgColor: "#000000",
+  bgColor2: "#000000",
   bgGradientAngle: 180,
 };
 
