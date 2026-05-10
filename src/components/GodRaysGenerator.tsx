@@ -75,7 +75,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ColorPicker } from "@/components/ColorPicker";
 import { Field } from "@/components/ControlSection";
-import { COLOR_PRESETS, RAYS_PRESETS, PRESETS, type ColorPreset, type RaysPreset, type PresetRayLayer, type PresetHaloLayer, type PresetLayer } from "@/lib/presets";
+import { RAYS_PRESETS, type RaysPreset, type PresetRayLayer, type PresetHaloLayer, type PresetLayer } from "@/lib/presets";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
@@ -130,44 +130,20 @@ const ZOOM_STEP = 0.1;
 
 // ── Preset helpers ─────────────────────────────────────────────────────────
 
-function applyColorPreset(
-  scene: SceneConfig,
-  flat: Partial<GodRaysConfig>
-): SceneConfig {
-  return {
-    ...scene,
-    layers: scene.layers.map((layer) => {
-      if (layer.type === "rays") {
-        return {
-          ...layer,
-          ...(flat.colorStart !== undefined && { colorStart: flat.colorStart }),
-          ...(flat.colorEnd !== undefined && { colorEnd: flat.colorEnd }),
-          ...(flat.fadeToTransparent !== undefined && {
-            fadeToTransparent: flat.fadeToTransparent,
-          }),
-        };
-      }
-      if (layer.type === "halo") {
-        return {
-          ...layer,
-          ...(flat.haloColor !== undefined && { color: flat.haloColor }),
-        };
-      }
-      return layer;
-    }) as Layer[],
-  };
-}
 
 function applyRaysPreset(
   scene: SceneConfig,
   layers: PresetLayer[]
 ): SceneConfig {
-  // Extract current colors to preserve them
+  // Extract current colors to preserve them, cross-referencing when one type is missing
   const existingRay = scene.layers.find((l): l is RayLayer => l.type === "rays");
   const existingHalo = scene.layers.find((l): l is HaloLayer => l.type === "halo");
-  const rayColorStart = existingRay?.colorStart ?? DEFAULT_RAY_LAYER.colorStart;
-  const rayColorEnd = existingRay?.colorEnd ?? DEFAULT_RAY_LAYER.colorEnd;
-  const haloColor = existingHalo?.color ?? DEFAULT_HALO_LAYER.color;
+  const rayColorStart =
+    existingRay?.colorStart ?? existingHalo?.color ?? DEFAULT_RAY_LAYER.colorStart;
+  const rayColorEnd =
+    existingRay?.colorEnd ?? existingHalo?.color ?? DEFAULT_RAY_LAYER.colorEnd;
+  const haloColor =
+    existingHalo?.color ?? existingRay?.colorStart ?? DEFAULT_HALO_LAYER.color;
 
   // Keep only the background layer
   const bgLayers = scene.layers.filter((l) => l.type === "background");
@@ -312,13 +288,11 @@ export function GodRaysGenerator() {
     } catch {
       /* ignore corrupt data */
     }
-    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
     };
-    if (colorPreset) s = applyColorPreset(s, colorPreset.config);
     if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     return s;
   });
@@ -342,7 +316,6 @@ export function GodRaysGenerator() {
     thumb: string;
     scene: SceneConfig;
     createdAt: number;
-    activeColorPreset?: string | null;
     activeRaysPreset?: string | null;
   }
 
@@ -366,20 +339,6 @@ export function GodRaysGenerator() {
     }
   }, [saves]);
 
-  const [activeColorPreset, setActiveColorPreset] = React.useState<
-    string | null
-  >(() => {
-    try {
-      const raw = localStorage.getItem("rays-ui-state");
-      if (raw) {
-        const parsed = JSON.parse(raw) as { activeColorPreset?: string | null };
-        return parsed.activeColorPreset ?? "c_contentnow";
-      }
-    } catch {
-      /* ignore */
-    }
-    return "c_contentnow";
-  });
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     () => {
       try {
@@ -397,17 +356,17 @@ export function GodRaysGenerator() {
     }
   );
 
-  // Persist active preset keys immediately
+  // Persist active preset key immediately
   React.useEffect(() => {
     try {
       localStorage.setItem(
         "rays-ui-state",
-        JSON.stringify({ activeColorPreset, activeRaysPreset })
+        JSON.stringify({ activeRaysPreset })
       );
     } catch {
       /* quota */
     }
-  }, [activeColorPreset, activeRaysPreset]);
+  }, [activeRaysPreset]);
 
   const generateThumb = React.useCallback(
     async (s: SceneConfig): Promise<string> => {
@@ -440,12 +399,11 @@ export function GodRaysGenerator() {
       thumb,
       scene: JSON.parse(JSON.stringify(scene)) as SceneConfig,
       createdAt: Date.now(),
-      activeColorPreset,
       activeRaysPreset,
     };
     setSaves((prev) => [newSave, ...prev]);
     setSelectedSaveId(newSave.id);
-  }, [scene, generateThumb, activeColorPreset, activeRaysPreset]);
+  }, [scene, generateThumb, activeRaysPreset]);
 
   const handleDeleteSave = React.useCallback((id: string) => {
     setSaves((prev) => prev.filter((s) => s.id !== id));
@@ -455,12 +413,12 @@ export function GodRaysGenerator() {
   const [selectedLayerId, setSelectedLayerId] = React.useState<string | null>(
     null
   );
+  const [hoveredLayerId, setHoveredLayerId] = React.useState<string | null>(null);
 
   const handleLoadSave = React.useCallback((save: SavedScene) => {
     setScene(migrateScene(save.scene));
     setSelectedSaveId(save.id);
     setSelectedLayerId(null);
-    setActiveColorPreset(save.activeColorPreset ?? null);
     setActiveRaysPreset(save.activeRaysPreset ?? null);
   }, []);
   const [copiedJson, setCopiedJson] = React.useState(false);
@@ -1043,13 +1001,6 @@ export function GodRaysGenerator() {
     setActiveRaysPreset(null);
   };
 
-  const handleRandomizeColor = () => {
-    const candidates = COLOR_PRESETS.filter((p) => p.key !== activeColorPreset);
-    const pool = candidates.length > 0 ? candidates : COLOR_PRESETS;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    setScene((s) => applyColorPreset(s, pick.config));
-    setActiveColorPreset(pick.key);
-  };
 
   const handleRandomizeLayer = React.useCallback(() => {
     if (selectedRayLayer) {
@@ -1095,24 +1046,11 @@ export function GodRaysGenerator() {
   }, [selectedRayLayer, selectedHaloLayer, updateLayer]);
 
   const handleRandomizeAll = () => {
-    const colorCandidates = COLOR_PRESETS.filter(
-      (p) => p.key !== activeColorPreset
-    );
-    const colorPool =
-      colorCandidates.length > 0 ? colorCandidates : COLOR_PRESETS;
-    const colorPick = colorPool[Math.floor(Math.random() * colorPool.length)];
-
-    const raysCandidates = RAYS_PRESETS.filter(
-      (p) => p.key !== activeRaysPreset
-    );
-    const raysPool = raysCandidates.length > 0 ? raysCandidates : RAYS_PRESETS;
-    const raysPick = raysPool[Math.floor(Math.random() * raysPool.length)];
-
-    setScene((s) =>
-      applyColorPreset(applyRaysPreset(s, raysPick.layers), colorPick.config)
-    );
-    setActiveColorPreset(colorPick.key);
-    setActiveRaysPreset(raysPick.key);
+    const candidates = RAYS_PRESETS.filter((p) => p.key !== activeRaysPreset);
+    const pool = candidates.length > 0 ? candidates : RAYS_PRESETS;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setScene((s) => applyRaysPreset(s, pick.layers));
+    setActiveRaysPreset(pick.key);
   };
 
   const handleRandomizeRaysPreset = () => {
@@ -1124,32 +1062,24 @@ export function GodRaysGenerator() {
   };
 
   const handleReset = () => {
-    const colorPreset = COLOR_PRESETS.find((p) => p.key === "c_contentnow");
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_side_glow");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
     };
-    if (colorPreset) s = applyColorPreset(s, colorPreset.config);
     if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     setScene(s);
     setSelectedLayerId(null);
-    setActiveColorPreset("c_contentnow");
     setActiveRaysPreset("r_side_glow");
     localStorage.removeItem("rays-scene");
     localStorage.removeItem("rays-ui-state");
   };
 
   const applyPreset = (key: string) => {
-    const preset = PRESETS.find((p) => p.key === key);
+    const preset = RAYS_PRESETS.find((p) => p.key === key);
     if (!preset) return;
-    if (preset.category === "color") {
-      setScene((s) => applyColorPreset(s, (preset as ColorPreset).config));
-      setActiveColorPreset(key);
-    } else {
-      setScene((s) => applyRaysPreset(s, (preset as RaysPreset).layers));
-      setActiveRaysPreset(key);
-    }
+    setScene((s) => applyRaysPreset(s, preset.layers));
+    setActiveRaysPreset(key);
   };
 
   // ── Fitted canvas size ────────────────────────────────────────────────────
@@ -1293,7 +1223,7 @@ export function GodRaysGenerator() {
         </SidebarHeader>
 
         <SidebarContent>
-          {/* PRESETS */}
+          {/* RAYS / HALO PRESETS */}
           <SidebarGroup>
             <SidebarGroupLabel>Presets</SidebarGroupLabel>
             <SidebarGroupContent>
@@ -1301,63 +1231,8 @@ export function GodRaysGenerator() {
                 <div>
                   <div className="w-full flex gap-2 items-center justify-between mb-1.5">
                     <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
-                      Cores
-                    </p>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          onClick={handleRandomizeColor}
-                          className="p-0!"
-                          title="Cor aleatória"
-                        >
-                          <Shuffle className="size-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Cor aleatória</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-
-                  <ScrollArea className="h-22 p-1">
-                    <div className="grid grid-cols-6 pb-1">
-                      {COLOR_PRESETS.map((p) => (
-                        <div className="p-1 w-full aspect-square" key={p.key}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <button
-                                onClick={() => applyPreset(p.key)}
-                                className={cn(
-                                  "relative aspect-square w-full overflow-hidden rounded-md border border-sidebar-border/60 transition-all hover:scale-110 hover:border-sidebar-border hover:shadow-md",
-                                  activeColorPreset === p.key &&
-                                    "ring-2 ring-primary"
-                                )}
-                              >
-                                <div
-                                  className="absolute inset-0 scale-150"
-                                  style={{
-                                    background: p.thumb,
-                                    filter: "blur(3px)",
-                                  }}
-                                />
-                              </button>
-                            </TooltipTrigger>
-                            <TooltipContent>{p.label}</TooltipContent>
-                          </Tooltip>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-
-                <div>
-                  <div className="w-full flex gap-2 items-center justify-between mb-1.5">
-                    <p className="px-2 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/50">
                       Rays / Halo
                     </p>
-
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -1375,7 +1250,6 @@ export function GodRaysGenerator() {
                       </TooltipContent>
                     </Tooltip>
                   </div>
-
                   <ScrollArea className="h-22 p-1">
                     <div className="grid grid-cols-6 pb-1">
                       {RAYS_PRESETS.map((p) => (
@@ -1936,6 +1810,7 @@ export function GodRaysGenerator() {
                   }
 
                   // Click-to-select area for unselected layers
+                  const isHovered = layer.id === hoveredLayerId;
                   return (
                     <div
                       key={layer.id}
@@ -1956,13 +1831,16 @@ export function GodRaysGenerator() {
                           "pointer-events-none absolute inset-0 border border-transparent transition-colors group-hover:border-dashed",
                           isRay
                             ? "group-hover:border-blue-400/50"
-                            : "rounded-full group-hover:border-amber-400/50"
+                            : "rounded-full group-hover:border-amber-400/50",
+                          isHovered && isRay && "border-dashed border-blue-400/50",
+                          isHovered && !isRay && "rounded-full border-dashed border-amber-400/50"
                         )}
                       />
                       <span
                         className={cn(
                           "pointer-events-none absolute -top-5 hidden whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-semibold group-hover:block",
-                          isRay ? "left-0" : "left-1/2 -translate-x-1/2"
+                          isRay ? "left-0" : "left-1/2 -translate-x-1/2",
+                          isHovered && "block"
                         )}
                         style={{
                           background: isRay ? "#60a5fa" : "#fbbf24",
@@ -2268,6 +2146,8 @@ export function GodRaysGenerator() {
                         <div
                           key={layer.id}
                           className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
+                          onMouseEnter={() => setHoveredLayerId(layer.id)}
+                          onMouseLeave={() => setHoveredLayerId(null)}
                         >
                           {/* Clickable area */}
                           <button
@@ -2295,13 +2175,7 @@ export function GodRaysGenerator() {
                               <div
                                 className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
                                 style={{
-                                  background: `linear-gradient(135deg, ${
-                                    layer.colorStart
-                                  }, ${
-                                    layer.fadeToTransparent
-                                      ? "transparent"
-                                      : layer.colorEnd
-                                  })`,
+                                  background: `linear-gradient(135deg, ${layer.colorStart}, transparent)`,
                                 }}
                               />
                             )}
@@ -2386,52 +2260,24 @@ export function GodRaysGenerator() {
                   <SidebarGroup>
                     <SidebarGroupLabel>Cores</SidebarGroupLabel>
                     <SidebarGroupContent>
-                      <div className="space-y-3 px-2 pb-2">
+                      <div className="px-2 pb-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex flex-col items-center gap-1.5">
-                            <ColorPicker
-                              value={selectedRayLayer.colorStart}
-                              onChange={(v) =>
-                                updateLayer(selectedRayLayer.id, {
-                                  colorStart: v,
-                                })
-                              }
-                            />
-                          </div>
-                          <div
-                            className="h-9 flex-1 rounded-lg ring-1 ring-border"
-                            style={{
-                              background: `linear-gradient(to right, ${
-                                selectedRayLayer.colorStart
-                              }, ${
-                                selectedRayLayer.fadeToTransparent
-                                  ? "transparent"
-                                  : selectedRayLayer.colorEnd
-                              })`,
-                            }}
-                          />
-                          <div className="flex flex-col items-center gap-1.5">
-                            <ColorPicker
-                              value={selectedRayLayer.colorEnd}
-                              onChange={(v) =>
-                                updateLayer(selectedRayLayer.id, {
-                                  colorEnd: v,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={selectedRayLayer.fadeToTransparent}
-                            onCheckedChange={(v) =>
+                          <ColorPicker
+                            value={selectedRayLayer.colorStart}
+                            onChange={(v) =>
                               updateLayer(selectedRayLayer.id, {
-                                fadeToTransparent: v === true,
+                                colorStart: v,
+                                colorEnd: v,
                               })
                             }
                           />
-                          Desvanecer para transparente
-                        </label>
+                          <div
+                            className="h-9 flex-1 rounded-lg ring-1 ring-border"
+                            style={{
+                              background: `linear-gradient(to right, ${selectedRayLayer.colorStart}, transparent)`,
+                            }}
+                          />
+                        </div>
                       </div>
                     </SidebarGroupContent>
                   </SidebarGroup>
