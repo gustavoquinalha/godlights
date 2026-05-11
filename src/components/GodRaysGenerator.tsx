@@ -318,12 +318,11 @@ export function GodRaysGenerator() {
     } catch {
       /* ignore corrupt data */
     }
-    const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
     let s: SceneConfig = {
       ...DEFAULT_SCENE,
       layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
     };
-    if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
+    if (RAYS_PRESETS[0]) s = applyRaysPreset(s, RAYS_PRESETS[0].layers);
     return s;
   });
 
