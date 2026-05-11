@@ -23,6 +23,7 @@ export interface GodLightsProps {
  */
 export function GodLights({ scene, animate = false, animParams, showFps = false, className, style }: GodLightsProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const grainCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const sceneRef = React.useRef(scene);
   const animParamsRef = React.useRef(animParams);
   const [fps, setFps] = React.useState(0);
@@ -43,6 +44,43 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
     });
     return () => cancelAnimationFrame(raf);
   }, [scene, animate]);
+
+  // Grain overlay — mesmo tamanho do canvas principal, renderizado uma única vez
+  // Re-renderiza só quando noise, grainSize ou dimensões mudam
+  const { noise, grainSize, width: sceneWidth, height: sceneHeight } = scene;
+  React.useEffect(() => {
+    if (!animate) return;
+    const gc = grainCanvasRef.current;
+    if (!gc || noise <= 0) return;
+    const ctx = gc.getContext("2d");
+    if (!ctx) return;
+    const width = sceneWidth;
+    const height = sceneHeight;
+    const img = ctx.createImageData(width, height);
+    const d = img.data;
+    const step = Math.max(1, Math.floor(grainSize));
+    if (step === 1) {
+      for (let j = 0; j < d.length; j += 4) {
+        const v = (Math.random() * 255) | 0;
+        d[j] = d[j + 1] = d[j + 2] = v;
+        d[j + 3] = 255;
+      }
+    } else {
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const v = (Math.random() * 255) | 0;
+          for (let dy = 0; dy < step && y + dy < height; dy++) {
+            for (let dx = 0; dx < step && x + dx < width; dx++) {
+              const idx = ((y + dy) * width + (x + dx)) * 4;
+              d[idx] = d[idx + 1] = d[idx + 2] = v;
+              d[idx + 3] = 255;
+            }
+          }
+        }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }, [animate, noise, grainSize, sceneWidth, sceneHeight]);
 
   // Animation loop
   React.useEffect(() => {
@@ -75,12 +113,11 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
       setFps(fpsFramesRef.current.length);
 
       const s = sceneRef.current;
-      // Only resize when dimensions actually change — avoids full buffer realloc every frame
       if (canvas.width !== s.width || canvas.height !== s.height) {
         canvas.width = s.width;
         canvas.height = s.height;
       }
-      // skipGrain=true: avoids getImageData/putImageData CPU↔GPU round-trip per frame
+      // skipGrain=true: grain é tratado pelo canvas overlay fixo
       drawScene(canvas, s, time, animParamsRef.current, true);
 
       rafId = requestAnimationFrame(frame);
@@ -90,29 +127,39 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
     return () => cancelAnimationFrame(rafId);
   }, [animate]);
 
-  const canvas = (
-    <canvas
-      ref={canvasRef}
-      width={scene.width}
-      height={scene.height}
-      className={className}
-      style={style}
-    />
-  );
-
-  if (!showFps || !animate) return canvas;
+  const grainOpacity = animate && scene.noise > 0
+    ? (scene.noise / 100) * 0.35
+    : 0;
 
   return (
-    <div className="relative" style={style}>
+    <div className={`relative overflow-hidden ${className ?? ""}`} style={style}>
       <canvas
         ref={canvasRef}
         width={scene.width}
         height={scene.height}
-        className={className}
+        className="absolute inset-0 w-full h-full"
       />
-      <span className="absolute top-3 right-3 rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm pointer-events-none">
-        {fps} fps
-      </span>
+
+      {/* Grain overlay — mesmo tamanho do canvas, textura fixa */}
+      {animate && (
+        <canvas
+          ref={grainCanvasRef}
+          width={scene.width}
+          height={scene.height}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{
+            mixBlendMode: "overlay",
+            opacity: grainOpacity,
+            display: scene.noise > 0 ? "block" : "none",
+          }}
+        />
+      )}
+
+      {showFps && animate && (
+        <span className="absolute top-3 right-3 rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm pointer-events-none">
+          {fps} fps
+        </span>
+      )}
     </div>
   );
 }

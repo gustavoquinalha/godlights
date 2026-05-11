@@ -529,6 +529,7 @@ export function GodRaysGenerator() {
   const animRafRef = React.useRef<number | null>(null);
   const fpsLabelRef = React.useRef<HTMLSpanElement>(null);
   const fpsFramesRef = React.useRef<number[]>([]);
+  const previewGrainCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const deferredScene = React.useDeferredValue(scene);
   // Keep latest deferredScene accessible from animation loop without stale closure
   const deferredSceneRef = React.useRef(deferredScene);
@@ -843,6 +844,37 @@ export function GodRaysGenerator() {
 
     isAnimatingRef.current = true;
 
+    // Grain overlay — renderizado uma única vez ao iniciar (textura fixa sobre os rays animados)
+    // A atualização por noise/grainSize fica no useEffect separado abaixo
+    const grainCtxForAnim = previewGrainCanvasRef.current?.getContext("2d") ?? null;
+    if (grainCtxForAnim && deferredSceneRef.current.noise > 0) {
+      const { width, height } = deferredSceneRef.current;
+      const step = Math.max(1, Math.floor(deferredSceneRef.current.grainSize));
+      const img = grainCtxForAnim.createImageData(width, height);
+      const d = img.data;
+      if (step === 1) {
+        for (let j = 0; j < d.length; j += 4) {
+          const v = (Math.random() * 255) | 0;
+          d[j] = d[j + 1] = d[j + 2] = v;
+          d[j + 3] = 255;
+        }
+      } else {
+        for (let y = 0; y < height; y += step) {
+          for (let x = 0; x < width; x += step) {
+            const v = (Math.random() * 255) | 0;
+            for (let dy = 0; dy < step && y + dy < height; dy++) {
+              for (let dx = 0; dx < step && x + dx < width; dx++) {
+                const idx = ((y + dy) * width + (x + dx)) * 4;
+                d[idx] = d[idx + 1] = d[idx + 2] = v;
+                d[idx + 3] = 255;
+              }
+            }
+          }
+        }
+      }
+      grainCtxForAnim.putImageData(img, 0, 0);
+    }
+
     const frame = (ts: number) => {
       if (!isAnimatingRef.current) return;
       if (animLastTsRef.current !== null) {
@@ -865,12 +897,11 @@ export function GodRaysGenerator() {
       const canvas = previewCanvasRef.current;
       if (canvas) {
         const scaled = scaledSceneRef.current;
-        // Only resize when dimensions actually change — avoids full buffer realloc every frame
         if (canvas.width !== scaled.width || canvas.height !== scaled.height) {
           canvas.width = scaled.width;
           canvas.height = scaled.height;
         }
-        // skipGrain=true: avoids getImageData/putImageData CPU↔GPU round-trip per frame
+        // skipGrain=true: grain é tratado pelo canvas overlay fixo
         drawScene(
           canvas,
           scaled,
@@ -889,6 +920,43 @@ export function GodRaysGenerator() {
       if (animRafRef.current) cancelAnimationFrame(animRafRef.current);
     };
   }, [isAnimating]);
+
+  // Re-renderiza o grain overlay quando noise/grainSize muda durante a animação
+  const { noise: sceneNoise, grainSize: sceneGrainSize, width: sceneWidth, height: sceneHeight } = scene;
+  React.useEffect(() => {
+    if (!isAnimating) return;
+    const gc = previewGrainCanvasRef.current;
+    if (!gc) return;
+    const ctx = gc.getContext("2d");
+    if (!ctx) return;
+    if (sceneNoise <= 0) return;
+    const width = sceneWidth;
+    const height = sceneHeight;
+    const img = ctx.createImageData(width, height);
+    const d = img.data;
+    const step = Math.max(1, Math.floor(sceneGrainSize));
+    if (step === 1) {
+      for (let j = 0; j < d.length; j += 4) {
+        const v = (Math.random() * 255) | 0;
+        d[j] = d[j + 1] = d[j + 2] = v;
+        d[j + 3] = 255;
+      }
+    } else {
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const v = (Math.random() * 255) | 0;
+          for (let dy = 0; dy < step && y + dy < height; dy++) {
+            for (let dx = 0; dx < step && x + dx < width; dx++) {
+              const idx = ((y + dy) * width + (x + dx)) * 4;
+              d[idx] = d[idx + 1] = d[idx + 2] = v;
+              d[idx + 3] = 255;
+            }
+          }
+        }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }, [isAnimating, sceneNoise, sceneGrainSize, sceneWidth, sceneHeight]);
 
   // ── Drag to move origin ───────────────────────────────────────────────────
 
@@ -1558,12 +1626,7 @@ export function GodRaysGenerator() {
           <SidebarGroup>
             <SidebarGroupLabel>Effects</SidebarGroupLabel>
             <SidebarGroupContent>
-              <div
-                className={cn(
-                  "w-full flex flex-col gap-6 px-2 pb-2",
-                  isAnimating && "opacity-40 pointer-events-none select-none"
-                )}
-              >
+              <div className="w-full flex flex-col gap-6 px-2 pb-2">
                 <Field label="Noise / grain" value={scene.noise.toFixed(0)}>
                   <Slider
                     min={0}
@@ -1586,11 +1649,6 @@ export function GodRaysGenerator() {
                     onValueChange={([v]) => updateScene({ grainSize: v })}
                   />
                 </Field>
-                {isAnimating && (
-                  <p className="text-[11px] text-muted-foreground leading-snug -mt-2">
-                    Noise disabled in animation mode.
-                  </p>
-                )}
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -1833,11 +1891,25 @@ export function GodRaysGenerator() {
                       }}
                     >
                       {/* Wrapper holds visual styles so canvas repaints don't re-trigger shadow/radius compositing */}
-                      <div className="block h-full w-full rounded-2xl shadow-2xl overflow-hidden">
+                      <div className="relative block h-full w-full rounded-2xl shadow-2xl overflow-hidden">
                         <canvas
                           ref={previewCanvasRef}
                           className="block h-full w-full"
                         />
+                        {/* Grain overlay — mesmas dimensões do scene, CSS escala para o preview */}
+                        {isAnimating && (
+                          <canvas
+                            ref={previewGrainCanvasRef}
+                            width={scene.width}
+                            height={scene.height}
+                            className="absolute inset-0 w-full h-full pointer-events-none"
+                            style={{
+                              mixBlendMode: "overlay",
+                              opacity: (scene.noise / 100) * 0.35,
+                              display: scene.noise > 0 ? "block" : "none",
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Hit areas for all non-background layers — selected layer rendered last so its drag overlay is always on top */}
