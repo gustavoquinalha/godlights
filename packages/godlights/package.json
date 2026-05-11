@@ -14,9 +14,17 @@
     }
   },
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.mjs",
+    "dist/*.d.ts",
     "README.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gustavoquinalha/rays-generator.git",
+    "directory": "packages/godlights"
+  },
+  "homepage": "https://github.com/gustavoquinalha/rays-generator/tree/main/packages/godlights#readme",
   "sideEffects": false,
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
