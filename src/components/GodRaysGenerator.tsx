@@ -1876,7 +1876,7 @@ export function GodRaysGenerator() {
                       "h-full w-full",
                       isMiddlePanning ? "cursor-grabbing" : "cursor-default"
                     )}
-                    onClick={() => setSelectedLayerId(null)}
+                    onClick={() => { setSelectedLayerId(null); setHoveredLayerId(null); }}
                   >
                     <div
                       ref={previewWrapperRef}
@@ -2284,7 +2284,7 @@ export function GodRaysGenerator() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                      onClick={() => setSelectedLayerId(null)}
+                      onClick={() => { setSelectedLayerId(null); setHoveredLayerId(null); }}
                       title="Back to layers"
                     >
                       <ChevronLeft className="size-3" />
@@ -2379,7 +2379,10 @@ export function GodRaysGenerator() {
                           {/* Clickable area */}
                           <button
                             className="w-full p-3 text-left cursor-pointer"
-                            onClick={() => setSelectedLayerId(layer.id)}
+                            onClick={() => {
+                              setSelectedLayerId(layer.id);
+                              setHoveredLayerId(null);
+                            }}
                           >
                             <div className="mb-2.5 flex items-center justify-between">
                               <div className="flex items-center gap-2">
