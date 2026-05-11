@@ -168,14 +168,14 @@ export default function LandingPage() {
           </div>
 
           <div className="flex gap-2 items-center justify-center flex-wrap">
-            <Button className="rounded-full" variant={"outline"} asChild>
+            <Button className="rounded-full" variant={"ghost"} asChild>
               <a href="/docs">
                 <BookCopyIcon className="4.5" />
                 Docs
               </a>
             </Button>
 
-            <Button className="rounded-full" asChild>
+            <Button className="rounded-full" variant={"outline"} asChild>
               <a href="/editor">
                 Get started
                 <ArrowRight className="4.5" />
@@ -185,7 +185,7 @@ export default function LandingPage() {
 
           {/* npm install pill */}
 
-          <div className="w-full absolute bottom-4 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
+          <div className="w-full absolute bottom-0 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
             <button
               onClick={handleCopyInstall}
               className="hidden md:flex cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"

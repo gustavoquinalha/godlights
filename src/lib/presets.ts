@@ -35,11 +35,14 @@ export interface PresetHaloLayer {
 
 export type PresetLayer = PresetRayLayer | PresetHaloLayer;
 
+export type PresetTag = "top" | "corner" | "side" | "beam" | "soft" | "wide" | "dramatic";
+
 export interface RaysPreset {
   key: string;
   label: string;
   thumb: string;
   category: "rays";
+  tags: PresetTag[];
   layers: PresetLayer[];
 }
 
@@ -51,6 +54,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_corner_haze",
     label: "Corner haze",
+    tags: ["corner", "soft"],
     thumb:
       "conic-gradient(from 130deg at 12% 0%, transparent 0deg, #bbb 70deg, transparent 70deg), conic-gradient(from 168deg at 88% 0%, transparent 0deg, #777 18deg, transparent 18deg)",
     category: "rays",
@@ -114,6 +118,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_left_spot",
     label: "Left spot",
+    tags: ["corner", "dramatic"],
     thumb:
       "conic-gradient(from 152deg at 23% 0%, transparent 0deg, #aaa 5deg, transparent 5deg)",
     category: "rays",
@@ -177,6 +182,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_corner_flare",
     label: "Corner flare",
+    tags: ["corner"],
     thumb:
       "conic-gradient(from 137deg at 15% 0%, transparent 0deg, #aaa 48deg, transparent 48deg), conic-gradient(from 174deg at 91% 0%, transparent 0deg, #888 10deg, transparent 10deg)",
     category: "rays",
@@ -240,6 +246,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_warm_haze",
     label: "Soft corner",
+    tags: ["corner", "soft"],
     thumb:
       "conic-gradient(from 137deg at 20% 0%, transparent 0deg, #aaa 48deg, transparent 48deg)",
     category: "rays",
@@ -276,6 +283,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_canopy",
     label: "Canopy",
+    tags: ["top", "wide"],
     thumb:
       "conic-gradient(from 178deg at 80% 0%, transparent 0deg, #aaa 35deg, transparent 35deg)",
     category: "rays",
@@ -304,6 +312,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_aurora",
     label: "Aurora",
+    tags: ["top", "wide", "soft"],
     thumb:
       "conic-gradient(from 120deg at 50% 0%, transparent 0deg, #aaa 120deg, transparent 120deg)",
     category: "rays",
@@ -340,6 +349,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_beam_array",
     label: "Beam array",
+    tags: ["top", "beam"],
     thumb:
       "conic-gradient(from 168deg at 91% 0%, transparent 0deg, #aaa 8deg, transparent 8deg), conic-gradient(from 168deg at 77% 0%, transparent 0deg, #888 8deg, transparent 8deg), conic-gradient(from 168deg at 63% 0%, transparent 0deg, #666 8deg, transparent 8deg), conic-gradient(from 168deg at 49% 0%, transparent 0deg, #444 8deg, transparent 8deg), conic-gradient(from 168deg at 35% 0%, transparent 0deg, #333 8deg, transparent 8deg)",
     category: "rays",
@@ -468,6 +478,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_twin_beam",
     label: "Twin beam",
+    tags: ["top", "beam"],
     thumb:
       "conic-gradient(from 168deg at 85% 0%, transparent 0deg, #aaa 12deg, transparent 12deg)",
     category: "rays",
@@ -531,6 +542,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_side_glow",
     label: "Right wash",
+    tags: ["side", "soft"],
     thumb:
       "conic-gradient(from 174deg at 100% 0%, transparent 0deg, #aaa 87deg, transparent 87deg)",
     category: "rays",
@@ -567,6 +579,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_projector",
     label: "Projector",
+    tags: ["side", "dramatic"],
     thumb:
       "conic-gradient(from 74deg at 0% 79%, transparent 0deg, #aaa 6deg, transparent 6deg)",
     category: "rays",
@@ -603,6 +616,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_fan",
     label: "Fan",
+    tags: ["side", "wide"],
     thumb:
       "conic-gradient(from 94deg at 0% 20%, transparent 0deg, #aaa 12deg, transparent 12deg)",
     category: "rays",
@@ -639,6 +653,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_sidelight",
     label: "Left light",
+    tags: ["side"],
     thumb:
       "conic-gradient(from 76deg at 0% 40%, transparent 0deg, #aaa 50deg, transparent 50deg)",
     category: "rays",
@@ -675,6 +690,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_rim_light",
     label: "Rim light",
+    tags: ["corner", "dramatic"],
     thumb:
       "conic-gradient(from 100deg at 0% 0%, transparent 0deg, #aaa 80deg, transparent 80deg)",
     category: "rays",
@@ -711,6 +727,7 @@ export const RAYS_PRESETS: RaysPreset[] = [
   {
     key: "r_twilight",
     label: "Dusk",
+    tags: ["side", "dramatic"],
     thumb:
       "conic-gradient(from 243deg at 100% 55%, transparent 0deg, #aaa 45deg, transparent 45deg)",
     category: "rays",

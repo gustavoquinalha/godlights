@@ -30,6 +30,7 @@ import {
   Clapperboard,
   BookmarkCheck,
   BookOpen,
+  Link,
 } from "lucide-react";
 import {
   drawScene,
@@ -89,6 +90,7 @@ import {
   type PresetHaloLayer,
   type PresetLayer,
 } from "@/lib/presets";
+import { decodeScene, buildShareUrl } from "@/lib/share";
 import {
   Popover,
   PopoverTrigger,
@@ -298,10 +300,17 @@ export function GodRaysGenerator() {
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
-    // If coming from /presets with ?preset=key, apply that preset (skip localStorage)
-    const urlPresetKey = new URLSearchParams(window.location.search).get(
-      "preset"
-    );
+    const params = new URLSearchParams(window.location.search);
+
+    // ?scene=<encoded> — shared scene URL (highest priority)
+    const urlScene = params.get("scene");
+    if (urlScene) {
+      const decoded = decodeScene(urlScene);
+      if (decoded) return migrateScene(decoded);
+    }
+
+    // If coming from /presets with ?preset=key, apply that preset
+    const urlPresetKey = params.get("preset");
     if (urlPresetKey) {
       const urlPreset = RAYS_PRESETS.find((p) => p.key === urlPresetKey);
       if (urlPreset) {
@@ -458,6 +467,7 @@ export function GodRaysGenerator() {
   const [copiedCss, setCopiedCss] = React.useState(false);
   const [copiedInstall, setCopiedInstall] = React.useState(false);
   const [copiedComponentUsage, setCopiedComponentUsage] = React.useState(false);
+  const [copiedShareUrl, setCopiedShareUrl] = React.useState(false);
   const [componentDialogOpen, setComponentDialogOpen] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
   const [zoom, setZoom] = React.useState(1);
@@ -1090,6 +1100,13 @@ export function GodRaysGenerator() {
 
   const handleCopyComponent = () => setComponentDialogOpen(true);
 
+  const handleShareUrl = async () => {
+    const url = buildShareUrl(scene);
+    await navigator.clipboard.writeText(url);
+    setCopiedShareUrl(true);
+    window.setTimeout(() => setCopiedShareUrl(false), 2000);
+  };
+
   const handleCopyInstall = async () => {
     await navigator.clipboard.writeText("npm install godlights");
     setCopiedInstall(true);
@@ -1696,24 +1713,37 @@ export function GodRaysGenerator() {
                 </div>
 
                 <div className="flex items-center gap-2 flex-1 justify-end">
-                  {/* Exportar dropdown — desktop only */}
+                  {/* Share — desktop only */}
                   <Button
                     variant={"outline"}
-                    size="sm"
-                    className="hidden lg:inline-flex h-8 gap-1.5"
+                    size="icon-xs"
+                    className="hidden lg:inline-flex gap-1.5"
+                    onClick={handleShareUrl}
+                  >
+                    {copiedShareUrl ? (
+                      <Check className="size-3.5" />
+                    ) : (
+                      <Link className="size-3.5" />
+                    )}
+                  </Button>
+
+                  {/* Save — desktop only */}
+                  <Button
+                    variant={"outline"}
+                    size="icon-xs"
+                    className="hidden lg:inline-flex gap-1.5"
                     onClick={() => {
                       handleSaveSlot();
                     }}
                   >
                     <SaveIcon className="size-3.5" />
-                    Save
                   </Button>
 
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         size="sm"
-                        className="hidden lg:inline-flex h-8 gap-1.5"
+                        className="hidden lg:inline-flex gap-1.5"
                       >
                         <Download className="size-3.5" />
                         Export
@@ -1798,6 +1828,14 @@ export function GodRaysGenerator() {
                       <DropdownMenuItem onClick={handleSaveSlot}>
                         <SaveIcon className="size-3.5 shrink-0" />
                         Save
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleShareUrl}>
+                        {copiedShareUrl ? (
+                          <Check className="size-3.5 shrink-0" />
+                        ) : (
+                          <Link className="size-3.5 shrink-0" />
+                        )}
+                        {copiedShareUrl ? "Copied!" : "Share"}
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <a href="/docs">
@@ -2067,7 +2105,7 @@ export function GodRaysGenerator() {
                       <div className="flex items-center gap-1 rounded-full border border-border bg-background/80 px-2 py-1 shadow-lg backdrop-blur-sm">
                         <Button
                           variant="ghost"
-                          size="icon-sm"
+                          size="icon-xs"
                           onClick={() => changeZoom(-ZOOM_STEP)}
                           disabled={zoom <= MIN_ZOOM}
                           className="h-7 w-7 rounded-full hidden md:flex"
@@ -2085,7 +2123,7 @@ export function GodRaysGenerator() {
                         </Button>
                         <Button
                           variant="ghost"
-                          size="icon-sm"
+                          size="icon-xs"
                           onClick={() => changeZoom(ZOOM_STEP)}
                           disabled={zoom >= MAX_ZOOM}
                           className="h-7 w-7 rounded-full hidden md:flex"
@@ -2096,7 +2134,7 @@ export function GodRaysGenerator() {
                         <div className="mx-1 h-4 w-px bg-border" />
                         <Button
                           variant="ghost"
-                          size="icon-sm"
+                          size="icon-xs"
                           onClick={resetView}
                           className="h-7 w-7 rounded-full"
                           title="Zoom 100%"
