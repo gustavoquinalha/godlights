@@ -46,8 +46,6 @@ import {
   type BackgroundLayer,
   type BackgroundType,
 } from "godlights";
-import godRaysRaw from "@godlights/godrays.ts?raw";
-import godLightsRaw from "@godlights/GodLights.tsx?raw";
 import { OriginCrosshair } from "@/components/OriginCrosshair";
 import { BlendModeSelect } from "@/components/BlendModeSelect";
 import { OriginInputs } from "@/components/OriginInputs";
@@ -458,7 +456,7 @@ export function GodRaysGenerator() {
   }, []);
   const [copiedJson, setCopiedJson] = React.useState(false);
   const [copiedCss, setCopiedCss] = React.useState(false);
-  const [copiedComponentSrc, setCopiedComponentSrc] = React.useState(false);
+  const [copiedInstall, setCopiedInstall] = React.useState(false);
   const [copiedComponentUsage, setCopiedComponentUsage] = React.useState(false);
   const [componentDialogOpen, setComponentDialogOpen] = React.useState(false);
   const [exporting, setExporting] = React.useState<"png" | "jpg" | null>(null);
@@ -1092,15 +1090,10 @@ export function GodRaysGenerator() {
 
   const handleCopyComponent = () => setComponentDialogOpen(true);
 
-  const downloadTextFile = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: "text/plain" });
-    downloadBlob(blob, filename);
-  };
-
-  const handleCopyComponentSrc = async () => {
-    await navigator.clipboard.writeText(godLightsRaw);
-    setCopiedComponentSrc(true);
-    window.setTimeout(() => setCopiedComponentSrc(false), 1800);
+  const handleCopyInstall = async () => {
+    await navigator.clipboard.writeText("npm install godlights");
+    setCopiedInstall(true);
+    window.setTimeout(() => setCopiedInstall(false), 1800);
   };
 
   const handleCopyComponentUsage = async () => {
@@ -1795,6 +1788,10 @@ export function GodRaysGenerator() {
                           <Moon className="size-3.5 shrink-0" />
                         )}
                         {dark ? "Light mode" : "Dark mode"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleSaveSlot}>
+                        <SaveIcon className="size-3.5 shrink-0" />
+                        Save
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
@@ -2830,112 +2827,55 @@ export function GodRaysGenerator() {
               Export as React Component
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Add the files to your project and use the component with the
-              configured scene.
+              Install the{" "}
+              <a
+                href="https://www.npmjs.com/package/godlights"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                godlights
+              </a>{" "}
+              package and use the component with your configured scene.
             </p>
           </DialogHeader>
 
           <div className="overflow-y-auto flex-1 px-6 py-5 flex flex-col gap-6">
-            {/* Step 1 */}
+            {/* Step 1 — Install */}
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">1. Component</h3>
+                <h3 className="text-sm font-semibold">1. Install</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Add{" "}
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    GodLights.tsx
-                  </code>{" "}
-                  to your{" "}
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    src/components/
-                  </code>{" "}
-                  folder:
+                  Add the package to your project:
                 </p>
               </div>
               <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
                   <span className="text-[11px] font-mono text-muted-foreground">
-                    GodLights.tsx
+                    terminal
                   </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleCopyComponentSrc}
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {copiedComponentSrc ? (
-                        <Check className="size-3" />
-                      ) : (
-                        <Copy className="size-3" />
-                      )}
-                      {copiedComponentSrc ? "Copied!" : "Copy"}
-                    </button>
-                    <button
-                      onClick={() =>
-                        downloadTextFile(godLightsRaw, "GodLights.tsx")
-                      }
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Download className="size-3" />
-                      Download
-                    </button>
-                  </div>
-                </div>
-                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-56 overflow-y-auto">
-                  <code>{godLightsRaw}</code>
-                </pre>
-              </div>
-            </section>
-
-            {/* Step 2 */}
-            <section className="flex flex-col gap-3">
-              <div>
-                <h3 className="text-sm font-semibold">2. Dependency</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Add{" "}
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    godrays.ts
-                  </code>{" "}
-                  to your{" "}
-                  <code className="bg-muted px-1 py-0.5 rounded text-[11px]">
-                    src/lib/
-                  </code>{" "}
-                  — contains all rendering logic:
-                </p>
-              </div>
-              <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
-                  <span className="text-[11px] font-mono text-muted-foreground">
-                    godrays.ts
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(godRaysRaw);
-                      }}
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                    >
+                  <button
+                    onClick={handleCopyInstall}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {copiedInstall ? (
+                      <Check className="size-3" />
+                    ) : (
                       <Copy className="size-3" />
-                      Copy
-                    </button>
-                    <button
-                      onClick={() => downloadTextFile(godRaysRaw, "godrays.ts")}
-                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <Download className="size-3" />
-                      Download
-                    </button>
-                  </div>
+                    )}
+                    {copiedInstall ? "Copied!" : "Copy"}
+                  </button>
                 </div>
-                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-56 overflow-y-auto">
-                  <code>{godRaysRaw}</code>
+                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80">
+                  <code>npm install godlights</code>
                 </pre>
               </div>
             </section>
 
-            {/* Step 3 */}
+            {/* Step 2 — Usage */}
             <section className="flex flex-col gap-3">
               <div>
-                <h3 className="text-sm font-semibold">3. Usage</h3>
+                <h3 className="text-sm font-semibold">2. Usage</h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Import the component and pass your configured scene as a prop:
                 </p>
@@ -2957,7 +2897,7 @@ export function GodRaysGenerator() {
                     {copiedComponentUsage ? "Copied!" : "Copy"}
                   </button>
                 </div>
-                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-72 overflow-y-auto">
+                <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-96 overflow-y-auto">
                   <code>{buildUsageSnippet()}</code>
                 </pre>
               </div>
