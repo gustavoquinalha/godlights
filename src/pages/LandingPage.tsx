@@ -147,11 +147,11 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-4">
             <button
               onClick={handleCopyInstall}
-              className="flex md:hidden items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
+              className="flex md:hidden cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
             >
               <span className="truncate min-w-0">npm install godlights</span>
               {copied ? (
-                <Check className="size-3.5 shrink-0 text-green-500" />
+                <Check className="size-3.5 shrink-0 text-emerald-500" />
               ) : (
                 <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
               )}
@@ -188,7 +188,7 @@ export default function LandingPage() {
           <div className="w-full absolute bottom-4 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
             <button
               onClick={handleCopyInstall}
-              className="hidden md:flex items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
+              className="hidden md:flex cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
             >
               <span className="truncate min-w-0">npm install godlights</span>
               {copied ? (
