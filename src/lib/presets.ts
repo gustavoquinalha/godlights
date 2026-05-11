@@ -482,42 +482,6 @@ export const RAYS_PRESETS: RaysPreset[] = [
     ],
   },
   {
-    key: "r_rake",
-    label: "Rake",
-    thumb:
-      "conic-gradient(from 25deg at 0% 100%, transparent 0deg, #aaa 40deg, transparent 40deg)",
-    category: "rays",
-    layers: [
-      {
-        type: "rays",
-        direction: 45,
-        spread: 40,
-        originX: -10,
-        originY: 115,
-        rayCount: 16,
-        rayWidth: 80,
-        divergence: 1.8,
-        rayLength: 1.7,
-        opacity: 0.6,
-        blendMode: "lighter",
-        fadeToTransparent: true,
-        blur: 18,
-        randomnessWidth: 30,
-        randomnessLength: 30,
-        randomnessAngle: 30,
-        seed: 303030,
-      },
-      {
-        type: "halo",
-        originX: 25,
-        originY: 70,
-        intensity: 0.5,
-        size: 0.28,
-        blendMode: "lighter",
-      },
-    ],
-  },
-  {
     key: "r_twilight",
     label: "Twilight",
     thumb:

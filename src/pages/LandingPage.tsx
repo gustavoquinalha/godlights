@@ -24,7 +24,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Pipette } from "lucide-react";
 
 const HERO_ANIM: AnimParams = {
   speed: 3,
@@ -72,6 +72,13 @@ function presetToScene(preset: RaysPreset, color: string): SceneConfig {
     grainSize: 1,
     layers: [bgLayer, ...layers],
   };
+}
+
+function hexLuminance(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 export default function LandingPage() {
@@ -123,10 +130,12 @@ export default function LandingPage() {
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  title="Cor"
-                  className="size-8 rounded-full border cursor-pointer"
+                  title="Color"
+                  className="size-8 rounded-full border cursor-pointer flex items-center justify-center"
                   style={{ background: color }}
-                />
+                >
+                  <Pipette className="size-4" style={{ color: hexLuminance(color) > 0.4 ? "#000" : "#fff" }} />
+                </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3" align="center" side="top">
                 <HexColorPicker color={color} onChange={setColor} />

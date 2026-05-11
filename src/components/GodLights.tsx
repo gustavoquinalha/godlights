@@ -1,4 +1,5 @@
 import React from "react";
+import { cn } from "@/lib/utils";
 import { drawScene, SceneConfig, AnimParams } from "@/lib/godrays";
 
 export interface GodLightsProps {
@@ -132,7 +133,7 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
     : 0;
 
   return (
-    <div className={`relative overflow-hidden ${className ?? ""}`} style={style}>
+    <div className={cn("relative overflow-hidden", className)} style={style}>
       <canvas
         ref={canvasRef}
         width={scene.width}
