@@ -2299,19 +2299,37 @@ export function GodRaysGenerator() {
                     </div>
                   </div>
                   {(selectedRayLayer || selectedHaloLayer) && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 shrink-0"
-                          onClick={handleRandomizeLayer}
-                        >
-                          <Shuffle className="size-3" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Randomize layer</TooltipContent>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0"
+                            onClick={handleRandomizeLayer}
+                          >
+                            <Shuffle className="size-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Randomize layer</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => {
+                              removeLayer(selectedLayerId!);
+                              setSelectedLayerId(null);
+                            }}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove layer</TooltipContent>
+                      </Tooltip>
+                    </div>
                   )}
                 </div>
               )}
