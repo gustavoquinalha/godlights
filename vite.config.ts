@@ -8,6 +8,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Resolve godlights from package source in dev (no need to build dist first)
+      "godlights": path.resolve(__dirname, "./packages/godlights/src/index.ts"),
+      // Alias for ?raw imports of package source in editor
+      "@godlights": path.resolve(__dirname, "./packages/godlights/src"),
     },
   },
   build: {

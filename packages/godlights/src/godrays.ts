@@ -159,7 +159,7 @@ export const DEFAULT_SCENE: SceneConfig = {
   ],
 };
 
-// ── Legacy flat config (kept for presets.ts compatibility) ─────────────────
+// ── Legacy flat config (kept for backward compatibility) ───────────────────
 
 export interface GodRaysConfig {
   width: number;
@@ -361,8 +361,7 @@ function drawRaysShapes(
     const slot = layer.rayCount > 1 ? spread / (layer.rayCount - 1) : spread;
     const jitter = (rng() - 0.5) * (rndA / 100) * slot;
 
-    // Smooth per-ray oscillation — golden-ratio phase keeps rays independent
-    const phase = i * 2.399; // ~golden angle (rad), no extra RNG needed
+    const phase = i * 2.399;
     const aAmp = anim ? anim.angleAmp / 50 : 1;
     const lAmp = anim ? anim.lengthAmp / 50 : 1;
     const wAmp = anim ? anim.widthAmp / 50 : 1;
@@ -413,9 +412,6 @@ function renderRays(
   anim?: AnimParams
 ) {
   if (layer.blur > 0) {
-    // Draw all rays into an offscreen canvas first (no blur per-shape),
-    // then composite the whole layer with a single blur pass onto the main canvas.
-    // This reduces blur operations from rayCount → 1, a massive speedup.
     const off = new OffscreenCanvas(width, height);
     const offCtx = off.getContext("2d");
     if (!offCtx) return;
@@ -435,7 +431,13 @@ function renderRays(
 
 /* ----------------- main scene render ----------------- */
 
-export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig, time = 0, anim?: AnimParams, skipGrain = false): void {
+export function drawScene(
+  canvas: HTMLCanvasElement,
+  scene: SceneConfig,
+  time = 0,
+  anim?: AnimParams,
+  skipGrain = false
+): void {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   const { width, height } = canvas;
@@ -453,12 +455,9 @@ export function drawScene(canvas: HTMLCanvasElement, scene: SceneConfig, time = 
   }
 }
 
-/* ----------------- legacy single-pass render (kept for drawGodRays callers) --- */
+/* ----------------- legacy single-pass render ----------------- */
 
-export function drawGodRays(
-  canvas: HTMLCanvasElement,
-  config: GodRaysConfig
-): void {
+export function drawGodRays(canvas: HTMLCanvasElement, config: GodRaysConfig): void {
   drawScene(canvas, {
     width: config.width,
     height: config.height,
@@ -570,7 +569,7 @@ export async function exportScene(
     off.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("Falha ao gerar imagem"));
+        else reject(new Error("Failed to generate image"));
       },
       type,
       quality
@@ -587,7 +586,6 @@ export async function buildSceneCssSnippet(scene: SceneConfig): Promise<string> 
   return `background-image: url("${dataUrl}");\nbackground-size: cover;\nbackground-position: center;\nbackground-repeat: no-repeat;`;
 }
 
-// kept for backward-compat callers
 export async function exportImage(
   config: GodRaysConfig,
   type: "image/png" | "image/jpeg",
@@ -601,7 +599,7 @@ export async function exportImage(
     off.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("Falha ao gerar imagem"));
+        else reject(new Error("Failed to generate image"));
       },
       type,
       quality

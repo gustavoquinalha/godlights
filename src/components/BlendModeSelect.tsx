@@ -1,4 +1,4 @@
-import { BLEND_MODES, type BlendMode } from "@/lib/godrays";
+import { BLEND_MODES, type BlendMode } from "godlights";
 import {
   Select,
   SelectContent,

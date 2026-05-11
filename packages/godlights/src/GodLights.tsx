@@ -1,9 +1,8 @@
 import React from "react";
-import { cn } from "@/lib/utils";
-import { drawScene, SceneConfig, AnimParams } from "@/lib/godrays";
+import { drawScene, SceneConfig, AnimParams } from "./godrays";
 
 export interface GodLightsProps {
-  /** Full scene configuration — use the Godlights generator to build this. */
+  /** Full scene configuration — use the Godlights editor to build this. */
   scene: SceneConfig;
   /** Enable animation loop. */
   animate?: boolean;
@@ -15,14 +14,32 @@ export interface GodLightsProps {
   style?: React.CSSProperties;
 }
 
+const fillAbsolute: React.CSSProperties = {
+  position: "absolute",
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  width: "100%",
+  height: "100%",
+  display: "block",
+};
+
 /**
  * Standalone Godlights canvas component.
  *
  * @example
  * <GodLights scene={myScene} className="w-full h-full" />
- * <GodLights scene={myScene} animate showFps animParams={{ speed: 1, angleAmp: 50, lengthAmp: 50, widthAmp: 50, haloAmp: 50 }} />
+ * <GodLights scene={myScene} animate animParams={{ speed: 1, angleAmp: 50, lengthAmp: 50, widthAmp: 50, haloAmp: 50 }} />
  */
-export function GodLights({ scene, animate = false, animParams, showFps = false, className, style }: GodLightsProps) {
+export function GodLights({
+  scene,
+  animate = false,
+  animParams,
+  showFps = false,
+  className,
+  style,
+}: GodLightsProps) {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const grainCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const sceneRef = React.useRef(scene);
@@ -46,8 +63,8 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
     return () => cancelAnimationFrame(raf);
   }, [scene, animate]);
 
-  // Grain overlay — mesmo tamanho do canvas principal, renderizado uma única vez
-  // Re-renderiza só quando noise, grainSize ou dimensões mudam
+  // Grain overlay — rendered once, stays fixed (static texture over moving rays)
+  // Re-renders only when noise amount, grain size or dimensions change
   const { noise, grainSize, width: sceneWidth, height: sceneHeight } = scene;
   React.useEffect(() => {
     if (!animate) return;
@@ -104,21 +121,22 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
       }
       lastTs = ts;
 
-      // FPS: sliding 1-second window
-      const frames = fpsFramesRef.current;
-      frames.push(ts);
-      const cutoff = ts - 1000;
-      let i = 0;
-      while (i < frames.length && frames[i] < cutoff) i++;
-      fpsFramesRef.current = frames.slice(i);
-      setFps(fpsFramesRef.current.length);
+      if (showFps) {
+        const frames = fpsFramesRef.current;
+        frames.push(ts);
+        const cutoff = ts - 1000;
+        let i = 0;
+        while (i < frames.length && frames[i] < cutoff) i++;
+        fpsFramesRef.current = frames.slice(i);
+        setFps(fpsFramesRef.current.length);
+      }
 
       const s = sceneRef.current;
       if (canvas.width !== s.width || canvas.height !== s.height) {
         canvas.width = s.width;
         canvas.height = s.height;
       }
-      // skipGrain=true: grain é tratado pelo canvas overlay fixo
+      // skipGrain=true: grain handled by the fixed overlay canvas
       drawScene(canvas, s, time, animParamsRef.current, true);
 
       rafId = requestAnimationFrame(frame);
@@ -126,38 +144,57 @@ export function GodLights({ scene, animate = false, animParams, showFps = false,
 
     rafId = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafId);
-  }, [animate]);
+  }, [animate, showFps]);
 
-  const grainOpacity = animate && scene.noise > 0
-    ? (scene.noise / 100) * 0.35
-    : 0;
+  const grainOpacity = animate && noise > 0 ? (noise / 100) * 0.35 : 0;
 
   return (
-    <div className={cn("relative overflow-hidden", className)} style={style}>
+    <div
+      className={className}
+      style={{ position: "relative", overflow: "hidden", ...style }}
+    >
+      {/* Main render canvas */}
       <canvas
         ref={canvasRef}
-        width={scene.width}
-        height={scene.height}
-        className="absolute inset-0 w-full h-full"
+        width={sceneWidth}
+        height={sceneHeight}
+        style={fillAbsolute}
       />
 
-      {/* Grain overlay — mesmo tamanho do canvas, textura fixa */}
+      {/* Grain overlay — same size as main canvas, fixed texture */}
       {animate && (
         <canvas
           ref={grainCanvasRef}
-          width={scene.width}
-          height={scene.height}
-          className="absolute inset-0 w-full h-full pointer-events-none"
+          width={sceneWidth}
+          height={sceneHeight}
           style={{
+            ...fillAbsolute,
+            pointerEvents: "none",
             mixBlendMode: "overlay",
             opacity: grainOpacity,
-            display: scene.noise > 0 ? "block" : "none",
+            display: noise > 0 ? "block" : "none",
           }}
         />
       )}
 
+      {/* FPS counter */}
       {showFps && animate && (
-        <span className="absolute top-3 right-3 rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm pointer-events-none">
+        <span
+          style={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            borderRadius: 6,
+            background: "rgba(0,0,0,0.6)",
+            padding: "2px 8px",
+            fontFamily: "monospace",
+            fontSize: 12,
+            color: "rgba(255,255,255,0.7)",
+            pointerEvents: "none",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+          }}
+        >
           {fps} fps
         </span>
       )}

@@ -2,7 +2,7 @@ import React from "react";
 import { Dices } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { HexColorPicker } from "react-colorful";
-import { GodLights } from "@/components/GodLights";
+import { GodLights } from "godlights";
 import {
   Popover,
   PopoverContent,
@@ -16,7 +16,7 @@ import {
   type RayLayer,
   type HaloLayer,
   type BackgroundLayer,
-} from "@/lib/godrays";
+} from "godlights";
 import { RAYS_PRESETS, type RaysPreset } from "@/lib/presets";
 import { Button } from "@/components/ui/button";
 import {
@@ -103,7 +103,7 @@ export default function LandingPage() {
         scene={scene}
         animate
         animParams={HERO_ANIM}
-        className="absolute inset-0 h-full w-full"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
 
       {/* Gradient fade at bottom */}

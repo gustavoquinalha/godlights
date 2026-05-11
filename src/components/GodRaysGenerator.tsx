@@ -45,9 +45,9 @@ import {
   type HaloLayer,
   type BackgroundLayer,
   type BackgroundType,
-} from "@/lib/godrays";
-import godRaysRaw from "@/lib/godrays.ts?raw";
-import godLightsRaw from "@/components/GodLights.tsx?raw";
+} from "godlights";
+import godRaysRaw from "@godlights/godrays.ts?raw";
+import godLightsRaw from "@godlights/GodLights.tsx?raw";
 import { OriginCrosshair } from "@/components/OriginCrosshair";
 import { BlendModeSelect } from "@/components/BlendModeSelect";
 import { OriginInputs } from "@/components/OriginInputs";
@@ -1069,7 +1069,7 @@ export function GodRaysGenerator() {
   const buildUsageSnippet = () => {
     const sceneJson = JSON.stringify(scene, null, 2).split("\n").join("\n  ");
     const lines = [
-      `import { GodLights } from "@/components/GodLights";`,
+      `import { GodLights } from "godlights";`,
       ``,
       `const scene = ${sceneJson};`,
     ];

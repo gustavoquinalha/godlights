@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
-import { GodLights } from "@/components/GodLights";
+import { GodLights } from "godlights";
 import { RAYS_PRESETS, type RaysPreset } from "@/lib/presets";
 import {
   DEFAULT_RAY_LAYER,
@@ -10,7 +10,7 @@ import {
   type HaloLayer,
   type BackgroundLayer,
   type AnimParams,
-} from "@/lib/godrays";
+} from "godlights";
 
 const CARD_ANIM: AnimParams = {
   speed: 2,

@@ -15,13 +15,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"],
-      "@godlights/*": ["./packages/godlights/src/*"],
-      "godlights": ["./packages/godlights/src/index.ts"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "packages/godlights/src"]
+  "include": ["src", "vite.config.ts"]
 }

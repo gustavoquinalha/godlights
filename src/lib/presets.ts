@@ -1,4 +1,4 @@
-import type { BlendMode } from "./godrays";
+import type { BlendMode } from "godlights";
 
 // ── Rays/halo structure presets ───────────────────────────────────────────────
 

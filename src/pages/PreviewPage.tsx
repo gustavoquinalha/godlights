@@ -1,6 +1,6 @@
 import React from "react";
-import { GodLights } from "@/components/GodLights";
-import { type SceneConfig, type AnimParams } from "@/lib/godrays";
+import { GodLights } from "godlights";
+import { type SceneConfig, type AnimParams } from "godlights";
 
 export const PREVIEW_STORAGE_KEY = "rays-preview-scene";
 
