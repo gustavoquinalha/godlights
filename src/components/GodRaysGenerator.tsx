@@ -300,7 +300,9 @@ export function GodRaysGenerator() {
 
   const [scene, setScene] = React.useState<SceneConfig>(() => {
     // If coming from /presets with ?preset=key, apply that preset (skip localStorage)
-    const urlPresetKey = new URLSearchParams(window.location.search).get("preset");
+    const urlPresetKey = new URLSearchParams(window.location.search).get(
+      "preset"
+    );
     if (urlPresetKey) {
       const urlPreset = RAYS_PRESETS.find((p) => p.key === urlPresetKey);
       if (urlPreset) {
@@ -846,7 +848,8 @@ export function GodRaysGenerator() {
 
     // Grain overlay — renderizado uma única vez ao iniciar (textura fixa sobre os rays animados)
     // A atualização por noise/grainSize fica no useEffect separado abaixo
-    const grainCtxForAnim = previewGrainCanvasRef.current?.getContext("2d") ?? null;
+    const grainCtxForAnim =
+      previewGrainCanvasRef.current?.getContext("2d") ?? null;
     if (grainCtxForAnim && deferredSceneRef.current.noise > 0) {
       const { width, height } = deferredSceneRef.current;
       const step = Math.max(1, Math.floor(deferredSceneRef.current.grainSize));
@@ -922,7 +925,12 @@ export function GodRaysGenerator() {
   }, [isAnimating]);
 
   // Re-renderiza o grain overlay quando noise/grainSize muda durante a animação
-  const { noise: sceneNoise, grainSize: sceneGrainSize, width: sceneWidth, height: sceneHeight } = scene;
+  const {
+    noise: sceneNoise,
+    grainSize: sceneGrainSize,
+    width: sceneWidth,
+    height: sceneHeight,
+  } = scene;
   React.useEffect(() => {
     if (!isAnimating) return;
     const gc = previewGrainCanvasRef.current;
@@ -1652,23 +1660,6 @@ export function GodRaysGenerator() {
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
-
-          <SidebarSeparator />
-
-          <SidebarGroup className="flex-1 flex justify-end">
-            <SidebarGroupContent>
-              <div className="px-2 pb-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReset}
-                  className="w-full"
-                >
-                  <RotateCcw className="size-3" /> Reset
-                </Button>
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
         </SidebarContent>
       </Sidebar>
 
@@ -1707,10 +1698,21 @@ export function GodRaysGenerator() {
 
                 <div className="flex items-center gap-2 flex-1 justify-end">
                   {/* Exportar dropdown — desktop only */}
+                  <Button
+                    variant={"outline"}
+                    size="sm"
+                    className="hidden lg:inline-flex h-8 gap-1.5"
+                    onClick={() => {
+                      handleSaveSlot();
+                    }}
+                  >
+                    <SaveIcon className="size-3.5" />
+                    Save
+                  </Button>
+
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        variant="outline"
                         size="sm"
                         className="hidden lg:inline-flex h-8 gap-1.5"
                       >
@@ -1876,7 +1878,10 @@ export function GodRaysGenerator() {
                       "h-full w-full",
                       isMiddlePanning ? "cursor-grabbing" : "cursor-default"
                     )}
-                    onClick={() => { setSelectedLayerId(null); setHoveredLayerId(null); }}
+                    onClick={() => {
+                      setSelectedLayerId(null);
+                      setHoveredLayerId(null);
+                    }}
                   >
                     <div
                       ref={previewWrapperRef}
@@ -2091,22 +2096,6 @@ export function GodRaysGenerator() {
                         </Button>
                       </div>
 
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            size="icon"
-                            className="h-8 w-8 rounded-full"
-                            onClick={() => {
-                              handleSaveSlot();
-                            }}
-                          >
-                            <SaveIcon className="size-3.5" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Save</TooltipContent>
-                      </Tooltip>
-
                       {/* Dice: randomize color + rays */}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -2142,6 +2131,15 @@ export function GodRaysGenerator() {
                     {scene.width} × {scene.height}px ·{" "}
                     {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
                   </span>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReset}
+                    className="py-1.5 h-auto"
+                  >
+                    <RotateCcw className="size-3" /> Reset
+                  </Button>
                 </div>
               </TabsContent>
 
@@ -2155,7 +2153,8 @@ export function GodRaysGenerator() {
                   {/* Actions bar */}
                   <div className="container flex items-center justify-between px-4 pt-4 pb-2">
                     <span className="text-base text-muted-foreground">
-                      {saves.length} {saves.length === 1 ? "save" : "saves"} saved
+                      {saves.length} {saves.length === 1 ? "save" : "saves"}{" "}
+                      saved
                     </span>
                     <div className="flex items-center gap-2">
                       <AlertDialog>
@@ -2176,10 +2175,9 @@ export function GodRaysGenerator() {
                               Remove all saves?
                             </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. All{" "}
-                              {saves.length}{" "}
-                              {saves.length === 1 ? "save" : "saves"}{" "}
-                              will be permanently deleted.
+                              This action cannot be undone. All {saves.length}{" "}
+                              {saves.length === 1 ? "save" : "saves"} will be
+                              permanently deleted.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -2235,7 +2233,9 @@ export function GodRaysGenerator() {
                               />
                               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 <span className="text-[10px] text-white/80">
-                                  {new Date(save.createdAt).toLocaleDateString()}
+                                  {new Date(
+                                    save.createdAt
+                                  ).toLocaleDateString()}
                                 </span>
                                 <button
                                   className="rounded p-0.5 text-white hover:text-red-400"
@@ -2284,7 +2284,10 @@ export function GodRaysGenerator() {
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                      onClick={() => { setSelectedLayerId(null); setHoveredLayerId(null); }}
+                      onClick={() => {
+                        setSelectedLayerId(null);
+                        setHoveredLayerId(null);
+                      }}
                       title="Back to layers"
                     >
                       <ChevronLeft className="size-3" />
@@ -2510,10 +2513,7 @@ export function GodRaysGenerator() {
                     <SidebarGroupLabel>Shape</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                        <Field
-                          label="Count"
-                          value={selectedRayLayer.rayCount}
-                        >
+                        <Field label="Count" value={selectedRayLayer.rayCount}>
                           <Slider
                             min={1}
                             max={200}
@@ -2616,7 +2616,9 @@ export function GodRaysGenerator() {
                   <SidebarSeparator />
 
                   <SidebarGroup>
-                    <SidebarGroupLabel>Direction &amp; origin</SidebarGroupLabel>
+                    <SidebarGroupLabel>
+                      Direction &amp; origin
+                    </SidebarGroupLabel>
                     <SidebarGroupContent>
                       <div className="w-full flex flex-col gap-6 px-2 pb-2">
                         <Field
@@ -2828,7 +2830,8 @@ export function GodRaysGenerator() {
               Export as React Component
             </DialogTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              Add the files to your project and use the component with the configured scene.
+              Add the files to your project and use the component with the
+              configured scene.
             </p>
           </DialogHeader>
 
