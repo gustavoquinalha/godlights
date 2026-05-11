@@ -143,14 +143,13 @@ export default function LandingPage() {
 
       {/* Content */}
       <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
-        <div className="container mx-auto px-4 flex flex-col items-center justify-center gap-8">
+        <div className="container h-full mx-auto px-4 flex flex-col items-center justify-center gap-8 relative">
           <div className="flex flex-col items-center gap-4">
-            {/* npm install pill */}
             <button
               onClick={handleCopyInstall}
-              className="flex items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
+              className="flex md:hidden items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
             >
-              <span>npm install godlights</span>
+              <span className="truncate min-w-0">npm install godlights</span>
               {copied ? (
                 <Check className="size-3.5 shrink-0 text-green-500" />
               ) : (
@@ -183,40 +182,61 @@ export default function LandingPage() {
               </a>
             </Button>
           </div>
-        </div>
-      </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center items-center gap-2 z-100">
-        {/* Color picker */}
-        <Popover>
-          <PopoverTrigger asChild>
+          {/* npm install pill */}
+
+          <div className="w-full absolute bottom-4 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
             <button
-              title="Color"
-              className="size-10 rounded-full border cursor-pointer flex items-center justify-center"
-              style={{ background: color }}
+              onClick={handleCopyInstall}
+              className="hidden md:flex items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
             >
-              <Pipette
-                className="size-4"
-                style={{
-                  color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
-                }}
-              />
+              <span className="truncate min-w-0">npm install godlights</span>
+              {copied ? (
+                <Check className="size-3.5 shrink-0 text-green-500" />
+              ) : (
+                <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+              )}
             </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-3" align="center" side="top">
-            <HexColorPicker color={color} onChange={handleColorChange} />
-          </PopoverContent>
-        </Popover>
 
-        {/* Preset cycle */}
-        <Button
-          variant={"outline"}
-          onClick={handleNext}
-          className="rounded-full"
-        >
-          <Dices className="size-4.5" />
-          <span className="truncate min-w-0">Randomize</span>
-        </Button>
+            <div className="flex gap-2 justify-center items-center">
+              {/* Color picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    title="Color"
+                    className="size-9 rounded-full border cursor-pointer flex items-center justify-center"
+                    style={{ background: color }}
+                  >
+                    <Pipette
+                      className="size-4"
+                      style={{
+                        color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
+                      }}
+                    />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-auto p-3"
+                  align="center"
+                  side="top"
+                >
+                  <HexColorPicker color={color} onChange={handleColorChange} />
+                </PopoverContent>
+              </Popover>
+
+              {/* Preset cycle */}
+              <Button
+                variant={"outline"}
+                onClick={handleNext}
+                size={"sm"}
+                className="rounded-full"
+              >
+                <Dices className="size-4.5" />
+                <span className="truncate min-w-0">Randomize</span>
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
