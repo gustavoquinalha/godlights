@@ -169,7 +169,7 @@ export default function LandingPage() {
 
           <div className="flex gap-2 items-center justify-center flex-wrap">
             <Button className="rounded-full" variant={"outline"} asChild>
-              <a href="/editor">
+              <a href="/docs">
                 <BookCopyIcon className="4.5" />
                 Docs
               </a>
