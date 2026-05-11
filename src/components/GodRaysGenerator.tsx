@@ -2902,7 +2902,7 @@ export function GodRaysGenerator() {
               <div className="relative rounded-md border border-border bg-muted/40 overflow-hidden">
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-muted/60">
                   <span className="text-[11px] font-mono text-muted-foreground">
-                    terminal
+                    Terminal
                   </span>
                   <button
                     onClick={handleCopyInstall}

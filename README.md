@@ -1,6 +1,6 @@
 # Godlights
 
-**Animated god ray / light beam effects for React.** A visual editor to design volumetric light scenes and export them as PNG, CSS, or a ready-to-use React component.
+**Design animated light beam scenes in React. Export as PNG, CSS, or component.**
 
 [![Live demo](https://img.shields.io/badge/Live%20demo-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)

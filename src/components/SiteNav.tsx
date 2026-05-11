@@ -1,6 +1,6 @@
 import { Sparkles, Github, ArrowRight, Menu, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, LINKS } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,6 @@ import { useTheme } from "@/components/theme-provider";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "Editor", href: "/editor" },
   { label: "Presets", href: "/presets" },
   { label: "Docs", href: "/docs" },
 ];
@@ -31,7 +30,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   return (
-    <header className={cn("z-20 h-16", className)}>
+    <header className={cn("z-20 h-14", className)}>
       <div className="container mx-auto px-4 flex h-full items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
@@ -63,41 +62,27 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Mobile dots menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden h-8 w-8 rounded-full">
-                <Menu className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              {NAV_LINKS.map(({ label, href }) => (
-                <DropdownMenuItem key={label} asChild>
-                  <a href={href} className={cn(current === href ? "font-medium" : "")}>
-                    {label}
-                  </a>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={toggleTheme}>
-                {dark ? <Sun className="size-3.5 shrink-0" /> : <Moon className="size-3.5 shrink-0" />}
-                {dark ? "Light mode" : "Dark mode"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* Theme toggle — desktop */}
           <Button
             variant="outline"
-            size="icon"
-            className="hidden md:inline-flex h-8 w-8 rounded-full"
+            size="icon-xs"
+            className="hidden md:inline-flex h-8 w-8 rounded-full bg-background/20"
             onClick={toggleTheme}
             title={dark ? "Light mode" : "Dark mode"}
           >
-            {dark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            {dark ? (
+              <Sun className="size-3.5" />
+            ) : (
+              <Moon className="size-3.5" />
+            )}
           </Button>
 
-          <Button size="sm" variant="outline" className="hidden sm:inline-flex rounded-full" asChild>
+          <Button
+            size="xs"
+            variant="outline"
+            className="hidden sm:inline-flex rounded-full bg-background/20"
+            asChild
+          >
             <a
               href="https://github.com/gustavoquinalha/godlights"
               target="_blank"
@@ -108,13 +93,49 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
             </a>
           </Button>
 
-          <Button size="sm" className="rounded-full" asChild>
+          <Button size="xs" className="rounded-full" asChild>
             <a href="/editor">
               <span className="hidden sm:inline">Open Editor</span>
               <span className="sm:hidden">Editor</span>
               <ArrowRight className="size-3" />
             </a>
           </Button>
+
+          {/* Mobile dots menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon-xs"
+                className="md:hidden h-8 w-8 rounded-full"
+              >
+                <Menu className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {LINKS.map(({ label, href, external }) => (
+                <DropdownMenuItem key={label} asChild>
+                  <a
+                    href={href}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noopener noreferrer" : undefined}
+                    className={cn(current === href ? "font-medium" : "")}
+                  >
+                    {label}
+                  </a>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleTheme}>
+                {dark ? (
+                  <Sun className="size-3.5 shrink-0" />
+                ) : (
+                  <Moon className="size-3.5 shrink-0" />
+                )}
+                {dark ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

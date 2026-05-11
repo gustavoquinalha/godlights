@@ -1,6 +1,7 @@
 import React from "react";
 import { Dices, Copy, Check, BookCopyIcon } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { useTheme } from "@/components/theme-provider";
 import { HexColorPicker } from "react-colorful";
 import { GodLights } from "godlights";
@@ -120,124 +121,129 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-background">
-      {/* ── Navbar ── */}
-      <SiteNav activePath="/" className="absolute inset-x-0 top-0" />
+    <div className="relative w-full bg-background">
+      {/* ── Hero section ── */}
+      <div className="relative h-screen overflow-hidden">
+        {/* ── Navbar ── */}
+        <SiteNav activePath="/" className="fixed inset-x-0 top-0" />
 
-      {/* Animated background */}
-      <GodLights
-        key={activeIndex}
-        scene={scene}
-        animate
-        animParams={HERO_ANIM}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-        }}
-      />
+        {/* Animated background */}
+        <GodLights
+          key={activeIndex}
+          scene={scene}
+          animate
+          animParams={HERO_ANIM}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+          }}
+        />
 
-      {/* Gradient fade at bottom */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-background to-transparent" />
+        {/* Gradient fade at bottom */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-linear-to-t from-background to-transparent" />
 
-      {/* Content */}
-      <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
-        <div className="container h-full mx-auto px-4 flex flex-col items-center justify-center gap-8 relative">
-          <div className="flex flex-col items-center gap-4">
-            <button
-              onClick={handleCopyInstall}
-              className="flex md:hidden cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
-            >
-              <span className="truncate min-w-0">npm install godlights</span>
-              {copied ? (
-                <Check className="size-3.5 shrink-0 text-emerald-500" />
-              ) : (
-                <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
-              )}
-            </button>
-
-            <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-8xl text-balance">
-              Create stunning light rays
-            </h1>
-
-            <p className="max-w-xl text-base text-muted-foreground sm:text-lg text-balance">
-              Generate animated, fully customizable god ray effects. Export as
-              image or as a ready-to-use React component.
-            </p>
-          </div>
-
-          <div className="flex gap-2 items-center justify-center flex-wrap">
-            <Button className="rounded-full" variant={"ghost"} asChild>
-              <a href="/docs">
-                <BookCopyIcon className="4.5" />
-                Docs
-              </a>
-            </Button>
-
-            <Button className="rounded-full" variant={"outline"} asChild>
-              <a href="/editor">
-                Get started
-                <ArrowRight className="4.5" />
-              </a>
-            </Button>
-          </div>
-
-          {/* npm install pill */}
-
-          <div className="w-full absolute bottom-0 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
-            <button
-              onClick={handleCopyInstall}
-              className="hidden md:flex cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
-            >
-              <span className="truncate min-w-0">npm install godlights</span>
-              {copied ? (
-                <Check className="size-3.5 shrink-0 text-green-500" />
-              ) : (
-                <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
-              )}
-            </button>
-
-            <div className="flex gap-2 justify-center items-center">
-              {/* Color picker */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    title="Color"
-                    className="size-9 rounded-full border cursor-pointer flex items-center justify-center"
-                    style={{ background: color }}
-                  >
-                    <Pipette
-                      className="size-4"
-                      style={{
-                        color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
-                      }}
-                    />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-auto p-3"
-                  align="center"
-                  side="top"
-                >
-                  <HexColorPicker color={color} onChange={handleColorChange} />
-                </PopoverContent>
-              </Popover>
-
-              {/* Preset cycle */}
-              <Button
-                variant={"outline"}
-                onClick={handleNext}
-                size={"sm"}
-                className="rounded-full"
+        {/* Content */}
+        <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
+          <div className="container h-full mx-auto px-4 flex flex-col items-center justify-center gap-8 relative">
+            <div className="flex flex-col items-center gap-4">
+              <button
+                onClick={handleCopyInstall}
+                className="flex md:hidden cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
               >
-                <Dices className="size-4.5" />
-                <span className="truncate min-w-0">Randomize</span>
+                <span className="truncate min-w-0">npm install godlights</span>
+                {copied ? (
+                  <Check className="size-3.5 shrink-0 text-foreground" />
+                ) : (
+                  <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+                )}
+              </button>
+
+              <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-8xl text-balance">
+                Create stunning light rays
+              </h1>
+
+              <p className="max-w-xl text-base text-muted-foreground sm:text-lg text-balance">
+                Generate animated, fully customizable god ray effects. Export as
+                image or as a ready-to-use React component.
+              </p>
+            </div>
+
+            <div className="flex gap-2 items-center justify-center flex-wrap">
+              <Button className="rounded-full" variant={"ghost"} asChild>
+                <a href="/docs">
+                  <BookCopyIcon className="4.5" />
+                  Docs
+                </a>
               </Button>
+
+              <Button className="rounded-full bg-background/20" variant={"outline"} asChild>
+                <a href="/editor">
+                  Get started
+                  <ArrowRight className="4.5" />
+                </a>
+              </Button>
+            </div>
+
+            {/* npm install pill */}
+            <div className="w-full absolute bottom-1 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
+              <button
+                onClick={handleCopyInstall}
+                className="hidden md:flex cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
+              >
+                <span className="truncate min-w-0">npm install godlights</span>
+                {copied ? (
+                  <Check className="size-3.5 shrink-0 text-foreground" />
+                ) : (
+                  <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+                )}
+              </button>
+
+              <div className="flex gap-2 justify-center items-center">
+                {/* Color picker */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      title="Color"
+                      className="size-9 rounded-full border cursor-pointer flex items-center justify-center"
+                      style={{ background: color }}
+                    >
+                      <Pipette
+                        className="size-4"
+                        style={{
+                          color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
+                        }}
+                      />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-auto p-3"
+                    align="center"
+                    side="top"
+                  >
+                    <HexColorPicker color={color} onChange={handleColorChange} />
+                  </PopoverContent>
+                </Popover>
+
+                {/* Preset cycle */}
+                <Button
+                  variant={"outline"}
+                  onClick={handleNext}
+                  size={"sm"}
+                  className="rounded-full bg-background/20"
+                >
+                  <Dices className="size-4.5" />
+                  <span className="truncate min-w-0">Randomize</span>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Footer — below the hero */}
+      <SiteFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import { Search, ArrowUpRight, X } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { GodLights } from "godlights";
 import { RAYS_PRESETS, type RaysPreset, type PresetTag } from "@/lib/presets";
 import {
@@ -10,17 +11,9 @@ import {
   type RayLayer,
   type HaloLayer,
   type BackgroundLayer,
-  type AnimParams,
 } from "godlights";
 import { cn } from "@/lib/utils";
 
-const CARD_ANIM: AnimParams = {
-  speed: 2,
-  angleAmp: 60,
-  lengthAmp: 60,
-  widthAmp: 60,
-  haloAmp: 60,
-};
 
 const TAG_LABELS: Record<PresetTag, string> = {
   top: "Top",
@@ -85,8 +78,6 @@ function PresetCard({ preset }: { preset: RaysPreset }) {
       <div className="aspect-video w-full overflow-hidden">
         <GodLights
           scene={scene}
-          animate
-          animParams={CARD_ANIM}
           className="h-full w-full object-cover"
         />
       </div>
@@ -238,6 +229,7 @@ export default function PresetsPage() {
           </div>
         )}
       </main>
+      <SiteFooter />
     </div>
   );
 }
