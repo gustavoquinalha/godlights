@@ -1684,11 +1684,11 @@ export function GodRaysGenerator() {
             >
               <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
                 <div className="flex gap-2 flex-1">
-                  <Button variant={"ghost"} size="icon-xs" asChild>
+                  {/* <Button variant={"ghost"} size="icon-xs" asChild>
                     <a href="/">
                       <ChevronLeft className="size-3.5" />
                     </a>
-                  </Button>
+                  </Button> */}
 
                   <a href="/" className="flex lg:hidden items-center gap-2">
                     <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
@@ -1742,7 +1742,7 @@ export function GodRaysGenerator() {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        size="sm"
+                        size="xs"
                         className="hidden lg:inline-flex gap-1.5"
                       >
                         <Download className="size-3.5" />
