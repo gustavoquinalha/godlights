@@ -1,6 +1,7 @@
 import React from "react";
 import { Dices } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
+import { useTheme } from "@/components/theme-provider";
 import { HexColorPicker } from "react-colorful";
 import { GodLights } from "godlights";
 import {
@@ -34,13 +35,13 @@ const HERO_ANIM: AnimParams = {
   haloAmp: 100,
 };
 
-function presetToScene(preset: RaysPreset, color: string): SceneConfig {
+function presetToScene(preset: RaysPreset, color: string, bgColor: string, dark: boolean): SceneConfig {
   const bgLayer: BackgroundLayer = {
     id: "background",
     type: "background",
     bgType: "solid",
-    bgColor: "#000000",
-    bgColor2: "#000000",
+    bgColor,
+    bgColor2: bgColor,
     bgGradientAngle: 180,
   };
 
@@ -53,6 +54,8 @@ function presetToScene(preset: RaysPreset, color: string): SceneConfig {
         name: `Rays ${i + 1}`,
         colorStart: color,
         colorEnd: color,
+        // screen/lighter are additive — invisible on white; swap to multiply in light mode
+        blendMode: dark ? l.blendMode : "multiply",
       } as RayLayer;
     } else {
       return {
@@ -61,6 +64,7 @@ function presetToScene(preset: RaysPreset, color: string): SceneConfig {
         id: `halo-${i}`,
         name: `Halo ${i + 1}`,
         color,
+        blendMode: dark ? l.blendMode : "multiply",
       } as HaloLayer;
     }
   });
@@ -83,10 +87,26 @@ function hexLuminance(hex: string): number {
 
 export default function LandingPage() {
   const [activeIndex, setActiveIndex] = React.useState(0);
-  const [color, setColor] = React.useState("#ffffff");
+  const { theme } = useTheme();
+  const dark = theme !== "light";
+  const defaultColor = dark ? "#ffffff" : "#000000";
+  const [color, setColor] = React.useState(defaultColor);
+  const [userPickedColor, setUserPickedColor] = React.useState(false);
 
+  // Reset to theme default only if user hasn't manually picked a color
+  React.useEffect(() => {
+    if (!userPickedColor) setColor(dark ? "#ffffff" : "#000000");
+  }, [dark, userPickedColor]);
+
+  const handleColorChange = (c: string) => {
+    setColor(c);
+    setUserPickedColor(true);
+  };
+
+  const rayColor = color;
+  const bgColor = dark ? "#000000" : "#ffffff";
   const activePreset = RAYS_PRESETS[activeIndex];
-  const scene = presetToScene(activePreset, color);
+  const scene = presetToScene(activePreset, rayColor, bgColor, dark);
 
   const handleNext = () => {
     setActiveIndex((i) => (i + 1) % RAYS_PRESETS.length);
@@ -138,7 +158,7 @@ export default function LandingPage() {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-3" align="center" side="top">
-                <HexColorPicker color={color} onChange={setColor} />
+                <HexColorPicker color={color} onChange={handleColorChange} />
               </PopoverContent>
             </Popover>
 

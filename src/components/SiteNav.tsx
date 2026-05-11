@@ -1,12 +1,14 @@
-import { Sparkles, Github, ArrowRight, Menu } from "lucide-react";
+import { Sparkles, Github, ArrowRight, Menu, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/components/theme-provider";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -24,6 +26,9 @@ interface SiteNavProps {
 
 export function SiteNav({ activePath, className }: SiteNavProps) {
   const current = activePath ?? window.location.pathname;
+  const { theme, setTheme } = useTheme();
+  const dark = theme === "dark";
+  const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   return (
     <header className={cn("z-20 h-16", className)}>
@@ -68,18 +73,29 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
             <DropdownMenuContent align="end" className="w-40">
               {NAV_LINKS.map(({ label, href }) => (
                 <DropdownMenuItem key={label} asChild>
-                  <a
-                    href={href}
-                    className={cn(
-                      current === href ? "font-medium" : ""
-                    )}
-                  >
+                  <a href={href} className={cn(current === href ? "font-medium" : "")}>
                     {label}
                   </a>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={toggleTheme}>
+                {dark ? <Sun className="size-3.5 shrink-0" /> : <Moon className="size-3.5 shrink-0" />}
+                {dark ? "Light mode" : "Dark mode"}
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Theme toggle — desktop */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="hidden md:inline-flex h-8 w-8 rounded-full"
+            onClick={toggleTheme}
+            title={dark ? "Light mode" : "Dark mode"}
+          >
+            {dark ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+          </Button>
 
           <Button size="sm" variant="outline" className="hidden sm:inline-flex rounded-full" asChild>
             <a
