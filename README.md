@@ -1,103 +1,94 @@
 # Godlights
 
-Gerador de **god rays / light rays** em React + Vite + Tailwind + shadcn/ui, inspirado no MagicPattern, com mais controles e exportação para PNG, JPG e CSS.
+**Animated god ray / light beam effects for React.** A visual editor to design volumetric light scenes and export them as PNG, CSS, or a ready-to-use React component.
+
+[![Live demo](https://img.shields.io/badge/Live%20demo-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
+[![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
+[![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./packages/godlights/README.md)
+
+![Godlights editor](https://godlights.vercel.app/app.png)
+
+---
+
+## npm package
+
+The rendering engine is available as a standalone React package:
+
+```bash
+npm install godlights
+```
+
+```tsx
+import { GodLights } from "godlights";
+
+<GodLights
+  scene={scene}
+  animate
+  animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
+  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+/>
+```
+
+→ [Package docs](./packages/godlights/README.md) · [Full API reference](https://godlights.vercel.app/docs)
+
+---
+
+## Editor features
+
+- **Multi-layer scenes** — stack rays, halos and backgrounds in any order
+- **Live preview** — animated canvas with pan & zoom
+- **14+ presets** — searchable and filterable by style
+- **Export** — PNG, JPG, CSS `background-image`, JSON config, JSX component
+- **Share** — encode the full scene into a URL (`/editor?scene=...`)
+- **Save slots** — persist scenes in localStorage
+- **Light / dark mode**
+
+---
+
+## Monorepo structure
+
+```
+/
+├── src/                        # Editor app (React + Vite + Tailwind + shadcn/ui)
+│   ├── pages/
+│   │   ├── LandingPage.tsx
+│   │   ├── PresetsPage.tsx
+│   │   ├── DocsPage.tsx
+│   │   └── PreviewPage.tsx
+│   ├── components/
+│   │   ├── GodRaysGenerator.tsx  # main editor UI
+│   │   └── ui/                   # shadcn components
+│   └── lib/
+│       ├── presets.ts
+│       ├── share.ts              # URL encode/decode
+│       └── utils.ts
+├── packages/
+│   └── godlights/              # npm package
+│       ├── src/
+│       │   ├── GodLights.tsx   # React component
+│       │   ├── godrays.ts      # Canvas 2D rendering engine
+│       │   └── index.ts
+│       └── package.json
+├── public/                     # Static assets
+└── index.html
+```
+
+---
+
+## Running locally
+
+```bash
+npm install
+npm run dev        # editor app → http://localhost:5173
+npm run build      # production build
+npm run build:pkg  # build the godlights npm package
+```
+
+---
 
 ## Stack
 
-- **React 18** + **TypeScript** + **Vite 5**
-- **Tailwind CSS** com tokens estilo shadcn (light/dark)
-- **shadcn/ui** (Button, Slider, Label, Input, Tabs, Select, Popover, Card, Separator)
-- **Radix UI** primitives
-- **react-colorful** para color picker
-- **lucide-react** para ícones
-- Renderização nativa em **Canvas 2D** (sem dependências externas para o engine)
-
-## Como rodar
-
-```bash
-cd rays-generator
-npm install
-npm run dev      # http://localhost:5173
-```
-
-Para gerar build de produção:
-
-```bash
-npm run build
-npm run preview
-```
-
-## Funcionalidades
-
-### Dimensões da imagem
-- Largura e altura customizáveis (64–8000px).
-- Presets: Square 1:1, Story 9:16, Post 4:5, HD/2K/4K 16:9, Wide 21:9, Banner.
-
-### Raios
-- **Quantidade** (1–200)
-- **Largura base** (px na origem)
-- **Divergência** — paralelos, abrem ou fecham para a ponta
-- **Comprimento** (× diagonal do canvas)
-- **Opacidade** e **Blend mode** (`source-over`, `lighter`, `screen`, `overlay`, `soft-light`, `hard-light`)
-
-### Direção e origem
-- **Direção** em estilo bússola (0° = cima, 90° = direita, etc.)
-- **Spread** — abertura do leque (0° a 360°)
-- **Origem X/Y** — posição da fonte de luz, configurável por slider ou **arrastando o ponto no preview**.
-
-### Cores
-- Cor inicial (origem) e cor final (ponta) com picker visual.
-- Toggle "desvanecer para transparente" na ponta.
-
-### Background
-- Transparente, cor sólida, ou gradiente linear de duas cores com ângulo configurável.
-
-### Halo
-- Brilho radial na origem, controlado por intensidade e tamanho.
-
-### Efeitos
-- **Blur** gaussiano (0–80px)
-- **Ruído / grão** (0–100)
-- **Tamanho do grão** (1–6px)
-
-### Aleatoriedade
-- Slider de **variação** (jitter em largura, comprimento e ângulo de cada raio)
-- **Seed** numérica para reproduzir o mesmo resultado
-- Botão "Aleatório" para gerar nova seed
-
-### Presets visuais
-- Sunset, Forest light, Cyber, Soft mist, Stage, Neon burst.
-
-### Exportação
-- **PNG** com transparência (na resolução exata configurada)
-- **JPG** (qualidade 95)
-- **Copiar CSS** — gera `background-image: url(data:image/png;base64,…)` pronto para colar
-- **Copiar JSON do preset** — exporta a configuração para reutilizar
-
-## Estrutura
-
-```
-src/
-├── App.tsx
-├── main.tsx
-├── index.css                    # tokens Tailwind/shadcn
-├── lib/
-│   ├── godrays.ts               # engine de renderização (Canvas 2D)
-│   ├── presets.ts               # presets visuais
-│   └── utils.ts                 # cn() helper
-└── components/
-    ├── GodRaysGenerator.tsx     # UI principal
-    ├── ColorPicker.tsx          # picker hex em popover
-    ├── ControlSection.tsx       # accordion + Field helper
-    └── ui/                      # shadcn components
-```
-
-## Engine
-
-Toda a lógica de desenho está em `src/lib/godrays.ts`. Pontos de extensão fáceis:
-
-- Adicionar novos blend modes — basta acrescentar no tipo `BlendMode`.
-- Adicionar novos efeitos pós-processamento — adicione uma função após o passo 5 em `drawGodRays`.
-- Aumentar o limite do preview (atualmente capado em 1200px no maior eixo) — ajuste `PREVIEW_MAX_DIMENSION` em `GodRaysGenerator.tsx`.
-
-A função pública `exportImage(config, mime, quality)` gera um Blob na resolução exata e independe da preview.
+- **React 18** + **TypeScript** + **Vite**
+- **Tailwind CSS** + **shadcn/ui** + **Radix UI**
+- **Canvas 2D** rendering engine (zero runtime deps in the package)
+- **lucide-react** icons · **react-colorful** color picker
