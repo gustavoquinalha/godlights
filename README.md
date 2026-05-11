@@ -6,13 +6,13 @@
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./packages/godlights/README.md)
 
-![Godlights editor](https://godlights.vercel.app/app.png)
+![Godlights editor](https://godlights.vercel.app/app.gif)
 
 ---
 
 ## npm package
 
-The rendering engine is available as a standalone React package:
+The rendering engine is available as a standalone React package with zero runtime dependencies.
 
 ```bash
 npm install godlights
@@ -20,16 +20,75 @@ npm install godlights
 
 ```tsx
 import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
 
-<GodLights
-  scene={scene}
-  animate
-  animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
-  style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-/>
+// "Corner haze" — first preset from the editor
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 8,
+  grainSize: 1,
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      bgType: "solid",
+      bgColor: "#000000",
+      bgColor2: "#000000",
+      bgGradientAngle: 180,
+    },
+    {
+      id: "rays-1",
+      name: "Rays 1",
+      type: "rays",
+      direction: 158,
+      spread: 70,
+      originX: 12,
+      originY: -25,
+      rayCount: 28,
+      rayWidth: 90,
+      divergence: 1.5,
+      rayLength: 0.6,
+      colorStart: "#ffffff",
+      colorEnd: "#ffffff",
+      opacity: 0.24,
+      blendMode: "screen",
+      fadeToTransparent: true,
+      blur: 17.5,
+      randomnessWidth: 100,
+      randomnessLength: 24,
+      randomnessAngle: 0,
+      seed: 554433,
+    },
+    {
+      id: "halo-1",
+      name: "Halo 1",
+      type: "halo",
+      originX: 16,
+      originY: 2,
+      color: "#ffffff",
+      intensity: 0.16,
+      size: 0.47,
+      blendMode: "lighter",
+    },
+  ],
+};
+
+export default function App() {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <GodLights
+        scene={scene}
+        animate
+        animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+    </div>
+  );
+}
 ```
 
-→ [Package docs](./packages/godlights/README.md) · [Full API reference](https://godlights.vercel.app/docs)
+→ [Full package docs & API reference](./packages/godlights/README.md) · [Interactive docs](https://godlights.vercel.app/docs)
 
 ---
 
@@ -42,6 +101,19 @@ import { GodLights } from "godlights";
 - **Share** — encode the full scene into a URL (`/editor?scene=...`)
 - **Save slots** — persist scenes in localStorage
 - **Light / dark mode**
+
+---
+
+## AI / LLM usage
+
+Godlights ships machine-readable documentation designed for LLM consumption:
+
+| File | Purpose |
+|------|---------|
+| [`/llms.txt`](https://godlights.vercel.app/llms.txt) | Quick start, common mistakes, key constraints |
+| [`/llms-full.txt`](https://godlights.vercel.app/llms-full.txt) | Complete API reference, all types with ranges, full examples |
+
+If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a scene, point it at one of these files for accurate results. The most common LLM mistakes are documented there: missing `BackgroundLayer`, wrong blend mode on light backgrounds, and using `opacityAmp` (which doesn't exist).
 
 ---
 
@@ -69,7 +141,9 @@ import { GodLights } from "godlights";
 │       │   ├── godrays.ts      # Canvas 2D rendering engine
 │       │   └── index.ts
 │       └── package.json
-├── public/                     # Static assets
+├── public/
+│   ├── llms.txt                # AI-friendly quick start
+│   └── llms-full.txt           # Full API reference for LLMs
 └── index.html
 ```
 

@@ -5,6 +5,7 @@ import PreviewPage from "@/pages/PreviewPage";
 import LandingPage from "@/pages/LandingPage";
 import PresetsPage from "@/pages/PresetsPage";
 import DocsPage from "@/pages/DocsPage";
+import OgExportPage from "@/pages/OgExportPage";
 
 export default function App() {
   const path = window.location.pathname;
@@ -18,6 +19,8 @@ export default function App() {
       ? "presets"
       : path === "/docs"
       ? "docs"
+      : path === "/og-export"
+      ? "og-export"
       : "landing";
 
   return (
@@ -27,6 +30,7 @@ export default function App() {
         {page === "preview" && <PreviewPage />}
         {page === "presets" && <PresetsPage />}
         {page === "docs" && <DocsPage />}
+        {page === "og-export" && <OgExportPage />}
         {page === "landing" && <LandingPage />}
       </TooltipProvider>
     </ThemeProvider>
