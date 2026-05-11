@@ -1,11 +1,18 @@
-import { Sparkles, Github, ArrowRight } from "lucide-react";
+import { Sparkles, Github, ArrowRight, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Editor", href: "/editor" },
   { label: "Presets", href: "/presets" },
+  { label: "Docs", href: "/docs" },
 ];
 
 interface SiteNavProps {
@@ -31,7 +38,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
           </span>
         </a>
 
-        {/* Nav links */}
+        {/* Nav links — desktop */}
         <nav className="hidden md:flex items-center gap-6">
           {NAV_LINKS.map(({ label, href }) => (
             <a
@@ -50,8 +57,31 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
-          <Button size="sm" variant="outline" className="rounded-full" asChild>
+        <div className="flex items-center gap-2">
+          {/* Mobile dots menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="md:hidden h-8 w-8 rounded-full">
+                <Menu className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {NAV_LINKS.map(({ label, href }) => (
+                <DropdownMenuItem key={label} asChild>
+                  <a
+                    href={href}
+                    className={cn(
+                      current === href ? "font-medium" : ""
+                    )}
+                  >
+                    {label}
+                  </a>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button size="sm" variant="outline" className="hidden sm:inline-flex rounded-full" asChild>
             <a
               href="https://github.com/gustavoquinalha/godlights"
               target="_blank"
@@ -64,7 +94,8 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
 
           <Button size="sm" className="rounded-full" asChild>
             <a href="/editor">
-              Open Editor
+              <span className="hidden sm:inline">Open Editor</span>
+              <span className="sm:hidden">Editor</span>
               <ArrowRight className="size-3" />
             </a>
           </Button>

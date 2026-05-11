@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import PreviewPage from "@/pages/PreviewPage";
 import LandingPage from "@/pages/LandingPage";
 import PresetsPage from "@/pages/PresetsPage";
+import DocsPage from "@/pages/DocsPage";
 
 export default function App() {
   const path = window.location.pathname;
@@ -15,6 +16,8 @@ export default function App() {
       ? "preview"
       : path === "/presets"
       ? "presets"
+      : path === "/docs"
+      ? "docs"
       : "landing";
 
   return (
@@ -23,6 +26,7 @@ export default function App() {
         {page === "editor" && <GodRaysGenerator />}
         {page === "preview" && <PreviewPage />}
         {page === "presets" && <PresetsPage />}
+        {page === "docs" && <DocsPage />}
         {page === "landing" && <LandingPage />}
       </TooltipProvider>
     </ThemeProvider>

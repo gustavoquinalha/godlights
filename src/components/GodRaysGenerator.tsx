@@ -29,6 +29,7 @@ import {
   MoreHorizontal,
   Clapperboard,
   BookmarkCheck,
+  BookOpen,
 } from "lucide-react";
 import {
   drawScene,
@@ -1667,6 +1668,21 @@ export function GodRaysGenerator() {
             >
               <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
                 <div className="flex gap-2 flex-1">
+                  <Button variant={"ghost"} size="icon-xs" asChild>
+                    <a href="/">
+                      <ChevronLeft className="size-3.5" />
+                    </a>
+                  </Button>
+
+                  <a href="/" className="flex lg:hidden items-center gap-2">
+                    <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
+                      <Sparkles className="size-4 text-primary-foreground" />
+                    </div>
+                    <span className="text-sm font-semibold tracking-tight">
+                      Godlights
+                    </span>
+                  </a>
+
                   <LeftPanelTrigger />
 
                   {/* ── Tabs (desktop only) ── */}
@@ -1678,15 +1694,6 @@ export function GodRaysGenerator() {
                       Saved
                     </TabsTrigger>
                   </TabsList>
-
-                  <a href="/" className="flex md:hidden items-center gap-2">
-                    <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
-                      <Sparkles className="size-4 text-primary-foreground" />
-                    </div>
-                    <span className="text-sm font-semibold tracking-tight">
-                      Godlights
-                    </span>
-                  </a>
                 </div>
 
                 <div className="flex items-center gap-2 flex-1 justify-end">
@@ -1792,6 +1799,12 @@ export function GodRaysGenerator() {
                       <DropdownMenuItem onClick={handleSaveSlot}>
                         <SaveIcon className="size-3.5 shrink-0" />
                         Save
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <a href="/docs">
+                          <BookOpen className="size-3.5 shrink-0" />
+                          Docs
+                        </a>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
