@@ -1,5 +1,5 @@
 import React from "react";
-import { Dices } from "lucide-react";
+import { Dices, Copy, Check, BookCopyIcon } from "lucide-react";
 import { SiteNav } from "@/components/SiteNav";
 import { useTheme } from "@/components/theme-provider";
 import { HexColorPicker } from "react-colorful";
@@ -20,11 +20,6 @@ import {
 } from "godlights";
 import { RAYS_PRESETS, type RaysPreset } from "@/lib/presets";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { ArrowRight, Pipette } from "lucide-react";
 
 const HERO_ANIM: AnimParams = {
@@ -35,7 +30,12 @@ const HERO_ANIM: AnimParams = {
   haloAmp: 100,
 };
 
-function presetToScene(preset: RaysPreset, color: string, bgColor: string, dark: boolean): SceneConfig {
+function presetToScene(
+  preset: RaysPreset,
+  color: string,
+  bgColor: string,
+  dark: boolean
+): SceneConfig {
   const bgLayer: BackgroundLayer = {
     id: "background",
     type: "background",
@@ -108,6 +108,13 @@ export default function LandingPage() {
   const activePreset = RAYS_PRESETS[activeIndex];
   const scene = presetToScene(activePreset, rayColor, bgColor, dark);
 
+  const [copied, setCopied] = React.useState(false);
+  const handleCopyInstall = async () => {
+    await navigator.clipboard.writeText("npm install godlights");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
   const handleNext = () => {
     setActiveIndex((i) => (i + 1) % RAYS_PRESETS.length);
   };
@@ -123,7 +130,12 @@ export default function LandingPage() {
         scene={scene}
         animate
         animParams={HERO_ANIM}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+        }}
       />
 
       {/* Gradient fade at bottom */}
@@ -133,7 +145,18 @@ export default function LandingPage() {
       <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
         <div className="container mx-auto px-4 flex flex-col items-center justify-center gap-8">
           <div className="flex flex-col items-center gap-4">
-            {/* Controls */}
+            {/* npm install pill */}
+            <button
+              onClick={handleCopyInstall}
+              className="flex items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors group"
+            >
+              <span>npm install godlights</span>
+              {copied ? (
+                <Check className="size-3.5 shrink-0 text-green-500" />
+              ) : (
+                <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
+              )}
+            </button>
 
             <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-8xl text-balance">
               Create stunning light rays
@@ -146,36 +169,12 @@ export default function LandingPage() {
           </div>
 
           <div className="flex gap-2 items-center justify-center flex-wrap">
-            {/* Color picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  title="Color"
-                  className="size-8 rounded-full border cursor-pointer flex items-center justify-center"
-                  style={{ background: color }}
-                >
-                  <Pipette className="size-4" style={{ color: hexLuminance(color) > 0.4 ? "#000" : "#fff" }} />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-3" align="center" side="top">
-                <HexColorPicker color={color} onChange={handleColorChange} />
-              </PopoverContent>
-            </Popover>
-
-            {/* Preset cycle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={"outline"}
-                  size={"icon-xs"}
-                  onClick={handleNext}
-                  className="rounded-full"
-                >
-                  <Dices className="size-4.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top">{activePreset.label}</TooltipContent>
-            </Tooltip>
+            <Button className="rounded-full" variant={"outline"} asChild>
+              <a href="/editor">
+                <BookCopyIcon className="4.5" />
+                Docs
+              </a>
+            </Button>
 
             <Button className="rounded-full" asChild>
               <a href="/editor">
@@ -185,6 +184,39 @@ export default function LandingPage() {
             </Button>
           </div>
         </div>
+      </div>
+
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center items-center gap-2 z-100">
+        {/* Color picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              title="Color"
+              className="size-10 rounded-full border cursor-pointer flex items-center justify-center"
+              style={{ background: color }}
+            >
+              <Pipette
+                className="size-4"
+                style={{
+                  color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
+                }}
+              />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="center" side="top">
+            <HexColorPicker color={color} onChange={handleColorChange} />
+          </PopoverContent>
+        </Popover>
+
+        {/* Preset cycle */}
+        <Button
+          variant={"outline"}
+          onClick={handleNext}
+          className="rounded-full"
+        >
+          <Dices className="size-4.5" />
+          <span className="truncate min-w-0">Randomize</span>
+        </Button>
       </div>
     </div>
   );
