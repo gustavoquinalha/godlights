@@ -1,0 +1,353 @@
+# Godlights — Full API Reference
+
+> Animated god ray / light beam effects for React.
+> npm: `npm install godlights` | Docs: https://godlights.vercel.app/docs
+
+---
+
+## GodLights component
+
+```tsx
+import { GodLights } from "godlights";
+
+<GodLights
+  scene={scene}           // SceneConfig — required
+  animate={false}         // boolean — enable RAF animation loop
+  animParams={params}     // AnimParams — only used when animate=true
+  showFps={false}         // boolean — dev FPS overlay (animate=true only)
+  className="..."         // string — CSS class on wrapper div
+  style={{ ... }}         // CSSProperties — inline style on wrapper div
+/>
+```
+
+The wrapper div has `position: relative` by default. For full-bleed background:
+```tsx
+style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+```
+Do NOT rely on `className="absolute"` alone — inline style wins over Tailwind classes.
+
+---
+
+## SceneConfig
+
+```ts
+interface SceneConfig {
+  width: number;      // canvas width in px (aspect ratio source; typically 1920)
+  height: number;     // canvas height in px (typically 1080)
+  noise: number;      // film grain intensity 0–100 (0 = none, 100 = heavy)
+  grainSize: number;  // grain pixel size 1–4 (1 = fine, 4 = coarse)
+  layers: Layer[];    // ordered back-to-front; layers[0] MUST be BackgroundLayer
+}
+```
+
+**CRITICAL**: `layers[0]` must always be a `BackgroundLayer`. Without it the canvas is never cleared to a solid color, causing transparent frames and visual artifacts in animation.
+
+---
+
+## Layer types
+
+### BackgroundLayer
+
+```ts
+interface BackgroundLayer {
+  id: "background";        // must be the literal string "background"
+  type: "background";
+  bgType: "solid" | "gradient" | "transparent";
+  bgColor: string;         // hex — primary / top color
+  bgColor2: string;        // hex — secondary / bottom color (gradients)
+  bgGradientAngle: number; // degrees: 0=up, 90=right, 180=down, 270=left
+}
+```
+
+Example:
+```ts
+{
+  id: "background",
+  type: "background",
+  bgType: "solid",
+  bgColor: "#000000",
+  bgColor2: "#000000",
+  bgGradientAngle: 180,
+}
+```
+
+### RayLayer
+
+```ts
+interface RayLayer {
+  id: string;
+  type: "rays";
+  name: string;
+  direction: number;          // angle rays point in degrees (0=up, 90=right, 180=down, 270=left)
+  spread: number;             // angular width of the ray fan in degrees (0 = single beam, 180 = half-circle)
+  originX: number;            // origin X as % of canvas width; can be <0 or >100 (off-screen sources)
+  originY: number;            // origin Y as % of canvas height; can be <0 or >100
+  rayCount: number;           // number of rays (1–200; 10–50 typical)
+  rayWidth: number;           // ray width at origin (1–200)
+  divergence: number;         // how much rays fan out along their length (0.1–5; 1 = natural, >2 = wide fan)
+  rayLength: number;          // length as fraction of canvas diagonal (0.1–3; 0.5 = half diagonal)
+  colorStart: string;         // hex color at ray origin
+  colorEnd: string;           // hex color at ray tip
+  opacity: number;            // overall layer opacity 0–1
+  blendMode: BlendMode;       // see BlendMode section below
+  fadeToTransparent: boolean; // fade tips to alpha=0 (true for soft rays)
+  blur: number;               // gaussian blur in px 0–100 (10–30 typical)
+  randomnessWidth: number;    // per-ray width variation 0–100
+  randomnessLength: number;   // per-ray length variation 0–100
+  randomnessAngle: number;    // per-ray angle variation 0–100 (0 = parallel rays, 100 = chaotic)
+  seed: number;               // RNG seed — same seed = same random pattern every render
+}
+```
+
+Example:
+```ts
+{
+  id: "rays-1",
+  name: "Main Rays",
+  type: "rays",
+  direction: 180,
+  spread: 100,
+  originX: 50,
+  originY: -15,
+  rayCount: 30,
+  rayWidth: 80,
+  divergence: 0.5,
+  rayLength: 0.7,
+  colorStart: "#3b82f6",
+  colorEnd: "#06b6d4",
+  opacity: 0.35,
+  blendMode: "screen",
+  fadeToTransparent: true,
+  blur: 20,
+  randomnessWidth: 80,
+  randomnessLength: 30,
+  randomnessAngle: 0,
+  seed: 42,
+}
+```
+
+### HaloLayer
+
+```ts
+interface HaloLayer {
+  id: string;
+  type: "halo";
+  name: string;
+  originX: number;       // center X as % of canvas width
+  originY: number;       // center Y as % of canvas height
+  color: string;         // hex color
+  intensity: number;     // brightness 0–1 (0.2–0.6 typical)
+  size: number;          // radius as fraction of canvas diagonal (0.01–2; 0.3–0.6 typical)
+  blendMode: BlendMode;
+}
+```
+
+Example:
+```ts
+{
+  id: "halo-1",
+  name: "Center Glow",
+  type: "halo",
+  originX: 50,
+  originY: 0,
+  color: "#3b82f6",
+  intensity: 0.4,
+  size: 0.6,
+  blendMode: "lighter",
+}
+```
+
+---
+
+## BlendMode
+
+```ts
+type BlendMode =
+  | "source-over"  // normal — no blending
+  | "lighter"      // additive — bright, glowing (dark backgrounds only)
+  | "screen"       // subtractive-inverse — soft glow (dark backgrounds only)
+  | "overlay"      // contrast boost — works on mid-tone backgrounds
+  | "soft-light"   // gentle contrast — works on most backgrounds
+  | "hard-light";  // strong contrast
+```
+
+**Dark backgrounds** (`bgColor: "#000000"` or similar): use `"lighter"` or `"screen"`.
+**Light backgrounds** (`bgColor: "#ffffff"` or similar): use `"multiply"` — NOTE: `"multiply"` is a valid canvas composite op but not in the BlendMode type. Use `"overlay"` or `"soft-light"` as alternatives, or swap to a dark background.
+
+---
+
+## AnimParams
+
+```ts
+interface AnimParams {
+  speed: number;      // time multiplier — 0=frozen, 1=normal, 3=fast, 10=very fast
+  angleAmp: number;   // ray angle oscillation 0–100 (0=no swing, 100=wild)
+  lengthAmp: number;  // ray length oscillation 0–100
+  widthAmp: number;   // ray width oscillation 0–100
+  haloAmp: number;    // halo intensity oscillation 0–100
+}
+// NOTE: there is NO opacityAmp field. Adding it causes a TypeScript error.
+```
+
+Subtle animation:
+```ts
+{ speed: 1, angleAmp: 20, lengthAmp: 15, widthAmp: 10, haloAmp: 25 }
+```
+
+Dynamic animation:
+```ts
+{ speed: 3, angleAmp: 100, lengthAmp: 100, widthAmp: 100, haloAmp: 100 }
+```
+
+---
+
+## Utility functions
+
+```ts
+// Draw one frame onto an existing canvas element
+drawScene(canvas: HTMLCanvasElement, scene: SceneConfig, time?: number, anim?: AnimParams, skipGrain?: boolean): void
+
+// Export as PNG Blob (for download)
+exportScene(scene: SceneConfig): Promise<Blob>
+
+// Export as PNG data URL (for CSS background-image or <img src>)
+exportDataURL(scene: SceneConfig): Promise<string>
+```
+
+Export example:
+```ts
+import { exportScene } from "godlights";
+
+const blob = await exportScene(scene);
+const url = URL.createObjectURL(blob);
+const a = document.createElement("a");
+a.href = url;
+a.download = "rays.png";
+a.click();
+```
+
+---
+
+## Default values
+
+```ts
+import {
+  DEFAULT_SCENE,           // complete scene with bg + halo + rays
+  DEFAULT_RAY_LAYER,       // Omit<RayLayer, "id" | "name">
+  DEFAULT_HALO_LAYER,      // Omit<HaloLayer, "id" | "name">
+  DEFAULT_BACKGROUND_LAYER, // BackgroundLayer (black solid)
+  DEFAULT_ANIM_PARAMS,     // { speed:1, angleAmp:50, lengthAmp:50, widthAmp:50, haloAmp:50 }
+  BLEND_MODES,             // { value: BlendMode, label: string }[]
+} from "godlights";
+
+// Extend defaults to build a layer quickly
+const myLayer: RayLayer = {
+  ...DEFAULT_RAY_LAYER,
+  id: "rays-1",
+  name: "My Rays",
+  colorStart: "#ff6600",
+  colorEnd: "#ff6600",
+};
+```
+
+---
+
+## Full example — Next.js hero section
+
+```tsx
+"use client";
+
+import { useMemo } from "react";
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 10,
+  grainSize: 1,
+  layers: [
+    // Always first — clears canvas to this color each frame
+    {
+      id: "background",
+      type: "background",
+      bgType: "solid",
+      bgColor: "#000000",
+      bgColor2: "#000000",
+      bgGradientAngle: 180,
+    },
+    {
+      id: "rays-1",
+      name: "Main Rays",
+      type: "rays",
+      direction: 180,
+      spread: 100,
+      originX: 50,
+      originY: -15,
+      rayCount: 30,
+      rayWidth: 80,
+      divergence: 0.5,
+      rayLength: 0.7,
+      colorStart: "#3b82f6",
+      colorEnd: "#06b6d4",
+      opacity: 0.35,
+      blendMode: "screen",
+      fadeToTransparent: true,
+      blur: 20,
+      randomnessWidth: 80,
+      randomnessLength: 30,
+      randomnessAngle: 0,
+      seed: 42,
+    },
+    {
+      id: "halo-1",
+      name: "Center Glow",
+      type: "halo",
+      originX: 50,
+      originY: 0,
+      color: "#3b82f6",
+      intensity: 0.4,
+      size: 0.6,
+      blendMode: "lighter",
+    },
+  ],
+};
+
+export function Hero() {
+  return (
+    <section className="relative min-h-screen w-full overflow-hidden bg-black">
+      <GodLights
+        scene={scene}
+        animate
+        animParams={{
+          speed: 1.2,
+          angleAmp: 25,
+          lengthAmp: 20,
+          widthAmp: 15,
+          haloAmp: 35,
+          // ❌ opacityAmp does NOT exist — remove it
+        }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+        }}
+      />
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center">
+        <h1 className="text-white">Your content here</h1>
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+## Common mistakes checklist
+
+1. ❌ **No BackgroundLayer** → canvas transparent each frame → add `{ id: "background", type: "background", ... }` as `layers[0]`
+2. ❌ **`opacityAmp` in animParams** → TypeScript error → remove it, valid keys: `speed angleAmp lengthAmp widthAmp haloAmp`
+3. ❌ **`className="absolute"` for positioning** → overridden by inline style → use `style={{ position: "absolute", inset: 0, ... }}`
+4. ❌ **`blendMode: "screen"` on white background** → invisible rays → use `blendMode: "multiply"` on light backgrounds
+5. ❌ **`blendMode: "multiply"` is not in `BlendMode` type** → TypeScript error → it IS a valid canvas op so cast: `blendMode: "multiply" as BlendMode`

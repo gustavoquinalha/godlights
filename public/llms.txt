@@ -1,0 +1,105 @@
+# Godlights
+
+> Animated god ray / light beam effects for React. Render volumetric light scenes on a canvas — fully configurable and animatable. Zero runtime dependencies beyond React.
+
+## Install
+
+```bash
+npm install godlights
+```
+
+## Quick start
+
+```tsx
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+// layers[0] MUST be a BackgroundLayer — it clears the canvas each frame.
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 8,        // film grain 0–100
+  grainSize: 1,    // grain pixel size 1–4
+  layers: [
+    {
+      id: "background",
+      type: "background",
+      bgType: "solid",
+      bgColor: "#000000",
+      bgColor2: "#000000",
+      bgGradientAngle: 180,
+    },
+    {
+      id: "rays-1",
+      name: "Rays 1",
+      type: "rays",
+      direction: 180,       // angle rays point (degrees)
+      spread: 120,          // angular fan width (degrees)
+      originX: 50,          // % of canvas width (can exceed 0–100)
+      originY: -20,         // % of canvas height (can be negative)
+      rayCount: 40,
+      rayWidth: 87,         // 1–200
+      divergence: 0.4,      // 0.1–5
+      rayLength: 0.55,      // fraction of canvas diagonal
+      colorStart: "#ffffff",
+      colorEnd: "#ffffff",
+      opacity: 0.42,
+      blendMode: "screen",  // use "multiply" on light/white backgrounds
+      fadeToTransparent: true,
+      blur: 17.5,
+      randomnessWidth: 100,
+      randomnessLength: 24,
+      randomnessAngle: 0,
+      seed: 1337,
+    },
+    {
+      id: "halo-1",
+      name: "Halo 1",
+      type: "halo",
+      originX: 50,
+      originY: 0,
+      color: "#ffffff",
+      intensity: 0.25,  // 0–1
+      size: 0.5,        // fraction of canvas diagonal
+      blendMode: "lighter",
+    },
+  ],
+};
+
+// Static render
+export function Background() {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <GodLights scene={scene} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+    </div>
+  );
+}
+
+// Animated render
+export function AnimatedBackground() {
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <GodLights
+        scene={scene}
+        animate
+        animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+    </div>
+  );
+}
+```
+
+## Common mistakes
+
+- **Missing BackgroundLayer**: `layers[0]` MUST be `type: "background"`. Without it the canvas is transparent each frame and rays appear washed out.
+- **Wrong blend mode on light backgrounds**: `"screen"` and `"lighter"` only work on dark backgrounds. Use `"multiply"` for white/light backgrounds with dark rays.
+- **`opacityAmp` does not exist**: `AnimParams` only has `speed`, `angleAmp`, `lengthAmp`, `widthAmp`, `haloAmp`.
+- **Positioning**: The wrapper div defaults to `position: relative`. For full-bleed use `style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}` — inline style overrides the default (passing `className="absolute"` alone won't work due to CSS specificity).
+
+## Links
+
+- npm: https://www.npmjs.com/package/godlights
+- Docs: https://godlights.vercel.app/docs
+- Editor: https://godlights.vercel.app/editor
+- Full API reference: https://godlights.vercel.app/llms-full.txt

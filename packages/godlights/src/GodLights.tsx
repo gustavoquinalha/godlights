@@ -1,16 +1,73 @@
 import React from "react";
 import { drawScene, SceneConfig, AnimParams } from "./godrays";
 
+/**
+ * Props for the `<GodLights>` React component.
+ *
+ * **Positioning note:** the component renders a `position: relative` `<div>`
+ * that contains one or two absolutely-positioned `<canvas>` elements. To make
+ * it fill a parent container as a full-bleed background, give the parent
+ * `position: relative` (or `absolute`) and pass:
+ * ```tsx
+ * style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+ * ```
+ */
 export interface GodLightsProps {
-  /** Full scene configuration — use the Godlights editor to build this. */
+  /**
+   * Full scene configuration describing the background, halos, and ray layers.
+   * Build this with the Godlights visual editor, or construct it manually
+   * using `DEFAULT_SCENE` / `DEFAULT_RAY_LAYER` as starting points.
+   *
+   * **`scene.layers[0]` must be a `BackgroundLayer`** — it is the only thing
+   * that clears the canvas between animation frames. Omitting it causes ray
+   * trails in animated mode.
+   *
+   * The component re-renders whenever this prop reference changes, so avoid
+   * constructing the object inline in JSX; memoize it with `useMemo` or
+   * define it outside the component.
+   */
   scene: SceneConfig;
-  /** Enable animation loop. */
+  /**
+   * When `true`, starts a `requestAnimationFrame` loop that continuously
+   * redraws the scene with an incrementing time clock, producing smooth
+   * animation. When `false` (default), the scene is drawn once statically.
+   */
   animate?: boolean;
-  /** Animation parameters (speed, amplitudes). Only used when animate=true. */
+  /**
+   * Amplitude and speed settings for the animation loop. Only consulted when
+   * `animate={true}`.
+   *
+   * **Common mistake:** there is NO `opacityAmp` field. The valid keys are:
+   * - `speed` — global time multiplier (default `1`)
+   * - `angleAmp` — ray swing amount 0–100 (default `50`)
+   * - `lengthAmp` — ray length pulsation 0–100 (default `50`)
+   * - `widthAmp` — ray width breathing 0–100 (default `50`)
+   * - `haloAmp` — halo size pulse 0–100 (default `50`)
+   *
+   * Omit this prop to use the defaults from `DEFAULT_ANIM_PARAMS`.
+   */
   animParams?: AnimParams;
-  /** Show FPS counter overlay. Only visible when animate=true. */
+  /**
+   * When `true`, a small FPS counter badge is rendered in the top-right corner
+   * of the canvas. Only visible when `animate={true}`. Useful during
+   * development to check rendering performance. Default: `false`.
+   */
   showFps?: boolean;
+  /**
+   * Optional CSS class name applied to the outer wrapper `<div>`.
+   * Useful for Tailwind sizing utilities, e.g. `className="w-full h-full"`.
+   */
   className?: string;
+  /**
+   * Inline styles merged onto the outer wrapper `<div>`, which already has
+   * `position: "relative"` and `overflow: "hidden"` set.
+   *
+   * **Full-bleed background pattern** — add this to a relatively-positioned
+   * parent and pass:
+   * ```tsx
+   * style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+   * ```
+   */
   style?: React.CSSProperties;
 }
 
@@ -26,11 +83,77 @@ const fillAbsolute: React.CSSProperties = {
 };
 
 /**
- * Standalone Godlights canvas component.
+ * Standalone canvas component that renders a Godlights scene.
+ *
+ * The outer wrapper is a `position: relative` `<div>` with `overflow: hidden`.
+ * Inside it, one `<canvas>` is used for the main render. In animated mode a
+ * second `<canvas>` is added as a fixed grain overlay — grain is drawn once
+ * and composited with `mixBlendMode: "overlay"`, avoiding the cost of
+ * regenerating noise on every frame.
+ *
+ * **Positioning:** the component does not set its own size. You must give it
+ * explicit dimensions via `className`, `style`, or a parent constraint.
+ * For a full-bleed background behind other content:
+ *
+ * ```tsx
+ * // Parent must have position: relative (or absolute/fixed)
+ * <div style={{ position: "relative" }}>
+ *   <GodLights
+ *     scene={myScene}
+ *     style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+ *   />
+ *   <p style={{ position: "relative" }}>Content on top</p>
+ * </div>
+ * ```
+ *
+ * **Blend modes:** `scene` layers using `blendMode: "screen"` or
+ * `blendMode: "lighter"` look correct only on dark backgrounds. Switch to
+ * `blendMode: "multiply"` when the background layer is light or white.
+ *
+ * **`opacityAmp` does not exist.** The animation amplitude fields are:
+ * `angleAmp`, `lengthAmp`, `widthAmp`, and `haloAmp` (all 0–100).
  *
  * @example
- * <GodLights scene={myScene} className="w-full h-full" />
- * <GodLights scene={myScene} animate animParams={{ speed: 1, angleAmp: 50, lengthAmp: 50, widthAmp: 50, haloAmp: 50 }} />
+ * // Static render — draws once, no RAF loop
+ * import { GodLights, DEFAULT_SCENE } from "@your-org/godlights";
+ *
+ * export function HeroBackground() {
+ *   return (
+ *     <GodLights
+ *       scene={DEFAULT_SCENE}
+ *       className="w-full h-64"
+ *     />
+ *   );
+ * }
+ *
+ * @example
+ * // Animated render — continuous RAF loop with custom amplitudes
+ * import { GodLights, DEFAULT_SCENE, AnimParams } from "@your-org/godlights";
+ * import { useMemo } from "react";
+ *
+ * export function AnimatedBackground() {
+ *   const animParams: AnimParams = useMemo(() => ({
+ *     speed: 1,
+ *     angleAmp: 60,   // moderate swing
+ *     lengthAmp: 40,  // subtle length pulsation
+ *     widthAmp: 20,   // gentle width breathing
+ *     haloAmp: 50,    // standard halo pulse
+ *     // ⚠️ opacityAmp does NOT exist — omit it
+ *   }), []);
+ *
+ *   return (
+ *     <div style={{ position: "relative", height: 480 }}>
+ *       <GodLights
+ *         scene={DEFAULT_SCENE}
+ *         animate
+ *         animParams={animParams}
+ *         showFps   // optional FPS badge for dev
+ *         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+ *       />
+ *       <h1 style={{ position: "relative", color: "#fff" }}>Hello</h1>
+ *     </div>
+ *   );
+ * }
  */
 export function GodLights({
   scene,

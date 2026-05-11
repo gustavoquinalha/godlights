@@ -1,6 +1,6 @@
 {
   "name": "godlights",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Animated god ray / light beam effects for React — zero dependencies beyond React itself.",
   "type": "module",
   "main": "./dist/godlights.js",
