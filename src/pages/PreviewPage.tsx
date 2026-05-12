@@ -40,14 +40,14 @@ export default function PreviewPage() {
 
   if (!config) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-black text-white/40 text-sm">
+      <div className="flex h-screen w-screen items-center justify-center bg-background text-white/40 text-sm">
         Nenhuma cena encontrada. Abra o preview a partir do gerador.
       </div>
     );
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black flex items-center justify-center">
+    <div className="h-screen w-screen overflow-hidden bg-background flex items-center justify-center">
       <GodLights
         scene={config.scene}
         animate={config.animate}

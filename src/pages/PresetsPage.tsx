@@ -14,7 +14,6 @@ import {
 } from "godlights";
 import { cn } from "@/lib/utils";
 
-
 const TAG_LABELS: Record<PresetTag, string> = {
   top: "Top",
   corner: "Corner",
@@ -25,15 +24,23 @@ const TAG_LABELS: Record<PresetTag, string> = {
   dramatic: "Dramatic",
 };
 
-const ALL_TAGS: PresetTag[] = ["top", "corner", "side", "beam", "soft", "wide", "dramatic"];
+const ALL_TAGS: PresetTag[] = [
+  "top",
+  "corner",
+  "side",
+  "beam",
+  "soft",
+  "wide",
+  "dramatic",
+];
 
-function presetToScene(preset: RaysPreset): SceneConfig {
+function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
   const bgLayer: BackgroundLayer = {
     id: "background",
     type: "background",
     bgType: "solid",
-    bgColor: "#000000",
-    bgColor2: "#000000",
+    bgColor,
+    bgColor2: bgColor,
     bgGradientAngle: 180,
   };
 
@@ -73,16 +80,13 @@ function PresetCard({ preset }: { preset: RaysPreset }) {
   return (
     <a
       href={`/editor?preset=${preset.key}`}
-      className="group relative overflow-hidden rounded-2xl border border-border bg-black transition-all hover:border-white/30 hover:shadow-xl hover:shadow-black/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative overflow-hidden rounded-2xl border border-border bg-card/90 backdrop-blur-md transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <div className="aspect-video w-full overflow-hidden">
-        <GodLights
-          scene={scene}
-          className="h-full w-full object-cover"
-        />
+        <GodLights scene={scene} className="h-full w-full object-cover" />
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-background/80 px-3 py-2.5 backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-2 border-t bg-card/90 backdrop-blur-md px-3 py-2.5">
         <div className="flex flex-col gap-1 min-w-0">
           <span className="text-sm font-medium text-foreground truncate">
             {preset.label}
@@ -122,20 +126,21 @@ export default function PresetsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
       <SiteNav
         activePath="/presets"
-        className="sticky top-0 border-b border-border bg-background/80 backdrop-blur-sm"
+        className="sticky top-0 border-b border-border bg-background/80 backdrop-blur-sm z-100"
       />
 
-      <main className="container mx-auto px-4 py-12">
+      <main className="relative z-10 container mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-1">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
             Presets
           </h1>
           <p className="text-muted-foreground">
-            {RAYS_PRESETS.length} light effect presets — click any to open in the editor.
+            {RAYS_PRESETS.length} light effect presets — click any to open in
+            the editor.
           </p>
         </div>
 
@@ -175,7 +180,9 @@ export default function PresetsPage() {
               All
             </button>
             {ALL_TAGS.map((tag) => {
-              const count = RAYS_PRESETS.filter((p) => p.tags.includes(tag)).length;
+              const count = RAYS_PRESETS.filter((p) =>
+                p.tags.includes(tag)
+              ).length;
               return (
                 <button
                   key={tag}
@@ -219,7 +226,9 @@ export default function PresetsPage() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-24 gap-3 text-center">
-            <p className="text-muted-foreground text-sm">No presets match your search.</p>
+            <p className="text-muted-foreground text-sm">
+              No presets match your search.
+            </p>
             <button
               onClick={clearFilters}
               className="text-xs underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors"

@@ -30,7 +30,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
   return (
-    <header className={cn("z-20 h-14", className)}>
+    <header className={cn("h-14 z-100", className)}>
       <div className="container mx-auto px-4 flex h-full items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">

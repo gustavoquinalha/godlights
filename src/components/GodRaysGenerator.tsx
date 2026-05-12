@@ -379,6 +379,11 @@ export function GodRaysGenerator() {
 
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     () => {
+      // If a preset was passed in the URL, use it as the active preset
+      const urlPresetKey = new URLSearchParams(window.location.search).get("preset");
+      if (urlPresetKey && RAYS_PRESETS.some((p) => p.key === urlPresetKey)) {
+        return urlPresetKey;
+      }
       try {
         const raw = localStorage.getItem("rays-ui-state");
         if (raw) {
@@ -2089,7 +2094,7 @@ export function GodRaysGenerator() {
                       <div className="absolute top-3 right-3 pointer-events-none">
                         <span
                           ref={fpsLabelRef}
-                          className="rounded-md bg-black/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm"
+                          className="rounded-md bg-background/60 px-2 py-1 font-mono text-xs tabular-nums text-white/70 backdrop-blur-sm"
                         >
                           0 fps
                         </span>
@@ -2278,7 +2283,7 @@ export function GodRaysGenerator() {
                                 alt="save"
                                 className="w-full object-cover aspect-video"
                               />
-                              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-black/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-background/60 px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
                                 <span className="text-[10px] text-white/80">
                                   {new Date(
                                     save.createdAt

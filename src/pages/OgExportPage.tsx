@@ -187,10 +187,10 @@ export default function OgExportPage() {
           {items.map((item) => (
             <div
               key={item.key}
-              className="rounded-xl border border-border overflow-hidden bg-black"
+              className="rounded-xl border border-border overflow-hidden bg-background"
             >
               {/* Preview */}
-              <div className="relative aspect-[1200/630] w-full bg-black">
+              <div className="relative aspect-[1200/630] w-full bg-background">
                 {item.dataUrl ? (
                   <img
                     src={item.dataUrl}

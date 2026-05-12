@@ -105,7 +105,7 @@ export default function LandingPage() {
   };
 
   const rayColor = color;
-  const bgColor = dark ? "#000000" : "#ffffff";
+  const bgColor = "transparent";
   const activePreset = RAYS_PRESETS[activeIndex];
   const scene = presetToScene(activePreset, rayColor, bgColor, dark);
 

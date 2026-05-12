@@ -39,12 +39,17 @@ function CodeBlock({
   };
 
   return (
-    <div className="rounded-lg border border-border bg-muted/40 overflow-hidden text-sm">
-      <div className="flex items-center justify-between border-b border-border bg-muted/60 pl-4 pr-2 py-1.5">
+    <div className="rounded-lg border border-border bg-card/90 backdrop-blur-md overflow-hidden text-sm">
+      <div className="flex items-center justify-between border-b border-border bg-background/20 backdrop-blur-md pl-4 pr-2 py-1.5">
         <span className="text-[11px] font-mono text-muted-foreground">
           {filename ?? ""}
         </span>
-        <Button size={"xs"} variant={"ghost"} onClick={handleCopy} aria-label="Copy code">
+        <Button
+          size={"xs"}
+          variant={"ghost"}
+          onClick={handleCopy}
+          aria-label="Copy code"
+        >
           {copied ? (
             <>
               <Check className="size-3 text-foreground" />
@@ -75,13 +80,13 @@ const PREVIEW_ANIM = {
   haloAmp: 50,
 };
 
-function presetToScene(preset: RaysPreset): SceneConfig {
+function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
   const bg: BackgroundLayer = {
     id: "background",
     type: "background",
     bgType: "solid",
-    bgColor: "#000000",
-    bgColor2: "#000000",
+    bgColor,
+    bgColor2: bgColor,
     bgGradientAngle: 180,
   };
   const layers = preset.layers.map((l, i) =>
@@ -163,7 +168,7 @@ function LivePreview() {
   return (
     <div className="flex flex-col gap-3">
       {/* Canvas preview */}
-      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+      <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-background">
         <GodLights
           scene={scene}
           animate
@@ -237,13 +242,13 @@ const NAV_ITEMS = [
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground relative">
       <SiteNav
         activePath="/docs"
-        className="sticky top-0 border-b border-border bg-background/80 backdrop-blur"
+        className="sticky top-0 border-b border-border bg-background/80 backdrop-blur-md z-100"
       />
 
-      <div className="container mx-auto px-4 py-12 flex gap-12 max-w-6xl">
+      <div className="relative z-10 container mx-auto px-4 py-12 flex gap-12 max-w-6xl">
         {/* Sidebar */}
         <aside className="hidden lg:flex flex-col gap-1 w-48 shrink-0 sticky top-28 self-start">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-2">
@@ -305,9 +310,9 @@ export default function DocsPage() {
           {/* GodLights props */}
           <Section id="props" title="GodLights props">
             <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-left">
+              <table className="w-full text-left bg-card/90 backdrop-blur-md">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40">
+                  <tr className="border-b border-border bg-background/20 backdrop-blur-md">
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Prop
                     </th>
@@ -516,9 +521,9 @@ const myRayLayer = {
           {/* Utilities */}
           <Section id="utilities" title="Utilities">
             <div className="overflow-x-auto rounded-lg border border-border">
-              <table className="w-full text-left">
+              <table className="w-full text-left bg-card/90 backdrop-blur-md">
                 <thead>
-                  <tr className="border-b border-border bg-muted/40">
+                  <tr className="border-b border-border bg-background/20 backdrop-blur-md">
                     <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                       Export
                     </th>
