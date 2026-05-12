@@ -5,6 +5,7 @@ Animated god-ray / light-beam effects for React. Render stunning volumetric ligh
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](#license)
 [![Live editor](https://img.shields.io/badge/Live%20editor-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
+[![Context7](https://img.shields.io/badge/Context7-docs-black?style=flat-square)](https://context7.com/gustavoquinalha/godlights)
 
 ---
 
@@ -520,10 +521,13 @@ The wrapper div uses `position: relative` as an inline style default. A Tailwind
 
 If you're using an AI coding assistant (Cursor, Copilot, Claude, etc.) to generate scenes, point it at the machine-readable docs:
 
+- **[context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights)** — use with the [Context7 MCP](https://context7.com) so Claude, Cursor, and Copilot can pull up-to-date docs automatically
 - **[godlights.vercel.app/llms.txt](https://godlights.vercel.app/llms.txt)** — quick start, common mistakes, key constraints
 - **[godlights.vercel.app/llms-full.txt](https://godlights.vercel.app/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
 
 These files follow the [llms.txt standard](https://llmstxt.org/) and are designed to fit in a context window alongside your code. Providing them to the model avoids the most common generation errors.
+
+**With Context7 MCP installed**, you can just ask your assistant: _"use context7 — how do I add a godlights hero background in Next.js?"_ and it will fetch the right docs automatically.
 
 ---
 

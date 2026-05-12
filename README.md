@@ -5,6 +5,7 @@
 [![Live demo](https://img.shields.io/badge/Live%20demo-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](./packages/godlights/README.md)
+[![Context7](https://img.shields.io/badge/Context7-docs-black?style=flat-square)](https://context7.com/gustavoquinalha/godlights)
 
 ![Godlights editor](https://godlights.vercel.app/app.gif)
 
@@ -108,12 +109,15 @@ export default function App() {
 
 Godlights ships machine-readable documentation designed for LLM consumption:
 
-| File | Purpose |
-|------|---------|
+| Resource | Purpose |
+|----------|---------|
+| [context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights) | Auto-loaded by Claude, Cursor, Copilot via Context7 MCP |
 | [`/llms.txt`](https://godlights.vercel.app/llms.txt) | Quick start, common mistakes, key constraints |
 | [`/llms-full.txt`](https://godlights.vercel.app/llms-full.txt) | Complete API reference, all types with ranges, full examples |
 
 If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a scene, point it at one of these files for accurate results. The most common LLM mistakes are documented there: missing `BackgroundLayer`, wrong blend mode on light backgrounds, and using `opacityAmp` (which doesn't exist).
+
+**With Context7 MCP installed**, just ask: _"use context7 — add a godlights animated background to my Next.js hero section"_ and the assistant fetches the right docs automatically.
 
 ---
 
