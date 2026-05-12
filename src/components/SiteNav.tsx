@@ -34,9 +34,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
       <div className="container mx-auto px-4 flex h-full items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
-          <div className="size-7 rounded-lg bg-primary flex items-center justify-center">
-            <Sparkles className="size-4 text-primary-foreground" />
-          </div>
+          <img src="/logo.svg" alt="Godlights logo" className="size-7" />
           <span className="text-sm font-semibold tracking-tight text-foreground">
             Godlights
           </span>
@@ -70,11 +68,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
             onClick={toggleTheme}
             title={dark ? "Light mode" : "Dark mode"}
           >
-            {dark ? (
-              <Sun className="size-3.5" />
-            ) : (
-              <Moon className="size-3.5" />
-            )}
+            {dark ? <Sun className="size-3" /> : <Moon className="size-3" />}
           </Button>
 
           <Button
@@ -88,7 +82,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Github className="size-3.5" />
+              <Github className="size-3" />
               GitHub
             </a>
           </Button>
@@ -128,9 +122,9 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={toggleTheme}>
                 {dark ? (
-                  <Sun className="size-3.5 shrink-0" />
+                  <Sun className="size-3 shrink-0" />
                 ) : (
-                  <Moon className="size-3.5 shrink-0" />
+                  <Moon className="size-3 shrink-0" />
                 )}
                 {dark ? "Light mode" : "Dark mode"}
               </DropdownMenuItem>

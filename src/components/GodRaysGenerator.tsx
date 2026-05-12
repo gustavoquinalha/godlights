@@ -31,6 +31,8 @@ import {
   BookmarkCheck,
   BookOpen,
   Link,
+  BookCopyIcon,
+  LayoutDashboardIcon,
 } from "lucide-react";
 import {
   drawScene,
@@ -83,6 +85,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { ColorField } from "@/components/ColorField";
+import { ColorPicker } from "@/components/ColorPicker";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Field } from "@/components/ControlSection";
 import {
   RAYS_PRESETS,
@@ -1346,9 +1350,7 @@ export function GodRaysGenerator() {
         <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
           <div className="flex items-center justify-between">
             <a href="/" className="flex items-center gap-2">
-              <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
-                <Sparkles className="size-4 text-primary-foreground" />
-              </div>
+              <img src="/logo.svg" alt="Godlights logo" className="size-7" />
               <span className="text-sm font-semibold tracking-tight">
                 Godlights
               </span>
@@ -1462,102 +1464,24 @@ export function GodRaysGenerator() {
 
           <SidebarSeparator />
 
-          <SidebarGroup>
-            <SidebarGroupLabel>Background</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <div className="w-full flex flex-col gap-6 px-2 pb-2">
-                <Field>
-                  <Select
-                    value={bgLayer.bgType}
-                    onValueChange={(v) =>
-                      updateLayer("background", {
-                        bgType: v as BackgroundType,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="transparent">Transparent</SelectItem>
-                      <SelectItem value="solid">Solid color</SelectItem>
-                      <SelectItem value="gradient">Gradient</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                {bgLayer.bgType === "solid" && (
-                  <div className="w-full flex flex-col gap-2">
-                    <Label className="text-sm font-medium text-foreground/90">
-                      Color
-                    </Label>
-                    <ColorField
-                      value={bgLayer.bgColor}
-                      onChange={(v) =>
-                        updateLayer("background", { bgColor: v })
-                      }
-                    />
-                  </div>
-                )}
-                {bgLayer.bgType === "gradient" && (
-                  <>
-                    <div className="w-full flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground/90">
-                        Colors
-                      </Label>
-                      <div className="flex flex-col gap-2">
-                        <ColorField
-                          value={bgLayer.bgColor}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor: v })
-                          }
-                        />
-                        <div
-                          className="h-4 w-full rounded-lg ring-1 ring-border"
-                          style={{
-                            background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
-                          }}
-                        />
-                        <ColorField
-                          value={bgLayer.bgColor2}
-                          onChange={(v) =>
-                            updateLayer("background", { bgColor2: v })
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    <Field
-                      label="Angle"
-                      value={bgLayer.bgGradientAngle.toFixed(0)}
-                      unit="°"
-                    >
-                      <Slider
-                        min={0}
-                        max={360}
-                        step={1}
-                        value={[bgLayer.bgGradientAngle]}
-                        onValueChange={([v]) =>
-                          updateLayer("background", { bgGradientAngle: v })
-                        }
-                      />
-                    </Field>
-                  </>
-                )}
-              </div>
-            </SidebarGroupContent>
-          </SidebarGroup>
-
-          <SidebarSeparator />
-
           {/* ANIMATION */}
           <SidebarGroup>
             <SidebarGroupLabel className="items-center justify-between">
               Animation
-              <Switch checked={isAnimating} onCheckedChange={setIsAnimating} />
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                <div className="w-full flex items-center gap-2 justify-between">
+                  <Label className="text-sm font-medium text-foreground/90">
+                    Habilitar animação
+                  </Label>
+
+                  <Switch
+                    checked={isAnimating}
+                    onCheckedChange={setIsAnimating}
+                  />
+                </div>
+
                 {isAnimating && (
                   <>
                     <Field
@@ -1672,6 +1596,16 @@ export function GodRaysGenerator() {
               </div>
             </SidebarGroupContent>
           </SidebarGroup>
+
+          <SidebarSeparator />
+
+          <SidebarGroup>
+            <div className="w-full flex flex-col gap-6 px-2 pb-2 h-full">
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                <RotateCcw className="size-3" /> Reset
+              </Button>
+            </div>
+          </SidebarGroup>
         </SidebarContent>
       </Sidebar>
 
@@ -1693,9 +1627,11 @@ export function GodRaysGenerator() {
                   </Button> */}
 
                   <a href="/" className="flex lg:hidden items-center gap-2">
-                    <div className="size-7 rounded-lg bg-primary flex items-center justify-center text-center">
-                      <Sparkles className="size-4 text-primary-foreground" />
-                    </div>
+                    <img
+                      src="/logo.svg"
+                      alt="Godlights logo"
+                      className="size-7"
+                    />
                     <span className="text-sm font-semibold tracking-tight">
                       Godlights
                     </span>
@@ -2191,14 +2127,31 @@ export function GodRaysGenerator() {
                     {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
                   </span>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    className="py-1.5 h-auto"
-                  >
-                    <RotateCcw className="size-3" /> Reset
-                  </Button>
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleReset}
+                      className="py-1.5 h-auto"
+                      asChild
+                    >
+                      <a href="/presets" target="_blank">
+                        <LayoutDashboardIcon className="size-3" /> Presets
+                      </a>
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleReset}
+                      className="py-1.5 h-auto"
+                      asChild
+                    >
+                      <a href="/docs" target="_blank">
+                        <BookCopyIcon className="size-3" /> Docs
+                      </a>
+                    </Button>
+                  </div>
                 </div>
               </TabsContent>
 
@@ -2359,6 +2312,7 @@ export function GodRaysGenerator() {
                           (selectedLayer as RayLayer).name}
                         {selectedLayer?.type === "halo" &&
                           (selectedLayer as HaloLayer).name}
+                        {selectedLayer?.type === "background" && "Background"}
                       </h2>
                     </div>
                   </div>
@@ -2436,20 +2390,20 @@ export function GodRaysGenerator() {
                       return (
                         <div
                           key={layer.id}
-                          className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm"
+                          className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm overflow-hidden"
                           onMouseEnter={() => setHoveredLayerId(layer.id)}
                           onMouseLeave={() => setHoveredLayerId(null)}
                         >
                           {/* Clickable area */}
                           <Button
                             variant="ghost"
-                            className="w-full h-auto p-3 text-left justify-start rounded-none"
+                            className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none"
                             onClick={() => {
                               setSelectedLayerId(layer.id);
                               setHoveredLayerId(null);
                             }}
                           >
-                            <div className="mb-2.5 flex items-center justify-between">
+                            <div className="w-full mb-2.5 flex items-center justify-between">
                               <div className="flex items-center gap-2">
                                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
                                   {layer.type === "rays" ? (
@@ -2486,9 +2440,24 @@ export function GodRaysGenerator() {
 
                           {/* Layer controls */}
                           <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
-                            <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
-                              {layer.type}
-                            </span>
+                            <ColorPicker
+                              className="size-6 rounded"
+                              value={
+                                layer.type === "rays"
+                                  ? layer.colorStart
+                                  : layer.color
+                              }
+                              onChange={(v) => {
+                                if (layer.type === "rays") {
+                                  updateLayer(layer.id, {
+                                    colorStart: v,
+                                    colorEnd: v,
+                                  });
+                                } else {
+                                  updateLayer(layer.id, { color: v });
+                                }
+                              }}
+                            />
                             <div className="flex items-center gap-0.5">
                               <Button
                                 variant="ghost"
@@ -2545,8 +2514,164 @@ export function GodRaysGenerator() {
                         </div>
                       );
                     })}
+
+                    {/* Background layer card */}
+                    <div className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm overflow-hidden">
+                      <Button
+                        variant="ghost"
+                        className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none"
+                        onClick={() => setSelectedLayerId("background")}
+                      >
+                        <div className="w-full flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
+                              <ImageIcon className="h-3 w-3" />
+                            </div>
+                            <span className="text-sm font-semibold">
+                              Background
+                            </span>
+                          </div>
+                          <ChevronLeft className="size-3 rotate-180 text-sidebar-foreground/30 transition-colors group-hover:text-sidebar-foreground/60" />
+                        </div>
+                        {bgLayer.bgType !== "transparent" && (
+                          <div
+                            className="mt-2.5 h-8 w-full rounded-lg ring-1 ring-border"
+                            style={{
+                              background:
+                                bgLayer.bgType === "gradient"
+                                  ? `linear-gradient(${bgLayer.bgGradientAngle}deg, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`
+                                  : bgLayer.bgColor,
+                            }}
+                          />
+                        )}
+                      </Button>
+                      <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
+                        {bgLayer.bgType !== "transparent" ? (
+                          <ColorPicker
+                            className="size-6 rounded"
+                            value={bgLayer.bgColor}
+                            onChange={(v) =>
+                              updateLayer("background", {
+                                bgColor: v,
+                                bgColor2: v,
+                              })
+                            }
+                          />
+                        ) : (
+                          <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
+                            transparent
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
+              )}
+
+              {/* ── BACKGROUND PROPERTIES ────────────────────────────────── */}
+              {selectedLayer?.type === "background" && (
+                <>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Background</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <div className="w-full flex flex-col gap-6 px-2 pb-2">
+                        <ToggleGroup
+                          type="single"
+                          value={bgLayer.bgType}
+                          onValueChange={(v) => {
+                            if (v)
+                              updateLayer("background", {
+                                bgType: v as BackgroundType,
+                              });
+                          }}
+                          className="w-full"
+                        >
+                          <ToggleGroupItem
+                            value="transparent"
+                            className="flex-1 text-xs border"
+                          >
+                            None
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="solid"
+                            className="flex-1 text-xs border"
+                          >
+                            Solid
+                          </ToggleGroupItem>
+                          <ToggleGroupItem
+                            value="gradient"
+                            className="flex-1 text-xs border"
+                          >
+                            Gradient
+                          </ToggleGroupItem>
+                        </ToggleGroup>
+
+                        {bgLayer.bgType === "solid" && (
+                          <div className="w-full flex flex-col gap-2">
+                            <Label className="text-sm font-medium text-foreground/90">
+                              Color
+                            </Label>
+                            <ColorField
+                              value={bgLayer.bgColor}
+                              onChange={(v) =>
+                                updateLayer("background", { bgColor: v })
+                              }
+                            />
+                          </div>
+                        )}
+
+                        {bgLayer.bgType === "gradient" && (
+                          <>
+                            <div className="w-full flex flex-col gap-2">
+                              <Label className="text-sm font-medium text-foreground/90">
+                                Colors
+                              </Label>
+                              <div className="flex flex-col gap-2">
+                                <ColorField
+                                  value={bgLayer.bgColor}
+                                  onChange={(v) =>
+                                    updateLayer("background", { bgColor: v })
+                                  }
+                                />
+
+                                <ColorField
+                                  value={bgLayer.bgColor2}
+                                  onChange={(v) =>
+                                    updateLayer("background", { bgColor2: v })
+                                  }
+                                />
+
+                                <div
+                                  className="h-8 w-full rounded-lg ring-1 ring-border"
+                                  style={{
+                                    background: `linear-gradient(to right, ${bgLayer.bgColor}, ${bgLayer.bgColor2})`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            <Field
+                              label="Angle"
+                              value={bgLayer.bgGradientAngle.toFixed(0)}
+                              unit="°"
+                            >
+                              <Slider
+                                min={0}
+                                max={360}
+                                step={1}
+                                value={[bgLayer.bgGradientAngle]}
+                                onValueChange={([v]) =>
+                                  updateLayer("background", {
+                                    bgGradientAngle: v,
+                                  })
+                                }
+                              />
+                            </Field>
+                          </>
+                        )}
+                      </div>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </>
               )}
 
               {/* ── RAYS PROPERTIES ──────────────────────────────────────── */}

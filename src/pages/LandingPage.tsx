@@ -153,7 +153,7 @@ export default function LandingPage() {
                 variant="outline"
                 className="flex md:hidden rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
-                <span className="truncate min-w-0">npm install godlights</span>
+                <span className="truncate min-w-0 text-xs">npm install godlights</span>
                 {copied ? (
                   <Check className="size-3.5 shrink-0 text-foreground" />
                 ) : (
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 variant="outline"
                 className="hidden md:flex rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
-                <span className="truncate min-w-0">npm install godlights</span>
+                <span className="truncate min-w-0 text-xs">npm install godlights</span>
                 {copied ? (
                   <Check className="size-3.5 shrink-0 text-foreground" />
                 ) : (
