@@ -1,4 +1,4 @@
-import { Sparkles, Github, ArrowRight, Menu, Sun, Moon } from "lucide-react";
+import { Github, ArrowRight, Menu, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, LINKS } from "@/lib/utils";
 import {
