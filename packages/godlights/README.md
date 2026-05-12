@@ -496,6 +496,198 @@ export default function Overlay() {
 }
 ```
 
+### Reactive scene (follow mouse)
+
+Swap the `scene` prop and the component re-renders automatically. Wrap the config in `useMemo` so it only recomputes when the mouse position changes.
+
+```tsx
+"use client";
+import { useState, useCallback, useMemo } from "react";
+import { GodLights, DEFAULT_BACKGROUND_LAYER, DEFAULT_HALO_LAYER, DEFAULT_RAY_LAYER } from "godlights";
+import type { SceneConfig } from "godlights";
+
+export function MouseTrackingBackground() {
+  const [mouse, setMouse] = useState({ x: 50, y: 10 });
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMouse({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  }, []);
+
+  const scene: SceneConfig = useMemo(() => ({
+    width: 1920,
+    height: 1080,
+    noise: 6,
+    grainSize: 1,
+    layers: [
+      { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f" },
+      { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX: mouse.x, originY: mouse.y, color: "#a78bfa", intensity: 0.28, size: 0.45 },
+      { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX: mouse.x, originY: mouse.y, direction: 180, spread: 80, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18 },
+    ],
+  }), [mouse]);
+
+  return (
+    <div
+      style={{ position: "relative", width: "100%", height: "100vh" }}
+      onMouseMove={handleMouseMove}
+    >
+      <GodLights
+        scene={scene}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>{/* content */}</div>
+    </div>
+  );
+}
+```
+
+---
+
+### Cycling presets with smooth transitions
+
+Swap the `scene` prop between presets. The running animation loop covers the cut naturally. For a cross-fade, layer two `<GodLights>` instances and animate `opacity` between them.
+
+```tsx
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+const presets: SceneConfig[] = [
+  {
+    width: 1920, height: 1080, noise: 8, grainSize: 1,
+    layers: [
+      { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+      { id: "halo-1", name: "Halo", type: "halo", originX: 20, originY: 5, color: "#a78bfa", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { id: "rays-1", name: "Rays", type: "rays", direction: 160, spread: 70, originX: 20, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1 },
+    ],
+  },
+  {
+    width: 1920, height: 1080, noise: 8, grainSize: 1,
+    layers: [
+      { id: "background", type: "background", bgType: "solid", bgColor: "#060f08", bgColor2: "#060f08", bgGradientAngle: 180 },
+      { id: "halo-1", name: "Halo", type: "halo", originX: 80, originY: 5, color: "#34d399", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { id: "rays-1", name: "Rays", type: "rays", direction: 200, spread: 70, originX: 80, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#34d399", colorEnd: "#34d399", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 2 },
+    ],
+  },
+];
+
+export function CyclingPresets() {
+  const [current, setCurrent] = useState(0);
+  const [next, setNext] = useState(1);
+  const [fading, setFading] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNext((current + 1) % presets.length);
+      setFading(true);
+      setTimeout(() => {
+        setCurrent((c) => (c + 1) % presets.length);
+        setFading(false);
+      }, 800);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [current]);
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <GodLights scene={presets[current]} animate style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+      <GodLights
+        scene={presets[next]}
+        animate
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          opacity: fading ? 1 : 0,
+          transition: "opacity 0.8s ease",
+        }}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+### Performance optimization
+
+Each `<GodLights animate>` runs its own `requestAnimationFrame` loop. For multiple instances on the same page:
+
+```tsx
+"use client";
+import { useEffect, useRef, useState } from "react";
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+// 1. Reduce rayCount and blur for background/decorative instances
+const lightweightScene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 4,
+  grainSize: 1,
+  layers: [
+    { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+    { id: "halo-1", name: "Halo", type: "halo", originX: 50, originY: 0, color: "#a78bfa", intensity: 0.2, size: 0.4, blendMode: "lighter" },
+    {
+      id: "rays-1", name: "Rays", type: "rays",
+      direction: 180, spread: 80,
+      originX: 50, originY: 0,
+      rayCount: 12,        // ← keep low for secondary instances
+      rayWidth: 60, divergence: 2, rayLength: 1.0,
+      colorStart: "#a78bfa", colorEnd: "#a78bfa",
+      opacity: 0.15, blendMode: "screen", fadeToTransparent: true,
+      blur: 6,             // ← blur is expensive; reduce or set to 0
+      randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1,
+    },
+  ],
+};
+
+// 2. Pause animation when the element is off-screen
+function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", height: 400 }}>
+      <GodLights
+        scene={scene}
+        animate={visible}   // ← RAF loop only runs while visible
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+    </div>
+  );
+}
+
+export function MultiSectionPage() {
+  return (
+    <>
+      <LazyAnimatedBackground scene={lightweightScene} />
+      <LazyAnimatedBackground scene={lightweightScene} />
+      <LazyAnimatedBackground scene={lightweightScene} />
+    </>
+  );
+}
+```
+
+**Quick checklist for multiple instances:**
+- Keep `rayCount` ≤ 16 for non-hero sections
+- Set `blur: 0` or keep it under 8 — Gaussian blur via `OffscreenCanvas` is the heaviest operation
+- Use `animate={false}` for purely decorative static instances
+- Pause off-screen instances with `IntersectionObserver` as shown above
+
 ---
 
 ## Common mistakes
