@@ -1439,10 +1439,11 @@ export function GodRaysGenerator() {
                   <div className="w-full aspect-square" key={p.key}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button
+                        <Button
+                          variant="outline"
                           onClick={() => applyPreset(p.key)}
                           className={cn(
-                            "relative border cursor-pointer aspect-square w-full overflow-hidden rounded-md",
+                            "relative p-0 aspect-square w-full overflow-hidden rounded-md",
                             activeRaysPreset === p.key && "border-primary"
                           )}
                         >
@@ -1453,7 +1454,7 @@ export function GodRaysGenerator() {
                               filter: "blur(3px)",
                             }}
                           />
-                        </button>
+                        </Button>
                       </TooltipTrigger>
                       <TooltipContent>{p.label}</TooltipContent>
                     </Tooltip>
@@ -1759,9 +1760,11 @@ export function GodRaysGenerator() {
                         <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Copy
                         </p>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={handleCopyPresetJson}
-                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                          className="w-full justify-start gap-2.5 rounded-sm px-2.5 font-normal"
                         >
                           {copiedJson ? (
                             <Check className="size-3.5 shrink-0" />
@@ -1769,10 +1772,12 @@ export function GodRaysGenerator() {
                             <Copy className="size-3.5 shrink-0" />
                           )}
                           {copiedJson ? "Copied!" : "JSON"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={handleCopyCss}
-                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                          className="w-full justify-start gap-2.5 rounded-sm px-2.5 font-normal"
                         >
                           {copiedCss ? (
                             <Check className="size-3.5 shrink-0" />
@@ -1780,32 +1785,38 @@ export function GodRaysGenerator() {
                             <Code2 className="size-3.5 shrink-0" />
                           )}
                           {copiedCss ? "Copied!" : "CSS"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={handleCopyComponent}
-                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                          className="w-full justify-start gap-2.5 rounded-sm px-2.5 font-normal"
                         >
                           <Component className="size-3.5 shrink-0" />
                           JSX Component
-                        </button>
+                        </Button>
                         <div className="my-1 h-px bg-border" />
                         <p className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                           Download
                         </p>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleExport("jpg")}
                           disabled={exporting !== null}
-                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          className="w-full justify-start gap-2.5 rounded-sm px-2.5 font-normal"
                         >
                           <ImageIcon className="size-3.5 shrink-0" /> JPG
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleExport("png")}
                           disabled={exporting !== null}
-                          className="flex items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-sm transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          className="w-full justify-start gap-2.5 rounded-sm px-2.5 font-normal"
                         >
                           <Download className="size-3.5 shrink-0" /> PNG
-                        </button>
+                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>
@@ -2289,8 +2300,10 @@ export function GodRaysGenerator() {
                                     save.createdAt
                                   ).toLocaleDateString()}
                                 </span>
-                                <button
-                                  className="rounded p-0.5 text-white hover:text-red-400"
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-5 text-white hover:text-red-400 hover:bg-transparent"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteSave(save.id);
@@ -2298,7 +2311,7 @@ export function GodRaysGenerator() {
                                   title="Remove"
                                 >
                                   <Trash2Icon className="size-3" />
-                                </button>
+                                </Button>
                               </div>
                             </div>
                           ))}
@@ -2432,8 +2445,9 @@ export function GodRaysGenerator() {
                           onMouseLeave={() => setHoveredLayerId(null)}
                         >
                           {/* Clickable area */}
-                          <button
-                            className="w-full p-3 text-left cursor-pointer"
+                          <Button
+                            variant="ghost"
+                            className="w-full h-auto p-3 text-left justify-start rounded-none"
                             onClick={() => {
                               setSelectedLayerId(layer.id);
                               setHoveredLayerId(null);
@@ -2472,7 +2486,7 @@ export function GodRaysGenerator() {
                                 }}
                               />
                             )}
-                          </button>
+                          </Button>
 
                           {/* Layer controls */}
                           <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
@@ -2909,9 +2923,11 @@ export function GodRaysGenerator() {
                   <span className="text-[11px] font-mono text-muted-foreground">
                     Terminal
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCopyInstall}
-                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    className="h-auto py-0.5 px-1.5 text-[11px] text-muted-foreground gap-1.5"
                   >
                     {copiedInstall ? (
                       <Check className="size-3" />
@@ -2919,7 +2935,7 @@ export function GodRaysGenerator() {
                       <Copy className="size-3" />
                     )}
                     {copiedInstall ? "Copied!" : "Copy"}
-                  </button>
+                  </Button>
                 </div>
                 <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80">
                   <code>npm install godlights</code>
@@ -2940,9 +2956,11 @@ export function GodRaysGenerator() {
                   <span className="text-[11px] font-mono text-muted-foreground">
                     MyComponent.tsx
                   </span>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCopyComponentUsage}
-                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                    className="h-auto py-0.5 px-1.5 text-[11px] text-muted-foreground gap-1.5"
                   >
                     {copiedComponentUsage ? (
                       <Check className="size-3" />
@@ -2950,7 +2968,7 @@ export function GodRaysGenerator() {
                       <Copy className="size-3" />
                     )}
                     {copiedComponentUsage ? "Copied!" : "Copy"}
-                  </button>
+                  </Button>
                 </div>
                 <pre className="overflow-x-auto p-4 text-[12px] leading-relaxed font-mono text-foreground/80 max-h-96 overflow-y-auto">
                   <code>{buildUsageSnippet()}</code>

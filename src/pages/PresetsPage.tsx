@@ -12,7 +12,8 @@ import {
   type HaloLayer,
   type BackgroundLayer,
 } from "godlights";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const TAG_LABELS: Record<PresetTag, string> = {
   top: "Top",
@@ -148,55 +149,51 @@ export default function PresetsPage() {
         <div className="mb-8 flex flex-col gap-4">
           {/* Search */}
           <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <input
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none z-10" />
+            <Input
               type="text"
               placeholder="Search presets…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-full border border-border bg-muted/40 pl-9 pr-4 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              className="rounded-full pl-9 pr-9"
             />
             {search && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute right-1 top-1/2 -translate-y-1/2 size-7"
               >
                 <X className="size-3.5" />
-              </button>
+              </Button>
             )}
           </div>
 
           {/* Tag filter pills */}
           <div className="flex flex-wrap gap-2 items-center">
-            <button
+            <Button
+              variant={activeTag === null ? "default" : "outline"}
+              size="sm"
               onClick={() => setActiveTag(null)}
-              className={cn(
-                "rounded-full px-3 py-1 text-xs font-medium border transition-colors",
-                activeTag === null
-                  ? "bg-foreground text-background border-foreground"
-                  : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-              )}
+              className="rounded-full h-7 px-3 text-xs"
             >
               All
-            </button>
+            </Button>
             {ALL_TAGS.map((tag) => {
               const count = RAYS_PRESETS.filter((p) =>
                 p.tags.includes(tag)
               ).length;
               return (
-                <button
+                <Button
                   key={tag}
+                  variant={activeTag === tag ? "default" : "outline"}
+                  size="sm"
                   onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-medium border transition-colors flex items-center gap-1.5",
-                    activeTag === tag
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-transparent text-muted-foreground border-border hover:border-foreground/40 hover:text-foreground"
-                  )}
+                  className="rounded-full h-7 px-3 text-xs gap-1.5"
                 >
                   {TAG_LABELS[tag]}
                   <span className="opacity-50">{count}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -208,12 +205,14 @@ export default function PresetsPage() {
             <span className="text-sm text-muted-foreground">
               {filtered.length} {filtered.length === 1 ? "result" : "results"}
             </span>
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={clearFilters}
-              className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+              className="text-xs text-muted-foreground h-auto p-0 underline-offset-2"
             >
               Clear filters
-            </button>
+            </Button>
           </div>
         )}
 
@@ -229,12 +228,14 @@ export default function PresetsPage() {
             <p className="text-muted-foreground text-sm">
               No presets match your search.
             </p>
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={clearFilters}
-              className="text-xs underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors"
+              className="text-xs text-muted-foreground h-auto p-0 underline-offset-2"
             >
               Clear filters
-            </button>
+            </Button>
           </div>
         )}
       </main>

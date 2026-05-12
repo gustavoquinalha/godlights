@@ -10,6 +10,7 @@ import {
 } from "godlights";
 import { RAYS_PRESETS, type RaysPreset } from "@/lib/presets";
 import { Download, CheckCircle, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /** OG image dimensions (standard social preview). */
 const OG_W = 1200;
@@ -152,10 +153,9 @@ export default function OgExportPage() {
 
         {/* Controls */}
         <div className="flex items-center gap-3 mb-8">
-          <button
+          <Button
             onClick={renderAll}
             disabled={isRendering}
-            className="inline-flex items-center gap-2 rounded-lg bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {isRendering ? (
               <Loader2 className="size-4 animate-spin" />
@@ -163,16 +163,16 @@ export default function OgExportPage() {
               <CheckCircle className="size-4" />
             )}
             {isRendering ? `Rendering… (${doneCount}/${items.length})` : "Render All"}
-          </button>
+          </Button>
 
           {allDone && (
-            <button
+            <Button
+              variant="outline"
               onClick={downloadAll}
-              className="inline-flex items-center gap-2 rounded-lg border border-border bg-muted px-5 py-2.5 text-sm font-medium hover:border-foreground/40 transition-colors"
             >
               <Download className="size-4" />
               Download All ({items.length} PNGs)
-            </button>
+            </Button>
           )}
 
           {doneCount > 0 && (
@@ -216,7 +216,9 @@ export default function OgExportPage() {
                     og-{item.key}.png
                   </span>
                 </div>
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={async () => {
                     if (item.status === "done") {
                       downloadOne(item);
@@ -231,7 +233,7 @@ export default function OgExportPage() {
                     }
                   }}
                   disabled={item.status === "rendering"}
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium hover:border-foreground/40 disabled:opacity-40 transition-colors"
+                  className="shrink-0"
                 >
                   {item.status === "rendering" ? (
                     <Loader2 className="size-3 animate-spin" />
@@ -239,7 +241,7 @@ export default function OgExportPage() {
                     <Download className="size-3" />
                   )}
                   {item.status === "done" ? "Download" : item.status === "rendering" ? "Rendering" : "Render & Download"}
-                </button>
+                </Button>
               </div>
             </div>
           ))}

@@ -148,9 +148,10 @@ export default function LandingPage() {
         <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
           <div className="container h-full mx-auto px-4 flex flex-col items-center justify-center gap-8 relative">
             <div className="flex flex-col items-center gap-4">
-              <button
+              <Button
                 onClick={handleCopyInstall}
-                className="flex md:hidden cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
+                variant="outline"
+                className="flex md:hidden rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
                 <span className="truncate min-w-0">npm install godlights</span>
                 {copied ? (
@@ -158,7 +159,7 @@ export default function LandingPage() {
                 ) : (
                   <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
                 )}
-              </button>
+              </Button>
 
               <h1 className="max-w-3xl text-5xl font-bold tracking-tight text-foreground sm:text-6xl md:text-8xl text-balance">
                 Create stunning light rays
@@ -188,9 +189,10 @@ export default function LandingPage() {
 
             {/* npm install pill */}
             <div className="w-full absolute bottom-1 left-0 flex flex-wrap justify-center md:justify-between h-16 items-center gap-2 z-100">
-              <button
+              <Button
                 onClick={handleCopyInstall}
-                className="hidden md:flex cursor-pointer items-center gap-3 rounded-full border border-border bg-background/60 backdrop-blur px-4 py-2 text-sm font-mono text-muted-foreground hover:text-foreground transition-colors group"
+                variant="outline"
+                className="hidden md:flex rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
                 <span className="truncate min-w-0">npm install godlights</span>
                 {copied ? (
@@ -198,15 +200,16 @@ export default function LandingPage() {
                 ) : (
                   <Copy className="size-3.5 shrink-0 opacity-50 group-hover:opacity-100 transition-opacity" />
                 )}
-              </button>
+              </Button>
 
               <div className="flex gap-2 justify-center items-center">
                 {/* Color picker */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button
+                    <Button
                       title="Color"
-                      className="size-9 rounded-full border cursor-pointer flex items-center justify-center"
+                      variant="outline"
+                      className="size-9 rounded-full p-0"
                       style={{ background: color }}
                     >
                       <Pipette
@@ -215,7 +218,7 @@ export default function LandingPage() {
                           color: hexLuminance(color) > 0.4 ? "#000" : "#fff",
                         }}
                       />
-                    </button>
+                    </Button>
                   </PopoverTrigger>
                   <PopoverContent
                     className="w-auto p-3"
