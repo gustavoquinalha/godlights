@@ -285,6 +285,218 @@ a.click();
 
 ---
 
+## Recipes
+
+### Hero section background
+
+Full-bleed animated light effect behind page content. Note the `style` prop — a Tailwind `absolute` class won't override the wrapper's default `position: relative`.
+
+```tsx
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 6,
+  grainSize: 1,
+  layers: [
+    { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+    { id: "halo-1", name: "Glow", type: "halo", originX: 50, originY: -5, color: "#a78bfa", intensity: 0.3, size: 0.6, blendMode: "lighter" },
+    {
+      id: "rays-1", name: "Rays", type: "rays",
+      direction: 180, spread: 90,
+      originX: 50, originY: -5,
+      rayCount: 30, rayWidth: 80, divergence: 2, rayLength: 1.2,
+      colorStart: "#a78bfa", colorEnd: "#a78bfa",
+      opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 14,
+      randomnessWidth: 80, randomnessLength: 30, randomnessAngle: 20, seed: 42,
+    },
+  ],
+};
+
+export default function HeroSection() {
+  return (
+    <section style={{ position: "relative", minHeight: "100vh" }}>
+      <GodLights
+        scene={scene}
+        animate
+        animParams={{ speed: 0.8, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <h1>Your content here</h1>
+      </div>
+    </section>
+  );
+}
+```
+
+---
+
+### Next.js App Router
+
+Add `"use client"` — the component uses `useRef`, `useEffect`, and `requestAnimationFrame`, which are client-only.
+
+```tsx
+"use client";
+
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 8,
+  grainSize: 1,
+  layers: [
+    { id: "background", type: "background", bgType: "gradient", bgColor: "#0b1024", bgColor2: "#1a1340", bgGradientAngle: 180 },
+    { id: "halo-1", name: "Halo", type: "halo", originX: 20, originY: 10, color: "#ffd28a", intensity: 0.25, size: 0.4, blendMode: "lighter" },
+    {
+      id: "rays-1", name: "Rays", type: "rays",
+      direction: 160, spread: 70,
+      originX: 20, originY: 10,
+      rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0,
+      colorStart: "#ffd28a", colorEnd: "#ffd28a",
+      opacity: 0.2, blendMode: "screen", fadeToTransparent: true, blur: 10,
+      randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 99,
+    },
+  ],
+};
+
+export default function Page() {
+  return (
+    <main style={{ position: "relative", minHeight: "100svh" }}>
+      <GodLights
+        scene={scene}
+        animate
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {/* page content */}
+      </div>
+    </main>
+  );
+}
+```
+
+---
+
+### Light / white background
+
+Use `"multiply"` blend mode — `"screen"` and `"lighter"` are invisible on light backgrounds.
+
+```tsx
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 4,
+  grainSize: 1,
+  layers: [
+    { id: "background", type: "background", bgType: "solid", bgColor: "#ffffff", bgColor2: "#ffffff", bgGradientAngle: 180 },
+    {
+      id: "rays-1", name: "Rays", type: "rays",
+      direction: 200, spread: 80,
+      originX: 70, originY: -10,
+      rayCount: 20, rayWidth: 100, divergence: 2, rayLength: 1.1,
+      colorStart: "#c4b5fd", colorEnd: "#c4b5fd",
+      opacity: 0.35,
+      blendMode: "multiply",   // ← required on light backgrounds
+      fadeToTransparent: true, blur: 20,
+      randomnessWidth: 70, randomnessLength: 25, randomnessAngle: 10, seed: 7,
+    },
+  ],
+};
+```
+
+---
+
+### Multi-layer scene (warm + cool)
+
+Stack multiple ray and halo layers for richer lighting. Layers render back-to-front.
+
+```tsx
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 10,
+  grainSize: 1,
+  layers: [
+    { id: "background", type: "background", bgType: "solid", bgColor: "#050510", bgColor2: "#050510", bgGradientAngle: 180 },
+    // warm glow — top-left
+    { id: "halo-warm", name: "Warm glow", type: "halo", originX: 15, originY: 5, color: "#ff9a3c", intensity: 0.2, size: 0.5, blendMode: "lighter" },
+    {
+      id: "rays-warm", name: "Warm rays", type: "rays",
+      direction: 155, spread: 60,
+      originX: 15, originY: 5,
+      rayCount: 22, rayWidth: 60, divergence: 1.6, rayLength: 1.0,
+      colorStart: "#ff9a3c", colorEnd: "#ff9a3c",
+      opacity: 0.15, blendMode: "screen", fadeToTransparent: true, blur: 12,
+      randomnessWidth: 70, randomnessLength: 20, randomnessAngle: 15, seed: 11,
+    },
+    // cool accent — top-right
+    { id: "halo-cool", name: "Cool glow", type: "halo", originX: 85, originY: 0, color: "#60a5fa", intensity: 0.18, size: 0.4, blendMode: "lighter" },
+    {
+      id: "rays-cool", name: "Cool rays", type: "rays",
+      direction: 205, spread: 55,
+      originX: 85, originY: 0,
+      rayCount: 18, rayWidth: 50, divergence: 1.5, rayLength: 0.9,
+      colorStart: "#60a5fa", colorEnd: "#60a5fa",
+      opacity: 0.12, blendMode: "screen", fadeToTransparent: true, blur: 10,
+      randomnessWidth: 60, randomnessLength: 15, randomnessAngle: 10, seed: 22,
+    },
+  ],
+};
+```
+
+---
+
+### Overlay on existing content (transparent background)
+
+Use `bgType: "transparent"` to render only the light effect without covering the page background. Add `pointerEvents: "none"` so clicks pass through.
+
+```tsx
+const scene: SceneConfig = {
+  width: 1920,
+  height: 1080,
+  noise: 0,
+  grainSize: 1,
+  layers: [
+    // transparent — does not clear the canvas, just composites the lights on top
+    { id: "background", type: "background", bgType: "transparent", bgColor: "#000000", bgColor2: "#000000", bgGradientAngle: 180 },
+    { id: "halo-1", name: "Halo", type: "halo", originX: 50, originY: 0, color: "#ffffff", intensity: 0.15, size: 0.5, blendMode: "lighter" },
+    {
+      id: "rays-1", name: "Rays", type: "rays",
+      direction: 180, spread: 100,
+      originX: 50, originY: 0,
+      rayCount: 20, rayWidth: 60, divergence: 2, rayLength: 1.2,
+      colorStart: "#ffffff", colorEnd: "#ffffff",
+      opacity: 0.1, blendMode: "screen", fadeToTransparent: true, blur: 16,
+      randomnessWidth: 80, randomnessLength: 30, randomnessAngle: 20, seed: 55,
+    },
+  ],
+};
+
+export default function Overlay() {
+  return (
+    <GodLights
+      scene={scene}
+      animate
+      style={{
+        position: "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+```
+
+---
+
 ## Common mistakes
 
 **Missing `BackgroundLayer`**
