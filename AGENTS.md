@@ -5,6 +5,7 @@ Context for AI agents working on this codebase.
 ## What this is
 
 A monorepo with two parts:
+
 - `packages/godlights` — the npm library (React canvas component for god ray effects)
 - `src/` — the website/editor (React + Vite + Tailwind + shadcn/ui)
 
@@ -56,6 +57,7 @@ LandingPage, PresetsPage, and DocsPage all have a `<GodLights>` canvas as a `fix
 ## Editor (`GodRaysGenerator.tsx`)
 
 The main editor is one large component (~3000 lines). Key derived state:
+
 - `bgLayer` — the background layer (always `id: "background"`)
 - `nonBgLayers` — all ray/halo layers
 - `selectedLayerId` — `null` = show layer list, `"background"` = show bg controls, any other id = show that layer's controls
@@ -68,7 +70,7 @@ Triggered by creating a GitHub Release. The workflow at `.github/workflows/publi
 
 ## Commit style
 
-```
+``` txt
 feat: short description
 fix: short description
 chore: short description
