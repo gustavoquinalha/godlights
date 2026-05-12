@@ -34,7 +34,7 @@ export function SiteNav({ activePath, className }: SiteNavProps) {
       <div className="container mx-auto px-4 flex h-full items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
-          <img src="/logo.svg" alt="Godlights logo" className="size-7" />
+          <img src="/logo.svg" alt="Godlights logo" className="size-6" />
           <span className="text-sm font-semibold tracking-tight text-foreground">
             Godlights
           </span>

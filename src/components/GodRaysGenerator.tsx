@@ -29,6 +29,7 @@ import {
   BookmarkCheck,
   BookOpen,
   Link,
+  SparkleIcon,
 } from "lucide-react";
 import {
   drawScene,
@@ -1343,10 +1344,10 @@ export function GodRaysGenerator() {
     <SidebarProvider className="h-svh">
       {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
       <Sidebar side="left">
-        <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
+        <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-12 flex justify-center">
           <div className="flex items-center justify-between">
             <a href="/" className="flex items-center gap-2">
-              <img src="/logo.svg" alt="Godlights logo" className="size-7" />
+              <img src="/logo.svg" alt="Godlights logo" className="size-6" />
               <span className="text-sm font-semibold tracking-tight">
                 Godlights
               </span>
@@ -1355,7 +1356,7 @@ export function GodRaysGenerator() {
               variant="ghost"
               size="icon-xs"
               onClick={toggleTheme}
-              className="h-7 w-7"
+              className="size-7"
               title={dark ? "Light mode" : "Dark mode"}
             >
               {dark ? <Sun className="size-3" /> : <Moon className="size-3" />}
@@ -1613,7 +1614,7 @@ export function GodRaysGenerator() {
               onValueChange={(v) => setMainTab(v as "editor" | "saved")}
               className="flex flex-col h-full"
             >
-              <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-14">
+              <div className="flex items-center justify-between gap-3 bg-background border-b border-border px-3 py-3 h-12">
                 <div className="flex gap-2 flex-1">
                   {/* <Button variant={"ghost"} size="icon-xs" asChild>
                     <a href="/">
@@ -1625,7 +1626,7 @@ export function GodRaysGenerator() {
                     <img
                       src="/logo.svg"
                       alt="Godlights logo"
-                      className="size-7"
+                      className="size-6"
                     />
                     <span className="text-sm font-semibold tracking-tight">
                       Godlights
@@ -2051,7 +2052,7 @@ export function GodRaysGenerator() {
                           size="icon-xs"
                           onClick={() => changeZoom(-ZOOM_STEP)}
                           disabled={zoom <= MIN_ZOOM}
-                          className="h-7 w-7 rounded-full hidden md:flex"
+                          className="size-7 rounded-full hidden md:flex"
                           title="Diminuir zoom"
                         >
                           <ZoomOut className="size-3" />
@@ -2069,7 +2070,7 @@ export function GodRaysGenerator() {
                           size="icon-xs"
                           onClick={() => changeZoom(ZOOM_STEP)}
                           disabled={zoom >= MAX_ZOOM}
-                          className="h-7 w-7 rounded-full hidden md:flex"
+                          className="size-7 rounded-full hidden md:flex"
                           title="Aumentar zoom"
                         >
                           <ZoomIn className="size-3" />
@@ -2079,7 +2080,7 @@ export function GodRaysGenerator() {
                           variant="ghost"
                           size="icon-xs"
                           onClick={resetView}
-                          className="h-7 w-7 rounded-full"
+                          className="size-7 rounded-full"
                           title="Zoom 100%"
                         >
                           <Maximize2 className="h-3.5 w-3.5" />
@@ -2122,7 +2123,7 @@ export function GodRaysGenerator() {
                     {((scene.width * scene.height) / 1_000_000).toFixed(2)} MP
                   </span>
 
-                  <div className="flex gap-2 items-center">
+                  <div className="hidden md:flex gap-1 items-center">
                     <Button
                       variant="ghost"
                       size="xs"
@@ -2277,14 +2278,29 @@ export function GodRaysGenerator() {
           {/* ── RIGHT SIDEBAR ────────────────────────────────────────────── */}
           <Sidebar side="right">
             {/* Header */}
-            <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-14 flex justify-center">
+            <SidebarHeader className="border-b border-sidebar-border px-4 py-3 h-12 flex justify-center">
               {selectedLayerId === null ? (
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-base font-bold tracking-tight">
-                      Layers
-                    </h2>
+                    <h2 className="text-sm font-bold tracking-tight">Layers</h2>
                   </div>
+
+                  {/* Add layer button */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon-xs">
+                        <Plus className="size-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36">
+                      <DropdownMenuItem onClick={() => addLayer("rays")}>
+                        <SparkleIcon className="h-3.5 w-3.5" /> Rays
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addLayer("halo")}>
+                        <Sun className="h-3.5 w-3.5" /> Halo
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ) : (
                 <div className="flex items-center justify-between gap-2">
@@ -2292,7 +2308,7 @@ export function GodRaysGenerator() {
                     <Button
                       variant="ghost"
                       size="icon-xs"
-                      className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
+                      className="size-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
                       onClick={() => {
                         setSelectedLayerId(null);
                         setHoveredLayerId(null);
@@ -2318,7 +2334,7 @@ export function GodRaysGenerator() {
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            className="h-7 w-7 shrink-0"
+                            className="size-7 shrink-0"
                             onClick={handleRandomizeLayer}
                           >
                             <Shuffle className="size-3" />
@@ -2331,7 +2347,7 @@ export function GodRaysGenerator() {
                           <Button
                             variant="ghost"
                             size="icon-xs"
-                            className="h-7 w-7 shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            className="size-7 shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                             onClick={() => {
                               removeLayer(selectedLayerId!);
                               setSelectedLayerId(null);
@@ -2352,26 +2368,6 @@ export function GodRaysGenerator() {
               {/* ── LAYERS LIST ──────────────────────────────────────────── */}
               {selectedLayerId === null && (
                 <div className="flex flex-col">
-                  {/* Add layer buttons */}
-                  <div className="flex gap-2 border-b border-sidebar-border p-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1.5 text-xs"
-                      onClick={() => addLayer("rays")}
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Rays
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-1.5 text-xs"
-                      onClick={() => addLayer("halo")}
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Halo
-                    </Button>
-                  </div>
-
                   {/* Layer cards */}
                   <div className="flex flex-col gap-2 p-3">
                     {/* Non-background layers in reverse visual order (top of stack first) */}
