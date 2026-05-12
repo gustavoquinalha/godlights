@@ -5,14 +5,12 @@ import {
   Code2,
   Shuffle,
   RotateCcw,
-  Sparkles,
   Check,
   Copy,
   CopyPlus,
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Move,
   Sun,
   Moon,
   ChevronLeft,
@@ -31,8 +29,6 @@ import {
   BookmarkCheck,
   BookOpen,
   Link,
-  BookCopyIcon,
-  LayoutDashboardIcon,
 } from "lucide-react";
 import {
   drawScene,
@@ -262,7 +258,7 @@ function LeftPanelTrigger() {
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-xs"
           className="h-8 w-8 shrink-0"
           onClick={toggle}
         >
@@ -281,7 +277,7 @@ function RightPanelTrigger() {
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size="icon-xs"
           className="h-8 w-8 shrink-0"
           onClick={toggleSidebar}
         >
@@ -1357,7 +1353,7 @@ export function GodRaysGenerator() {
             </a>
             <Button
               variant="ghost"
-              size="icon"
+              size="icon-xs"
               onClick={toggleTheme}
               className="h-7 w-7"
               title={dark ? "Light mode" : "Dark mode"}
@@ -1475,7 +1471,6 @@ export function GodRaysGenerator() {
                   <Label className="text-sm font-medium text-foreground/90">
                     Habilitar animação
                   </Label>
-
                   <Switch
                     checked={isAnimating}
                     onCheckedChange={setIsAnimating}
@@ -1758,7 +1753,7 @@ export function GodRaysGenerator() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
-                        size="icon"
+                        size="icon-xs"
                         className="lg:hidden h-8 w-8"
                       >
                         <MoreHorizontal className="size-4" />
@@ -2095,7 +2090,7 @@ export function GodRaysGenerator() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            size="icon"
+                            size="icon-xs"
                             onClick={handleRandomizeAll}
                             className="h-8 w-8 rounded-full"
                           >
@@ -2136,7 +2131,7 @@ export function GodRaysGenerator() {
                       asChild
                     >
                       <a href="/presets" target="_blank">
-                        <LayoutDashboardIcon className="size-3" /> Presets
+                        Presets
                       </a>
                     </Button>
 
@@ -2148,7 +2143,7 @@ export function GodRaysGenerator() {
                       asChild
                     >
                       <a href="/docs" target="_blank">
-                        <BookCopyIcon className="size-3" /> Docs
+                        Docs
                       </a>
                     </Button>
                   </div>
@@ -2251,7 +2246,7 @@ export function GodRaysGenerator() {
                                 </span>
                                 <Button
                                   variant="ghost"
-                                  size="icon"
+                                  size="icon-xs"
                                   className="size-5 text-white hover:text-red-400 hover:bg-transparent"
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -2296,7 +2291,7 @@ export function GodRaysGenerator() {
                   <div className="flex items-center gap-2 min-w-0">
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="icon-xs"
                       className="h-7 w-7 shrink-0 text-sidebar-foreground/60 hover:text-sidebar-foreground"
                       onClick={() => {
                         setSelectedLayerId(null);
@@ -2322,7 +2317,7 @@ export function GodRaysGenerator() {
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="icon-xs"
                             className="h-7 w-7 shrink-0"
                             onClick={handleRandomizeLayer}
                           >
@@ -2335,7 +2330,7 @@ export function GodRaysGenerator() {
                         <TooltipTrigger asChild>
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="icon-xs"
                             className="h-7 w-7 shrink-0 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
                             onClick={() => {
                               removeLayer(selectedLayerId!);
@@ -2390,28 +2385,20 @@ export function GodRaysGenerator() {
                       return (
                         <div
                           key={layer.id}
-                          className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm overflow-hidden"
+                          className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent/50 hover:shadow-sm overflow-hidden"
                           onMouseEnter={() => setHoveredLayerId(layer.id)}
                           onMouseLeave={() => setHoveredLayerId(null)}
                         >
                           {/* Clickable area */}
-                          <Button
-                            variant="ghost"
-                            className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none"
+                          <button
+                            className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none gap-3 cursor-pointer"
                             onClick={() => {
                               setSelectedLayerId(layer.id);
                               setHoveredLayerId(null);
                             }}
                           >
-                            <div className="w-full mb-2.5 flex items-center justify-between">
+                            <div className="w-full flex items-center justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2">
-                                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                                  {layer.type === "rays" ? (
-                                    <Move className="h-3 w-3" />
-                                  ) : (
-                                    <Sparkles className="h-3 w-3" />
-                                  )}
-                                </div>
                                 <span className="text-sm font-semibold">
                                   {layer.name}
                                 </span>
@@ -2422,7 +2409,7 @@ export function GodRaysGenerator() {
                             {/* Color preview */}
                             {layer.type === "rays" && (
                               <div
-                                className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
+                                className="h-6 w-full rounded-2xl ring-1 ring-border"
                                 style={{
                                   background: `linear-gradient(135deg, ${layer.colorStart}, transparent)`,
                                 }}
@@ -2430,18 +2417,18 @@ export function GodRaysGenerator() {
                             )}
                             {layer.type === "halo" && (
                               <div
-                                className="mb-2 h-8 w-full rounded-lg ring-1 ring-border"
+                                className="h-6 w-full rounded-2xl ring-1 ring-border"
                                 style={{
                                   background: `radial-gradient(ellipse at center, ${layer.color} 0%, transparent 70%)`,
                                 }}
                               />
                             )}
-                          </Button>
+                          </button>
 
                           {/* Layer controls */}
-                          <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
+                          <div className="flex items-center justify-between border-t border-sidebar-border/50 px-3 py-2">
                             <ColorPicker
-                              className="size-6 rounded"
+                              className="size-6 rounded-full"
                               value={
                                 layer.type === "rays"
                                   ? layer.colorStart
@@ -2461,8 +2448,7 @@ export function GodRaysGenerator() {
                             <div className="flex items-center gap-0.5">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                size="icon-xs"
                                 disabled={!canMoveUp}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2470,12 +2456,11 @@ export function GodRaysGenerator() {
                                 }}
                                 title="Move up"
                               >
-                                <ArrowUp className="h-3 w-3" />
+                                <ArrowUp className="size-3" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                size="icon-xs"
                                 disabled={!canMoveDown}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -2483,31 +2468,29 @@ export function GodRaysGenerator() {
                                 }}
                                 title="Move down"
                               >
-                                <ArrowDown className="h-3 w-3" />
+                                <ArrowDown className="size-3" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-sidebar-foreground"
+                                size="icon-xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   duplicateLayer(layer.id);
                                 }}
                                 title="Duplicate layer"
                               >
-                                <CopyPlus className="h-3 w-3" />
+                                <CopyPlus className="size-3" />
                               </Button>
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 rounded text-sidebar-foreground/40 hover:text-destructive"
+                                size="icon-xs"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   removeLayer(layer.id);
                                 }}
                                 title="Remove layer"
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <Trash2 className="size-3" />
                               </Button>
                             </div>
                           </div>
@@ -2516,17 +2499,13 @@ export function GodRaysGenerator() {
                     })}
 
                     {/* Background layer card */}
-                    <div className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent hover:shadow-sm overflow-hidden">
-                      <Button
-                        variant="ghost"
-                        className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none"
+                    <div className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent/50 hover:shadow-sm overflow-hidden">
+                      <button
+                        className="w-full flex-col h-auto p-3 text-left items-center justify-center rounded-none gap-3 cursor-pointer"
                         onClick={() => setSelectedLayerId("background")}
                       >
-                        <div className="w-full flex items-center justify-between">
+                        <div className="w-full flex items-center justify-between gap-2 mb-2">
                           <div className="flex items-center gap-2">
-                            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-primary">
-                              <ImageIcon className="h-3 w-3" />
-                            </div>
                             <span className="text-sm font-semibold">
                               Background
                             </span>
@@ -2535,7 +2514,7 @@ export function GodRaysGenerator() {
                         </div>
                         {bgLayer.bgType !== "transparent" && (
                           <div
-                            className="mt-2.5 h-8 w-full rounded-lg ring-1 ring-border"
+                            className="h-6 w-full rounded-2xl ring-1 ring-border"
                             style={{
                               background:
                                 bgLayer.bgType === "gradient"
@@ -2544,11 +2523,11 @@ export function GodRaysGenerator() {
                             }}
                           />
                         )}
-                      </Button>
-                      <div className="flex items-center justify-between border-t border-sidebar-border/50 px-2 py-1.5">
+                      </button>
+                      <div className="flex items-center justify-between border-t border-sidebar-border/50 px-3 py-2">
                         {bgLayer.bgType !== "transparent" ? (
                           <ColorPicker
-                            className="size-6 rounded"
+                            className="size-6 rounded-full"
                             value={bgLayer.bgColor}
                             onChange={(v) =>
                               updateLayer("background", {
@@ -2558,10 +2537,42 @@ export function GodRaysGenerator() {
                             }
                           />
                         ) : (
-                          <span className="px-1 text-[10px] font-medium uppercase tracking-widest text-sidebar-foreground/30">
-                            transparent
-                          </span>
+                          <div className="size-6" />
                         )}
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            disabled
+                            title="Move up"
+                          >
+                            <ArrowUp className="size-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            disabled
+                            title="Move down"
+                          >
+                            <ArrowDown className="size-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            disabled
+                            title="Duplicate"
+                          >
+                            <CopyPlus className="size-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            disabled
+                            title="Remove"
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2924,7 +2935,7 @@ export function GodRaysGenerator() {
                           </Field>
                           <Button
                             variant="outline"
-                            size="icon"
+                            size="icon-xs"
                             onClick={handleRandomize}
                             title="New random seed"
                           >
