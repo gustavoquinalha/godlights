@@ -1,11 +1,36 @@
-node_modules
-dist
-dist-ssr
-*.local
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Editor
 .vscode/*
 !.vscode/extensions.json
-.idea
-*.log
-*.tsbuildinfo
+.idea/
+
+# Local dev
+*.local
+
+# Claude
 .claude
