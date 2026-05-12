@@ -380,7 +380,9 @@ export function GodRaysGenerator() {
   const [activeRaysPreset, setActiveRaysPreset] = React.useState<string | null>(
     () => {
       // If a preset was passed in the URL, use it as the active preset
-      const urlPresetKey = new URLSearchParams(window.location.search).get("preset");
+      const urlPresetKey = new URLSearchParams(window.location.search).get(
+        "preset"
+      );
       if (urlPresetKey && RAYS_PRESETS.some((p) => p.key === urlPresetKey)) {
         return urlPresetKey;
       }
@@ -1436,29 +1438,23 @@ export function GodRaysGenerator() {
             <SidebarGroupContent>
               <div className="px-2 w-full grid grid-cols-7 gap-1 pb-1">
                 {RAYS_PRESETS.map((p) => (
-                  <div className="w-full aspect-square" key={p.key}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          onClick={() => applyPreset(p.key)}
-                          className={cn(
-                            "relative p-0 aspect-square w-full overflow-hidden rounded-md",
-                            activeRaysPreset === p.key && "border-primary"
-                          )}
-                        >
-                          <div
-                            className="absolute inset-0 scale-150"
-                            style={{
-                              background: p.thumb,
-                              filter: "blur(3px)",
-                            }}
-                          />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>{p.label}</TooltipContent>
-                    </Tooltip>
-                  </div>
+                  <Button
+                    key={p.key}
+                    variant="outline"
+                    onClick={() => applyPreset(p.key)}
+                    className={cn(
+                      "relative w-full aspect-square h-auto p-0 m-0 rounded-md overflow-hidden transition-all border border-border",
+                      activeRaysPreset === p.key && "border-primary"
+                    )}
+                  >
+                    <div
+                      className="absolute inset-0 scale-150"
+                      style={{
+                        background: p.thumb,
+                        filter: "blur(3px)",
+                      }}
+                    />
+                  </Button>
                 ))}
               </div>
             </SidebarGroupContent>

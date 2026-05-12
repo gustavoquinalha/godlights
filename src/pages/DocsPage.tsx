@@ -183,7 +183,7 @@ function LivePreview() {
       </div>
 
       {/* Preset thumbnails */}
-      <div className="flex flex-wrap gap-2 items-center justify-center">
+      <div className="flex flex-wrap gap-1 items-center justify-center">
         {RAYS_PRESETS.map((p) => (
           <Button
             key={p.key}
@@ -191,7 +191,7 @@ function LivePreview() {
             onClick={() => setActive(p)}
             title={p.label}
             className={cn(
-              "relative size-8 p-0 rounded-md overflow-hidden transition-all",
+              "relative size-8 p-0 rounded-md aspect-square overflow-hidden transition-all border border-border",
               active.key === p.key
                 ? "border-primary"
                 : "border-border hover:border-foreground/40"
