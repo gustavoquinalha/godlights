@@ -1,6 +1,6 @@
 # Godlights — Full API Reference
 
-> Animated god ray / light beam effects for React.
+> Animated god ray/light beam effects for React.
 > npm: `npm install godlights` | Docs: https://godlights.vercel.app/docs
 
 ---

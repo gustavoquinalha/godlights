@@ -1,6 +1,6 @@
 # Godlights
 
-> Animated god ray / light beam effects for React. Render volumetric light scenes on a canvas — fully configurable and animatable. Zero runtime dependencies beyond React.
+> Animated god ray/light beam effects for React. Render volumetric light scenes on a canvas — fully configurable and animatable. Zero runtime dependencies beyond React.
 
 ## Install
 

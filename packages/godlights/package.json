@@ -1,7 +1,7 @@
 {
   "name": "godlights",
   "version": "0.1.1",
-  "description": "Animated god ray / light beam effects for React — zero dependencies beyond React itself.",
+  "description": "Animated god ray/light beam effects for React — zero dependencies beyond React itself.",
   "type": "module",
   "main": "./dist/godlights.js",
   "module": "./dist/godlights.mjs",
@@ -24,7 +24,7 @@
     "url": "https://github.com/gustavoquinalha/godlights.git",
     "directory": "packages/godlights"
   },
-  "homepage": "https://github.com/gustavoquinalha/godlights/tree/main/packages/godlights#readme",
+  "homepage": "https://godlights.vercel.app/",
   "sideEffects": false,
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",

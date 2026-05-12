@@ -278,7 +278,7 @@ export default function DocsPage() {
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Documentation</h1>
             <p className="text-muted-foreground text-lg max-w-2xl">
-              Animated god ray / light beam effects for React. Render volumetric
+              Animated god ray/light beam effects for React. Render volumetric
               light scenes on a canvas — fully configurable and animatable.
             </p>
           </div>
