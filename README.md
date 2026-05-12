@@ -114,6 +114,7 @@ Godlights ships machine-readable documentation designed for LLM consumption:
 | [context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights) | Auto-loaded by Claude, Cursor, Copilot via Context7 MCP |
 | [`/llms.txt`](https://godlights.vercel.app/llms.txt) | Quick start, common mistakes, key constraints |
 | [`/llms-full.txt`](https://godlights.vercel.app/llms-full.txt) | Complete API reference, all types with ranges, full examples |
+| [Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000) | Always up-to-date, dynamically generated — paste into any AI chat |
 
 If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a scene, point it at one of these files for accurate results. The most common LLM mistakes are documented there: missing `BackgroundLayer`, wrong blend mode on light backgrounds, and using `opacityAmp` (which doesn't exist).
 

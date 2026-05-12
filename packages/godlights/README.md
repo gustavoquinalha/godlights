@@ -524,6 +524,7 @@ If you're using an AI coding assistant (Cursor, Copilot, Claude, etc.) to genera
 - **[context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights)** — use with the [Context7 MCP](https://context7.com) so Claude, Cursor, and Copilot can pull up-to-date docs automatically
 - **[godlights.vercel.app/llms.txt](https://godlights.vercel.app/llms.txt)** — quick start, common mistakes, key constraints
 - **[godlights.vercel.app/llms-full.txt](https://godlights.vercel.app/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
+- **[Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000)** — always up-to-date, dynamically generated — paste into any AI chat
 
 These files follow the [llms.txt standard](https://llmstxt.org/) and are designed to fit in a context window alongside your code. Providing them to the model avoids the most common generation errors.
 
