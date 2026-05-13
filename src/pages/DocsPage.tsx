@@ -286,7 +286,7 @@ export default function DocsPage() {
               <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-muted-foreground">
                 godlights
               </span>
-              <span className="text-xs text-muted-foreground">v0.1.1</span>
+              <span className="text-xs text-muted-foreground">v0.1.2</span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Documentation</h1>
             <p className="text-muted-foreground text-lg max-w-2xl">

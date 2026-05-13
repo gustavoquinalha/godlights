@@ -2,6 +2,28 @@
 
 All notable changes to the `godlights` npm package are documented here.
 
+## [0.1.2] — 2026-05-13
+
+### Added
+- **shadcn registry** — three ready-made components installable via `npx shadcn@latest add`:
+  - `god-lights-hero` — animated hero section with `color` prop
+  - `god-lights-background` — minimal wrapper with `color`, `bgColor`, `animate` props
+  - `god-lights-cycling` — auto-cycling presets with smooth cross-fade
+- **Cursor rules templates** — `godlights.mdc` (`.cursor/rules/` format) and `godlights.cursorrules` (legacy), downloadable from `godlights.io`
+- **StackBlitz examples** — three standalone runnable examples:
+  - `examples/basic/` — Vite + React with color switcher
+  - `examples/presets/` — all 14 presets in a sidebar gallery (Vite + React)
+  - `examples/nextjs/` — same gallery rebuilt with Next.js 15 App Router
+- **Guides** — seven new in-depth guides indexed by Context7: SSR & Next.js, reactive scene updates, preset transitions, performance optimization, reusable wrapper component, canvas export workflow, AI tools setup
+- **Docs site** — Guides and AI tools sections added to godlights.io/docs
+
+### Changed
+- **npm keywords** expanded: `light-beams`, `volumetric-light`, `background`, `hero`, `glow`, `typescript`, `nextjs`, `vite`
+- **package README** — StackBlitz badge, shadcn registry install block, Cursor rules links added to AI/LLM usage section; badge label fixed (`godlights.io`)
+- **llms.txt** — added Cursor rules and shadcn registry sections
+- **llms-full.txt** — added shadcn registry install line to header
+- All URLs updated from `godlights.vercel.app` to `www.godlights.io` (26 occurrences across 9 files)
+
 ## [0.1.1] — 2025-05-13
 
 ### Added
