@@ -2,11 +2,11 @@
 
 **Crie cenas animadas de feixes de luz em React. Exporte como PNG, CSS ou componente.**
 
-[![Demo](https://img.shields.io/badge/Demo-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
+[![Demo](https://img.shields.io/badge/Demo-godlights.vercel.app-black?style=flat-square)](https://www.godlights.io)
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-black?style=flat-square)](./packages/godlights/README.md)
 
-![Editor Godlights](https://godlights.vercel.app/app.gif)
+![Editor Godlights](https://www.godlights.io/app.gif)
 
 ---
 
@@ -88,7 +88,7 @@ export default function App() {
 }
 ```
 
-→ [Documentação completa do pacote](./packages/godlights/README.md) · [Docs interativa](https://godlights.vercel.app/docs)
+→ [Documentação completa do pacote](./packages/godlights/README.md) · [Docs interativa](https://www.godlights.io/docs)
 
 ---
 
@@ -110,8 +110,8 @@ O Godlights inclui documentação em formato de texto simples, otimizada para co
 
 | Arquivo | Conteúdo |
 |---------|----------|
-| [`/llms.txt`](https://godlights.vercel.app/llms.txt) | Quick start, erros comuns, restrições importantes |
-| [`/llms-full.txt`](https://godlights.vercel.app/llms-full.txt) | Referência completa da API, todos os tipos com intervalos, exemplos |
+| [`/llms.txt`](https://www.godlights.io/llms.txt) | Quick start, erros comuns, restrições importantes |
+| [`/llms-full.txt`](https://www.godlights.io/llms-full.txt) | Referência completa da API, todos os tipos com intervalos, exemplos |
 
 Se você estiver usando um assistente de IA (Cursor, Copilot, Claude, etc.) para gerar cenas, aponte-o para um desses arquivos para obter resultados precisos. Os erros mais comuns estão documentados lá: `BackgroundLayer` ausente, blend mode errado em fundos claros e uso de `opacityAmp` (que não existe).
 

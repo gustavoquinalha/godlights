@@ -183,4 +183,4 @@ Two simultaneous `<GodLights animate>` instances run two independent RAF loops. 
 
 - Both instances run independent `requestAnimationFrame` loops. For performance, keep `rayCount` low on secondary/decorative presets.
 - The `animate` prop can be set to `false` on the hidden instance to save resources — enable it only while it's fading in.
-- Use the [visual editor](https://godlights.vercel.app) to design each preset and export as JSX, then drop the configs into your `presets` array.
+- Use the [visual editor](https://www.godlights.io) to design each preset and export as JSX, then drop the configs into your `presets` array.

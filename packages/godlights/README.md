@@ -4,7 +4,7 @@ Animated god-ray / light-beam effects for React. Render stunning volumetric ligh
 
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](#license)
-[![Live editor](https://img.shields.io/badge/Live%20editor-godlights.vercel.app-black?style=flat-square)](https://godlights.vercel.app)
+[![Live editor](https://img.shields.io/badge/Live%20editor-godlights.vercel.app-black?style=flat-square)](https://www.godlights.io)
 [![Context7](https://img.shields.io/badge/Context7-docs-black?style=flat-square)](https://context7.com/gustavoquinalha/godlights)
 
 ---
@@ -90,7 +90,7 @@ export default function App() {
 }
 ```
 
-> **Tip:** Use the [visual editor](https://godlights.vercel.app/editor) to design your scene, then export it as a ready-to-paste JSX component.
+> **Tip:** Use the [visual editor](https://www.godlights.io/editor) to design your scene, then export it as a ready-to-paste JSX component.
 
 ---
 
@@ -813,8 +813,8 @@ The wrapper div uses `position: relative` as an inline style default. A Tailwind
 If you're using an AI coding assistant (Cursor, Copilot, Claude, etc.) to generate scenes, point it at the machine-readable docs:
 
 - **[context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights)** — use with the [Context7 MCP](https://context7.com) so Claude, Cursor, and Copilot can pull up-to-date docs automatically
-- **[godlights.vercel.app/llms.txt](https://godlights.vercel.app/llms.txt)** — quick start, common mistakes, key constraints
-- **[godlights.vercel.app/llms-full.txt](https://godlights.vercel.app/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
+- **[godlights.vercel.app/llms.txt](https://www.godlights.io/llms.txt)** — quick start, common mistakes, key constraints
+- **[godlights.vercel.app/llms-full.txt](https://www.godlights.io/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
 - **[Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000)** — always up-to-date, dynamically generated — paste into any AI chat
 
 These files follow the [llms.txt standard](https://llmstxt.org/) and are designed to fit in a context window alongside your code. Providing them to the model avoids the most common generation errors.

@@ -24,7 +24,7 @@
     "url": "https://github.com/gustavoquinalha/godlights.git",
     "directory": "packages/godlights"
   },
-  "homepage": "https://godlights.vercel.app/",
+  "homepage": "https://www.godlights.io/",
   "sideEffects": false,
   "scripts": {
     "build": "vite build && tsc --emitDeclarationOnly --declaration --outDir dist",
