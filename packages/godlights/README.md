@@ -252,12 +252,14 @@ const myRay: RayLayer = {
 
 ```ts
 import {
-  drawScene,      // (canvas: HTMLCanvasElement, scene: SceneConfig, time?: number) => void
-  exportScene,    // (scene: SceneConfig, type: "image/png" | "image/jpeg") => Promise<Blob>
-  exportDataURL,  // (config: GodRaysConfig, type: string) => Promise<string>
-  BLEND_MODES,    // { value: BlendMode; label: string }[]
+  drawScene,              // (canvas: HTMLCanvasElement, scene: SceneConfig, time?: number) => void
+  exportScene,            // (scene: SceneConfig, type: "image/png" | "image/jpeg", quality?: number) => Promise<Blob>
+  buildSceneCssSnippet,   // (scene: SceneConfig) => Promise<string> — returns CSS background-image lines
+  BLEND_MODES,            // { value: BlendMode; label: string }[]
 } from "godlights";
 ```
+
+> **Legacy helpers** (`exportDataURL`, `exportImage`, `buildCssSnippet`) accept the flat `GodRaysConfig` format from v0.1.0. For new code use the functions above with `SceneConfig`.
 
 ### Static render (no React)
 
@@ -282,6 +284,22 @@ const a = document.createElement("a");
 a.href = url;
 a.download = "light-effect.png";
 a.click();
+URL.revokeObjectURL(url);
+```
+
+### Export as CSS background-image
+
+```ts
+import { buildSceneCssSnippet } from "godlights";
+
+const css = await buildSceneCssSnippet(scene);
+// css contains:
+// background-image: url("data:image/png;base64,...");
+// background-size: cover;
+// background-position: center;
+// background-repeat: no-repeat;
+
+document.body.style.cssText = css;
 ```
 
 ---
@@ -495,6 +513,87 @@ export default function Overlay() {
   );
 }
 ```
+
+### Reusable wrapper component
+
+A drop-in background component that accepts high-level props instead of a full `SceneConfig`. Useful when you want the same lighting style across multiple sections with different colors or intensities.
+
+```tsx
+import { useMemo } from "react";
+import { GodLights, DEFAULT_BACKGROUND_LAYER, DEFAULT_HALO_LAYER, DEFAULT_RAY_LAYER } from "godlights";
+import type { SceneConfig, AnimParams } from "godlights";
+
+interface GodLightsBackgroundProps {
+  color?: string;
+  originX?: number;
+  originY?: number;
+  direction?: number;
+  spread?: number;
+  opacity?: number;
+  speed?: number;
+  animate?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+export function GodLightsBackground({
+  color = "#a78bfa",
+  originX = 50,
+  originY = 0,
+  direction = 180,
+  spread = 80,
+  opacity = 0.18,
+  speed = 1,
+  animate = true,
+  className,
+  style,
+}: GodLightsBackgroundProps) {
+  const scene: SceneConfig = useMemo(() => ({
+    width: 1920,
+    height: 1080,
+    noise: 6,
+    grainSize: 1,
+    layers: [
+      { ...DEFAULT_BACKGROUND_LAYER },
+      { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX, originY, color, intensity: opacity * 1.5, size: 0.45 },
+      { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX, originY, direction, spread, colorStart: color, colorEnd: color, opacity },
+    ],
+  }), [color, originX, originY, direction, spread, opacity]);
+
+  const animParams: AnimParams = useMemo(() => ({
+    speed,
+    angleAmp: 40,
+    lengthAmp: 25,
+    widthAmp: 15,
+    haloAmp: 40,
+  }), [speed]);
+
+  return (
+    <GodLights
+      scene={scene}
+      animate={animate}
+      animParams={animParams}
+      className={className}
+      style={style}
+    />
+  );
+}
+```
+
+Usage across multiple sections:
+
+```tsx
+// purple hero
+<GodLightsBackground color="#a78bfa" originX={20} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+
+// warm amber, slower
+<GodLightsBackground color="#ffd28a" originX={80} direction={200} speed={0.5} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+
+// teal, static
+<GodLightsBackground color="#34d399" animate={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+```
+
+---
 
 ### Reactive scene (follow mouse)
 

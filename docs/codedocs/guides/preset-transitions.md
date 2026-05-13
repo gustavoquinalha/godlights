@@ -113,6 +113,72 @@ export function CyclingPresets() {
 }
 ```
 
+## Responsive scene dimensions
+
+`scene.width` and `scene.height` control internal canvas resolution, not CSS layout. The component fills whatever space CSS gives it. For most cases `1920 × 1080` works at any viewport size. If you need the canvas resolution to match the container exactly (e.g. for pixel-perfect exports), use a `ResizeObserver`:
+
+```tsx
+"use client";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { GodLights } from "godlights";
+import type { SceneConfig } from "godlights";
+
+export function ResponsivePresets({ presets }: { presets: SceneConfig[] }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 1920, height: 1080 });
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect;
+      setSize({ width: Math.round(width), height: Math.round(height) });
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Inject the observed size into the active preset
+  const scene: SceneConfig = useMemo(() => ({
+    ...presets[index],
+    width: size.width,
+    height: size.height,
+  }), [presets, index, size]);
+
+  return (
+    <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <GodLights
+        scene={scene}
+        animate
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+      <button
+        style={{ position: "relative", zIndex: 1 }}
+        onClick={() => setIndex((i) => (i + 1) % presets.length)}
+      >
+        Next preset
+      </button>
+    </div>
+  );
+}
+```
+
+> **Note:** `originX`/`originY` are percentages, so they scale automatically with any `width`/`height`. Only `blur` (in absolute pixels) may need adjustment when the canvas resolution changes significantly.
+
+## Performance note for production
+
+Two simultaneous `<GodLights animate>` instances run two independent RAF loops. For long-running pages, disable animation on the hidden layer to halve the per-frame cost:
+
+```tsx
+<GodLights scene={presets[current]} animate style={fillStyle} />
+<GodLights
+  scene={presets[next]}
+  animate={fading}   // RAF only runs during the fade window
+  style={{ ...fillStyle, opacity: fading ? 1 : 0, transition: "opacity 0.8s ease" }}
+/>
+```
+
 ## Notes
 
 - Both instances run independent `requestAnimationFrame` loops. For performance, keep `rayCount` low on secondary/decorative presets.

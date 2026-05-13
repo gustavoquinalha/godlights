@@ -5,9 +5,20 @@ description: "Tips for rendering multiple Godlights scenes simultaneously withou
 
 Each `<GodLights animate>` runs its own `requestAnimationFrame` loop. The heaviest operations per frame are:
 
-1. **Gaussian blur** — implemented via `OffscreenCanvas` + `ctx.filter`. Cost scales with canvas area × blur radius.
-2. **Ray count** — each ray is a filled trapezoid polygon. More rays = more fill operations per frame.
-3. **Film grain** — iterates every pixel. Disabled automatically when `noise: 0`.
+1. **Gaussian blur** — implemented via `OffscreenCanvas` + `ctx.filter`. At 1920×1080, `blur: 20` adds roughly 4–8 ms per frame depending on GPU/browser. Setting `blur: 0` skips the OffscreenCanvas entirely and saves the most time of any single change.
+2. **Film grain** — scans every pixel in the canvas buffer each frame. At 1920×1080 with `noise: 10`, this costs ~2–4 ms. In animated mode `<GodLights>` moves grain to a static overlay canvas drawn once, so this cost is already avoided — but at `scene.width × scene.height` values much larger than 1920×1080, it can still be significant.
+3. **Ray count** — each ray is a filled trapezoid polygon with a linear gradient. A single ray costs ~0.05–0.1 ms. At `rayCount: 30` that's ~2–3 ms; at `rayCount: 200` it's ~10–20 ms. Keep secondary instances at 8–16.
+4. **Canvas resolution** — all costs above scale with `scene.width × scene.height`. A 3840×2160 canvas is 4× more expensive than 1920×1080 for blur and grain. Use a lower internal resolution for decorative instances.
+
+### Cost summary
+
+| Parameter | Cheap | Expensive |
+|-----------|-------|-----------|
+| `blur` | `0` (no OffscreenCanvas) | `> 10` (~4–8 ms at 1080p) |
+| `rayCount` | `8–16` (~0.5–1.5 ms) | `60+` (~6–20 ms) |
+| `noise` | `0` (disabled) | `> 0` (~2–4 ms at 1080p, static overlay in animated mode) |
+| `scene.width/height` | `960×540` | `3840×2160` (4× blur/grain cost) |
+| `animate` | `false` (no RAF) | `true` (60fps loop) |
 
 ## Reduce cost per instance
 
