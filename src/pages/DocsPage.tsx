@@ -239,6 +239,18 @@ const NAV_ITEMS = [
   { id: "anim-params", label: "AnimParams" },
   { id: "defaults", label: "Default values" },
   { id: "utilities", label: "Utilities" },
+  { id: "guides", label: "Guides" },
+  { id: "ai-tools", label: "AI tools" },
+];
+
+const GUIDES = [
+  { label: "SSR & Next.js", description: "App Router (use client), Pages Router (dynamic ssr:false), Remix.", file: "ssr-and-nextjs.md" },
+  { label: "Reactive scene updates", description: "Mouse tracking, direction from cursor, dynamic animParams.", file: "reactive-scene-updates.md" },
+  { label: "Preset transitions", description: "Swap presets instantly or cross-fade with two canvas layers.", file: "preset-transitions.md" },
+  { label: "Performance optimization", description: "Cost table, blur trade-offs, IntersectionObserver pause pattern.", file: "performance-optimization.md" },
+  { label: "Reusable wrapper component", description: "A drop-in GodLightsBackground wrapper accepting simple props.", file: "reusable-wrapper.md" },
+  { label: "Canvas export workflow", description: "Export PNG, JPEG, or CSS background-image data URLs.", file: "canvas-export-workflow.md" },
+  { label: "AI tools setup", description: "Cursor rules, shadcn registry, Context7 — make AI use Godlights automatically.", file: "ai-tools-setup.md" },
 ];
 
 export default function DocsPage() {
@@ -540,18 +552,18 @@ const myRayLayer = {
                   {[
                     {
                       name: "drawScene",
-                      sig: "(canvas, scene, t?) => void",
-                      desc: "Draw one frame onto a canvas element.",
+                      sig: "(canvas, scene, time?, anim?, skipGrain?) => void",
+                      desc: "Draw one static frame onto a canvas element.",
                     },
                     {
                       name: "exportScene",
-                      sig: "(scene) => Promise<Blob>",
-                      desc: "Render the scene and return a PNG Blob.",
+                      sig: "(scene, type, quality?) => Promise<Blob>",
+                      desc: 'Export as PNG or JPEG Blob. type: "image/png" | "image/jpeg".',
                     },
                     {
-                      name: "exportDataURL",
+                      name: "buildSceneCssSnippet",
                       sig: "(scene) => Promise<string>",
-                      desc: "Render the scene and return a PNG data URL.",
+                      desc: "Export as CSS background-image lines (data URL embedded).",
                     },
                     {
                       name: "BLEND_MODES",
@@ -576,6 +588,71 @@ const myRayLayer = {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </Section>
+          {/* Guides */}
+          <Section id="guides" title="Guides">
+            <p className="text-sm text-muted-foreground">
+              In-depth guides for common patterns. Each guide is also indexed by{" "}
+              <a href="https://context7.com/gustavoquinalha/godlights" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground transition-colors">Context7</a>{" "}
+              for AI-assisted development.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {GUIDES.map((g) => (
+                <a
+                  key={g.file}
+                  href={`https://github.com/gustavoquinalha/godlights/blob/main/docs/codedocs/guides/${g.file}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex flex-col gap-1 rounded-lg border border-border bg-card/60 px-4 py-3 hover:border-foreground/30 hover:bg-card transition-all"
+                >
+                  <span className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors">
+                    {g.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{g.description}</span>
+                </a>
+              ))}
+            </div>
+          </Section>
+
+          {/* AI tools */}
+          <Section id="ai-tools" title="AI tools">
+            <p className="text-sm text-muted-foreground">
+              Resources for using Godlights with AI coding assistants — Cursor, v0, Bolt, Claude, Copilot.
+            </p>
+            <div className="overflow-x-auto rounded-lg border border-border">
+              <table className="w-full text-left bg-card/90 backdrop-blur-md">
+                <thead>
+                  <tr className="border-b border-border bg-background/20 backdrop-blur-md">
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Resource</th>
+                    <th className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Purpose</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { label: "Context7", href: "https://context7.com/gustavoquinalha/godlights", desc: "Auto-loaded by Claude, Cursor, Copilot via Context7 MCP" },
+                    { label: "llms.txt", href: "https://www.godlights.io/llms.txt", desc: "Quick start, common mistakes, key constraints" },
+                    { label: "llms-full.txt", href: "https://www.godlights.io/llms-full.txt", desc: "Complete API reference for LLM consumption" },
+                    { label: "Cursor rules (.mdc)", href: "https://www.godlights.io/godlights.mdc", desc: "Drop into .cursor/rules/ — teaches Cursor to use Godlights for light effects" },
+                    { label: "shadcn registry", href: "https://www.godlights.io/registry.json", desc: "Install components via npx shadcn@latest add — works with v0, Bolt, Lovable" },
+                  ].map((r) => (
+                    <tr key={r.label} className="border-b border-border last:border-0">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <a href={r.href} target="_blank" rel="noopener noreferrer" className="text-sm font-mono text-foreground/90 underline underline-offset-2 hover:text-foreground transition-colors">
+                          {r.label}
+                        </a>
+                      </td>
+                      <td className="px-4 py-2.5 text-sm text-muted-foreground">{r.desc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+              <strong className="text-foreground">Cursor setup:</strong>{" "}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-[12px] font-mono">
+                curl -o .cursor/rules/godlights.mdc https://www.godlights.io/godlights.mdc
+              </code>
             </div>
           </Section>
         </main>
