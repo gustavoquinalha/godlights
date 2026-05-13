@@ -6,6 +6,7 @@ Animated god-ray / light-beam effects for React. Render stunning volumetric ligh
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](#license)
 [![Live editor](https://img.shields.io/badge/Live%20editor-godlights.io-black?style=flat-square)](https://www.godlights.io)
 [![Context7](https://img.shields.io/badge/Context7-docs-black?style=flat-square)](https://context7.com/gustavoquinalha/godlights)
+[![Open in StackBlitz](https://img.shields.io/badge/StackBlitz-open_example-black?style=flat-square&logo=stackblitz)](https://stackblitz.com/github/gustavoquinalha/godlights/tree/main/examples/basic)
 
 ---
 

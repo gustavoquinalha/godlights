@@ -114,6 +114,7 @@ Or use the static files:
 | Install a component in seconds via CLI or v0 | shadcn registry (`npx shadcn@latest add ...`) |
 | Ask any AI assistant to build a scene | Paste `llms-full.txt` or use Context7 MCP |
 | Generate a custom preset visually | [godlights.io/editor](https://www.godlights.io/editor) → export as JSX |
+| Try a live interactive example | [StackBlitz playground](https://stackblitz.com/github/gustavoquinalha/godlights/tree/main/examples/basic) |
 
 ---
 

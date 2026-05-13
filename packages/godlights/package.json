@@ -45,10 +45,18 @@
   "keywords": [
     "god-rays",
     "light-rays",
+    "light-beams",
+    "volumetric-light",
     "canvas",
     "react",
     "animation",
-    "visual-effects"
+    "background",
+    "hero",
+    "visual-effects",
+    "glow",
+    "typescript",
+    "nextjs",
+    "vite"
   ],
   "license": "MIT"
 }
