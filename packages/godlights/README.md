@@ -832,6 +832,8 @@ If you're using an AI coding assistant (Cursor, Copilot, Claude, etc.) to genera
 - **[godlights.io/llms-full.txt](https://www.godlights.io/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
 - **[Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000)** — always up-to-date, dynamically generated — paste into any AI chat
 - **[godlights.io/registry.json](https://www.godlights.io/registry.json)** — shadcn registry with ready-made components for v0, Bolt, Lovable, and Cursor
+- **[godlights.io/godlights.mdc](https://www.godlights.io/godlights.mdc)** — Cursor rules file (`.cursor/rules/`): teaches Cursor to use Godlights for light effects
+- **[godlights.io/godlights.cursorrules](https://www.godlights.io/godlights.cursorrules)** — legacy `.cursorrules` format for older Cursor versions
 
 These files follow the [llms.txt standard](https://llmstxt.org/) and are designed to fit in a context window alongside your code. Providing them to the model avoids the most common generation errors.
 

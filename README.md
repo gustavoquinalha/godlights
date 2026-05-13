@@ -153,7 +153,9 @@ If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a s
 │   ├── llms.txt                # AI-friendly quick start
 │   ├── llms-full.txt           # Full API reference for LLMs
 │   ├── registry.json           # shadcn registry index
-│   └── r/                      # shadcn registry items (hero, background, cycling)
+│   ├── r/                      # shadcn registry items (hero, background, cycling)
+│   ├── godlights.mdc           # Cursor rules file (.cursor/rules/ format)
+│   └── godlights.cursorrules   # Cursor rules file (legacy .cursorrules format)
 └── index.html
 ```
 
