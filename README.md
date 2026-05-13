@@ -9,6 +9,8 @@
 
 ![Godlights editor](https://godlights.vercel.app/app.gif)
 
+<a href="https://www.producthunt.com/products/godlights?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-godlights" target="_blank" rel="noopener noreferrer"><img alt="Godlights - Generate animated, fully customizable god ray effects. | Product Hunt" width="250" height="54" src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1144888&theme=light&t=1778688530938"></a>
+
 ---
 
 ## npm package
