@@ -117,6 +117,7 @@ Godlights ships machine-readable documentation designed for LLM consumption:
 | [`/llms.txt`](https://www.godlights.io/llms.txt) | Quick start, common mistakes, key constraints |
 | [`/llms-full.txt`](https://www.godlights.io/llms-full.txt) | Complete API reference, all types with ranges, full examples |
 | [Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000) | Always up-to-date, dynamically generated — paste into any AI chat |
+| [`/registry.json`](https://www.godlights.io/registry.json) | shadcn registry — install components via v0, Bolt, Lovable, Cursor |
 
 If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a scene, point it at one of these files for accurate results. The most common LLM mistakes are documented there: missing `BackgroundLayer`, wrong blend mode on light backgrounds, and using `opacityAmp` (which doesn't exist).
 
@@ -150,7 +151,9 @@ If you're asking an AI assistant (Cursor, Copilot, Claude, etc.) to generate a s
 │       └── package.json
 ├── public/
 │   ├── llms.txt                # AI-friendly quick start
-│   └── llms-full.txt           # Full API reference for LLMs
+│   ├── llms-full.txt           # Full API reference for LLMs
+│   ├── registry.json           # shadcn registry index
+│   └── r/                      # shadcn registry items (hero, background, cycling)
 └── index.html
 ```
 

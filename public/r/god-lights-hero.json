@@ -1,0 +1,14 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "god-lights-hero",
+  "type": "registry:block",
+  "description": "Animated god ray hero section background using the Godlights library.",
+  "dependencies": ["godlights"],
+  "files": [
+    {
+      "path": "components/god-lights-hero.tsx",
+      "type": "registry:component",
+      "content": "\"use client\";\n\nimport { useMemo } from \"react\";\nimport { GodLights } from \"godlights\";\nimport type { SceneConfig, AnimParams } from \"godlights\";\n\nconst animParams: AnimParams = {\n  speed: 1,\n  angleAmp: 40,\n  lengthAmp: 25,\n  widthAmp: 15,\n  haloAmp: 40,\n};\n\ninterface GodLightsHeroProps {\n  color?: string;\n  children?: React.ReactNode;\n  className?: string;\n}\n\nexport function GodLightsHero({\n  color = \"#a78bfa\",\n  children,\n  className,\n}: GodLightsHeroProps) {\n  const scene: SceneConfig = useMemo(\n    () => ({\n      width: 1920,\n      height: 1080,\n      noise: 8,\n      grainSize: 1,\n      layers: [\n        {\n          id: \"background\",\n          type: \"background\",\n          bgType: \"solid\",\n          bgColor: \"#06060f\",\n          bgColor2: \"#06060f\",\n          bgGradientAngle: 180,\n        },\n        {\n          id: \"halo-1\",\n          name: \"Glow\",\n          type: \"halo\",\n          originX: 50,\n          originY: -5,\n          color,\n          intensity: 0.3,\n          size: 0.5,\n          blendMode: \"lighter\",\n        },\n        {\n          id: \"rays-1\",\n          name: \"Rays\",\n          type: \"rays\",\n          direction: 180,\n          spread: 90,\n          originX: 50,\n          originY: -5,\n          rayCount: 24,\n          rayWidth: 70,\n          divergence: 1.8,\n          rayLength: 1.1,\n          colorStart: color,\n          colorEnd: color,\n          opacity: 0.18,\n          blendMode: \"screen\",\n          fadeToTransparent: true,\n          blur: 12,\n          randomnessWidth: 60,\n          randomnessLength: 20,\n          randomnessAngle: 15,\n          seed: 42,\n        },\n      ],\n    }),\n    [color]\n  );\n\n  return (\n    <section\n      className={className}\n      style={{ position: \"relative\", minHeight: \"100svh\" }}\n    >\n      <GodLights\n        scene={scene}\n        animate\n        animParams={animParams}\n        style={{\n          position: \"absolute\",\n          inset: 0,\n          width: \"100%\",\n          height: \"100%\",\n        }}\n      />\n      <div style={{ position: \"relative\", zIndex: 1 }}>{children}</div>\n    </section>\n  );\n}\n"
+    }
+  ]
+}

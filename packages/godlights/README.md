@@ -4,7 +4,7 @@ Animated god-ray / light-beam effects for React. Render stunning volumetric ligh
 
 [![npm](https://img.shields.io/npm/v/godlights?style=flat-square&color=black)](https://www.npmjs.com/package/godlights)
 [![License: MIT](https://img.shields.io/badge/license-MIT-black?style=flat-square)](#license)
-[![Live editor](https://img.shields.io/badge/Live%20editor-godlights.vercel.app-black?style=flat-square)](https://www.godlights.io)
+[![Live editor](https://img.shields.io/badge/Live%20editor-godlights.io-black?style=flat-square)](https://www.godlights.io)
 [![Context7](https://img.shields.io/badge/Context7-docs-black?style=flat-square)](https://context7.com/gustavoquinalha/godlights)
 
 ---
@@ -14,6 +14,21 @@ Animated god-ray / light-beam effects for React. Render stunning volumetric ligh
 ```bash
 npm install godlights
 ```
+
+Or install a ready-made component directly into your project using the [shadcn CLI](https://ui.shadcn.com/docs/cli):
+
+```bash
+# Hero section with animated rays
+npx shadcn@latest add "https://www.godlights.io/r/god-lights-hero.json"
+
+# Minimal background wrapper
+npx shadcn@latest add "https://www.godlights.io/r/god-lights-background.json"
+
+# Auto-cycling presets with cross-fade
+npx shadcn@latest add "https://www.godlights.io/r/god-lights-cycling.json"
+```
+
+The CLI installs the `.tsx` component and adds `godlights` as a dependency automatically. Works with v0, Bolt, Lovable, and Cursor.
 
 ---
 
@@ -813,9 +828,10 @@ The wrapper div uses `position: relative` as an inline style default. A Tailwind
 If you're using an AI coding assistant (Cursor, Copilot, Claude, etc.) to generate scenes, point it at the machine-readable docs:
 
 - **[context7.com/gustavoquinalha/godlights](https://context7.com/gustavoquinalha/godlights)** — use with the [Context7 MCP](https://context7.com) so Claude, Cursor, and Copilot can pull up-to-date docs automatically
-- **[godlights.vercel.app/llms.txt](https://www.godlights.io/llms.txt)** — quick start, common mistakes, key constraints
-- **[godlights.vercel.app/llms-full.txt](https://www.godlights.io/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
+- **[godlights.io/llms.txt](https://www.godlights.io/llms.txt)** — quick start, common mistakes, key constraints
+- **[godlights.io/llms-full.txt](https://www.godlights.io/llms-full.txt)** — complete type reference, all field ranges, full Next.js example
 - **[Context7 llms.txt](https://context7.com/gustavoquinalha/godlights/llms.txt?tokens=10000)** — always up-to-date, dynamically generated — paste into any AI chat
+- **[godlights.io/registry.json](https://www.godlights.io/registry.json)** — shadcn registry with ready-made components for v0, Bolt, Lovable, and Cursor
 
 These files follow the [llms.txt standard](https://llmstxt.org/) and are designed to fit in a context window alongside your code. Providing them to the model avoids the most common generation errors.
 

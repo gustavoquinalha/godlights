@@ -1,0 +1,43 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "godlights",
+  "homepage": "https://www.godlights.io",
+  "items": [
+    {
+      "name": "god-lights-hero",
+      "type": "registry:block",
+      "description": "Animated god ray hero section background. Accepts a color prop to change the ray/halo color.",
+      "dependencies": ["godlights"],
+      "files": [
+        {
+          "path": "components/god-lights-hero.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "god-lights-background",
+      "type": "registry:component",
+      "description": "Minimal animated god ray background wrapper. Drop it behind any content with color and bgColor props.",
+      "dependencies": ["godlights"],
+      "files": [
+        {
+          "path": "components/god-lights-background.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "god-lights-cycling",
+      "type": "registry:block",
+      "description": "Auto-cycling god ray presets with smooth cross-fade transitions. Accepts custom presets array.",
+      "dependencies": ["godlights"],
+      "files": [
+        {
+          "path": "components/god-lights-cycling.tsx",
+          "type": "registry:component"
+        }
+      ]
+    }
+  ]
+}

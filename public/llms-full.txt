@@ -2,6 +2,7 @@
 
 > Animated god ray/light beam effects for React.
 > npm: `npm install godlights` | Docs: https://www.godlights.io/docs | Context7: https://context7.com/gustavoquinalha/godlights
+> shadcn registry: `npx shadcn@latest add "https://www.godlights.io/r/god-lights-hero.json"`
 
 ---
 
