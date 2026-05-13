@@ -148,12 +148,27 @@ export default function LandingPage() {
         <div className="w-full relative z-10 flex h-full flex-col items-center justify-center gap-8 px-6 text-center">
           <div className="container h-full mx-auto px-4 flex flex-col items-center justify-center gap-8 relative">
             <div className="flex flex-col items-center gap-4">
+              <a
+                href="https://www.producthunt.com/products/godlights?embed=true&amp;utm_source=badge-featured&amp;utm_medium=badge&amp;utm_campaign=badge-godlights"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  alt="Godlights - Generate animated, fully customizable god ray effects. | Product Hunt"
+                  width="250"
+                  height="54"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1144888&amp;theme=dark&amp;t=1778687167023"
+                />
+              </a>
+
               <Button
                 onClick={handleCopyInstall}
                 variant="outline"
                 className="flex md:hidden rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
-                <span className="truncate min-w-0 text-xs">npm install godlights</span>
+                <span className="truncate min-w-0 text-xs">
+                  npm install godlights
+                </span>
                 {copied ? (
                   <Check className="size-3.5 shrink-0 text-foreground" />
                 ) : (
@@ -179,7 +194,11 @@ export default function LandingPage() {
                 </a>
               </Button>
 
-              <Button className="rounded-full bg-background/20" variant={"outline"} asChild>
+              <Button
+                className="rounded-full bg-background/20"
+                variant={"outline"}
+                asChild
+              >
                 <a href="/editor">
                   Get started
                   <ArrowRight className="4.5" />
@@ -194,7 +213,9 @@ export default function LandingPage() {
                 variant="outline"
                 className="hidden md:flex rounded-full bg-background/60 backdrop-blur px-4 py-2 font-mono text-muted-foreground hover:text-foreground group h-auto"
               >
-                <span className="truncate min-w-0 text-xs">npm install godlights</span>
+                <span className="truncate min-w-0 text-xs">
+                  npm install godlights
+                </span>
                 {copied ? (
                   <Check className="size-3.5 shrink-0 text-foreground" />
                 ) : (
@@ -225,7 +246,10 @@ export default function LandingPage() {
                     align="center"
                     side="top"
                   >
-                    <HexColorPicker color={color} onChange={handleColorChange} />
+                    <HexColorPicker
+                      color={color}
+                      onChange={handleColorChange}
+                    />
                   </PopoverContent>
                 </Popover>
 
