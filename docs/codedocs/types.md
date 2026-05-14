@@ -20,7 +20,6 @@ import type {
   Layer,
   BlendMode,
   BackgroundType,
-  GodRaysConfig,
 } from "godlights";
 ```
 
@@ -41,7 +40,7 @@ export interface GodLightsProps {
 }
 ```
 
-Use this interface when you want to wrap or re-export the component from your own design system. `scene` is the only required field. `style` is especially important because the component’s wrapper starts with `position: "relative"`, so full-bleed usage is typically done through inline styles.
+Use this interface when you want to wrap or re-export the component from your own design system. `scene` is the only required field. `style` is especially important because the component's wrapper starts with `position: "relative"`, so full-bleed usage is typically done through inline styles.
 
 ## Scene and Layer Types
 
@@ -88,15 +87,12 @@ export interface RayLayer {
   colorEnd: string;
   fadeToTransparent: boolean;
   blur: number;
-  randomness?: number;
   randomnessWidth: number;
   randomnessLength: number;
   randomnessAngle: number;
   seed: number;
 }
 ```
-
-This is the most detailed layer type because it drives the beam geometry. The deprecated `randomness` field is still accepted for backward compatibility, but new code should prefer the split width, length, and angle randomness fields.
 
 ### `HaloLayer`
 
@@ -129,7 +125,7 @@ export interface BackgroundLayer {
 }
 ```
 
-The literal `id: "background"` is part of the type. This is not decorative; it reflects the package’s assumption that one canonical background layer sits at index `0`.
+The literal `id: "background"` is part of the type. This is not decorative; it reflects the package's assumption that one canonical background layer sits at index `0`.
 
 ### `Layer`
 
@@ -169,63 +165,7 @@ export interface AnimParams {
 
 This interface controls animation intensity. The engine does not store it inside `SceneConfig`, which allows static and animated renders to share the same scene data. There is intentionally no `opacityAmp`.
 
-## Legacy Compatibility Type
-
-### `GodRaysConfig`
-
-Defined in `packages/godlights/src/godrays.ts`.
-
-```ts
-export interface GodRaysConfig {
-  width: number;
-  height: number;
-  rayCount: number;
-  rayWidth: number;
-  divergence: number;
-  rayLength: number;
-  opacity: number;
-  blendMode: BlendMode;
-  haloBlendMode: BlendMode;
-  direction: number;
-  spread: number;
-  originX: number;
-  originY: number;
-  haloOriginX: number;
-  haloOriginY: number;
-  colorStart: string;
-  colorEnd: string;
-  fadeToTransparent: boolean;
-  bgType: BackgroundType;
-  bgColor: string;
-  bgColor2: string;
-  bgGradientAngle: number;
-  halo: number;
-  haloSize: number;
-  haloColor: string;
-  blur: number;
-  noise: number;
-  grainSize: number;
-  randomness: number;
-  randomnessWidth: number;
-  randomnessLength: number;
-  randomnessAngle: number;
-  seed: number;
-}
-```
-
-This type models the older single-ray-layer, single-halo API. `drawGodRays`, `exportImage`, `exportDataURL`, and `buildCssSnippet` still accept it, but internally the renderer now converts it into a layered `SceneConfig`.
-
-## Practical Guidance
-
-### When to use `SceneConfig`
-
-Use `SceneConfig` for all new code. It can express multiple rays and halos, matches the editor’s model, and is the internal format of the engine.
-
-### When to use `GodRaysConfig`
-
-Use it only when you are maintaining an older integration or when you already store data in that flat schema. The adapter path remains supported, but it is less expressive.
-
-### Typical import pattern
+## Typical Import Pattern
 
 ```ts
 import {

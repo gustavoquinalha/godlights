@@ -25,7 +25,6 @@ export interface SceneConfig {
 
 - `Layer` is the real payload of the scene. `SceneConfig` only defines the container and render order.
 - `AnimParams` lives outside the scene so the same scene can be static or animated without mutation.
-- `GodRaysConfig` is a compatibility shape that gets converted into a `SceneConfig` internally.
 
 ## Internal Flow
 

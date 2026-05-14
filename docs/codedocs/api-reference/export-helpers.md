@@ -6,9 +6,7 @@ description: "Reference for image export and CSS generation helpers in the Godli
 Import path: `godlights`  
 Source file: `packages/godlights/src/godrays.ts`
 
-## Modern scene-based helpers
-
-### `exportScene`
+## `exportScene`
 
 ```ts
 export async function exportScene(
@@ -30,7 +28,7 @@ Example:
 const blob = await exportScene(scene, "image/png");
 ```
 
-### `buildSceneCssSnippet`
+## `buildSceneCssSnippet`
 
 ```ts
 export async function buildSceneCssSnippet(
@@ -46,42 +44,6 @@ Example:
 const css = await buildSceneCssSnippet(scene);
 ```
 
-## Legacy flat-config helpers
-
-### `exportImage`
-
-```ts
-export async function exportImage(
-  config: GodRaysConfig,
-  type: "image/png" | "image/jpeg",
-  quality = 0.95
-): Promise<Blob>
-```
-
-This is the legacy counterpart to `exportScene`.
-
-### `exportDataURL`
-
-```ts
-export async function exportDataURL(
-  config: GodRaysConfig,
-  type: "image/png" | "image/jpeg",
-  quality = 0.95
-): Promise<string>
-```
-
-Use this when you need an inline `data:image/...` string instead of a `Blob`.
-
-### `buildCssSnippet`
-
-```ts
-export async function buildCssSnippet(
-  config: GodRaysConfig
-): Promise<string>
-```
-
-This is the legacy counterpart to `buildSceneCssSnippet`.
-
 ## Common Workflow
 
 ```ts
@@ -94,16 +56,6 @@ async function exportAssets(scene: SceneConfig) {
 }
 ```
 
-## When to Use Which Helper
-
-| Helper | Use when | Return type |
-|--------|----------|-------------|
-| `exportScene` | New code with layered scenes | `Promise<Blob>` |
-| `buildSceneCssSnippet` | New code that needs embeddable CSS | `Promise<string>` |
-| `exportImage` | Existing flat configs | `Promise<Blob>` |
-| `exportDataURL` | Existing flat configs that need a data URL | `Promise<string>` |
-| `buildCssSnippet` | Existing flat configs that need CSS | `Promise<string>` |
-
 <Callout type="info">All export helpers create a temporary canvas internally. They do not depend on the React component, and they always render a static frame with `time = 0`.</Callout>
 
-Related pages: [Rendering Functions](/docs/api-reference/rendering-functions), [Legacy API](/docs/api-reference/legacy-api)
+Related pages: [Rendering Functions](/docs/api-reference/rendering-functions)

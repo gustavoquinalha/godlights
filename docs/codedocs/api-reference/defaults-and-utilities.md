@@ -14,7 +14,7 @@ Source file: `packages/godlights/src/godrays.ts`
 export const BLEND_MODES: { label: string; value: BlendMode }[]
 ```
 
-This is the package’s curated list of blend mode options:
+This is the package's curated list of blend mode options:
 
 ```ts
 [
@@ -69,48 +69,6 @@ export const DEFAULT_BACKGROUND_LAYER: BackgroundLayer
 
 ```ts
 export const DEFAULT_SCENE: SceneConfig
-```
-
-### `DEFAULT_CONFIG`
-
-```ts
-export const DEFAULT_CONFIG: GodRaysConfig
-```
-
-This is the legacy flat-config default.
-
-## Utility Functions
-
-### `mulberry32`
-
-```ts
-export function mulberry32(seed: number)
-```
-
-Returns a deterministic pseudo-random number generator function. `drawRaysShapes` uses it to make beam variation repeatable for a given seed.
-
-Example:
-
-```ts
-const rand = mulberry32(42);
-const first = rand();
-const second = rand();
-```
-
-### `hexToRgb`
-
-```ts
-export function hexToRgb(
-  hex: string
-): { r: number; g: number; b: number }
-```
-
-Converts a hex string like `"#ffffff"` into an RGB object used by the renderer.
-
-Example:
-
-```ts
-const rgb = hexToRgb("#93c5fd");
 ```
 
 ## Common Pattern

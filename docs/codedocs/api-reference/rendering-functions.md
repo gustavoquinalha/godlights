@@ -68,52 +68,6 @@ function frame(ts: number) {
 }
 ```
 
-## `drawGodRays`
-
-### Signature
-
-```ts
-export function drawGodRays(
-  canvas: HTMLCanvasElement,
-  config: GodRaysConfig
-): void
-```
-
-### Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `canvas` | `HTMLCanvasElement` | — | Target canvas with a 2D context. |
-| `config` | `GodRaysConfig` | — | Legacy flat config that is converted to `SceneConfig`. |
-
-### Returns
-
-`void`
-
-### Example
-
-```ts
-import { DEFAULT_CONFIG, drawGodRays } from "godlights";
-
-canvas.width = DEFAULT_CONFIG.width;
-canvas.height = DEFAULT_CONFIG.height;
-drawGodRays(canvas, DEFAULT_CONFIG);
-```
-
-## Combining the Two
-
-Use `drawScene` for all new work. Keep `drawGodRays` only when you still have stored flat configs.
-
-```ts
-import { drawGodRays, drawScene } from "godlights";
-
-if ("layers" in maybeScene) {
-  drawScene(canvas, maybeScene);
-} else {
-  drawGodRays(canvas, maybeScene);
-}
-```
-
 <Callout type="warn">`drawScene` reads the current `canvas.width` and `canvas.height`. It does not force those values to match `scene.width` and `scene.height`, so a mismatch can distort percentages, diagonal-based lengths, blur appearance, and grain density.</Callout>
 
-Related pages: [Export Helpers](/docs/api-reference/export-helpers), [Legacy API](/docs/api-reference/legacy-api), [Scene Config](/docs/scene-config)
+Related pages: [Export Helpers](/docs/api-reference/export-helpers), [Scene Config](/docs/scene-config)

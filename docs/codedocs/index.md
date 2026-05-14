@@ -192,10 +192,9 @@ Expected result: a static black scene with a centered glow at the top edge and a
 
 - React component API in [`packages/godlights/src/GodLights.tsx`](../../../../godlights/packages/godlights/src/GodLights.tsx) for static and animated rendering.
 - Layer-based scene model in [`packages/godlights/src/godrays.ts`](../../../../godlights/packages/godlights/src/godrays.ts) with background, halo, and ray layers.
-- Deterministic seeded randomness via `mulberry32(seed)` so a scene stays visually stable.
+- Deterministic seeded randomness so a scene stays visually stable across reloads.
 - Direct canvas utilities for one-off drawing, image export, and CSS background generation.
 - Exported defaults such as `DEFAULT_SCENE`, `DEFAULT_RAY_LAYER`, and `DEFAULT_ANIM_PARAMS` to bootstrap authoring.
-- Backward-compatible `GodRaysConfig` and `drawGodRays` path for older flat configs.
 
 ## Next
 

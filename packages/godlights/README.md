@@ -275,8 +275,6 @@ import {
 } from "godlights";
 ```
 
-> **Legacy helpers** (`exportDataURL`, `exportImage`, `buildCssSnippet`) accept the flat `GodRaysConfig` format from v0.1.0. For new code use the functions above with `SceneConfig`.
-
 ### Static render (no React)
 
 ```ts

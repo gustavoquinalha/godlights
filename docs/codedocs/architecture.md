@@ -26,9 +26,7 @@ graph TD
 
 ### Layered scene data instead of a flat prop list
 
-The modern API is `SceneConfig`, not a long parameter list. In [`packages/godlights/src/godrays.ts`](../../../../godlights/packages/godlights/src/godrays.ts), `SceneConfig` owns `width`, `height`, `noise`, `grainSize`, and an ordered `layers` array. That decision matters because rendering becomes a simple ordered pass in `drawScene`, and new layer types can be added without redesigning the component signature.
-
-The legacy `GodRaysConfig` export still exists, but `drawGodRays` immediately converts it into a `SceneConfig` before rendering. That tells you the internal architecture has already standardized on the layered model, and the legacy path is purely an adapter.
+The API is `SceneConfig`, not a long parameter list. In [`packages/godlights/src/godrays.ts`](../../../../godlights/packages/godlights/src/godrays.ts), `SceneConfig` owns `width`, `height`, `noise`, `grainSize`, and an ordered `layers` array. That decision matters because rendering becomes a simple ordered pass in `drawScene`, and new layer types can be added without redesigning the component signature.
 
 ### A pure canvas engine underneath the React wrapper
 
@@ -36,7 +34,7 @@ The legacy `GodRaysConfig` export still exists, but `drawGodRays` immediately co
 
 ### Deterministic randomness through seeded generation
 
-Ray variation comes from `mulberry32(seed)` in [`packages/godlights/src/godrays.ts`](../../../../godlights/packages/godlights/src/godrays.ts). `drawRaysShapes` creates a seeded RNG for every render, then uses it to vary width, length, and angle per ray. Because the same seed and same scene inputs yield the same beam distribution, editing one parameter does not randomize the entire composition unexpectedly.
+Ray variation uses a seeded RNG in [`packages/godlights/src/godrays.ts`](../../../../godlights/packages/godlights/src/godrays.ts). `drawRaysShapes` creates a seeded RNG for every render, then uses it to vary width, length, and angle per ray. Because the same seed and same scene inputs yield the same beam distribution, editing one parameter does not randomize the entire composition unexpectedly.
 
 ### Grain handled differently in static and animated modes
 
@@ -96,8 +94,5 @@ The component API has only five props because almost everything interesting is p
 <Accordions>
   <Accordion title="Why use a second grain canvas in animated mode?">
     The source in `GodLights.tsx` separates grain from the main animation loop because noise generation is one of the few rendering steps that scales directly with pixel count. Recomputing image data for every frame would add work that does not improve the motion of the rays themselves. By rendering a fixed grain texture once and compositing it with `mixBlendMode: "overlay"`, the component preserves the visual texture while keeping the expensive per-frame work focused on beam geometry and gradients. The trade-off is that the grain does not shimmer over time, but that is usually acceptable for hero backgrounds and decorative scenes.
-  </Accordion>
-  <Accordion title="Why keep the legacy flat config at all?">
-    `GodRaysConfig` is still exported because older integrations may already store or generate that shape. The adapter function `drawGodRays` keeps those callers working by translating the flat fields into a background layer, one halo layer, and one ray layer before delegating to `drawScene`. That keeps compatibility costs low because the engine only needs one real internal representation. The trade-off is that the legacy path cannot express multiple halos or multiple ray layers, so any new work should start from `SceneConfig` instead.
   </Accordion>
 </Accordions>
