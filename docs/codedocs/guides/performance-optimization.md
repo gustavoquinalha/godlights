@@ -102,34 +102,62 @@ export function MultiSectionPage({ scene }: { scene: SceneConfig }) {
 }
 ```
 
-## Shared static background
+## Canvas size trade-offs across multiple instances
 
-If multiple sections use the same scene and animation isn't required, render it once with `animate={false}` and use CSS `background-image` with the exported data URL instead.
+Every instance allocates its own canvas at `scene.width × scene.height`. With four instances at 1920×1080, the GPU holds four separate textures totaling ~32 MB of RGBA pixel data. Reduce resolution on secondary instances to cut memory and blur cost proportionally:
 
 ```tsx
+const heroScene: SceneConfig = { width: 1920, height: 1080, ... };    // primary — full quality
+const sectionScene: SceneConfig = { width: 960, height: 540, ... };   // 4× cheaper blur/grain
+const decorScene: SceneConfig = { width: 480, height: 270, ... };     // 16× cheaper — fine for small cards
+```
+
+`originX`/`originY` are percentages so they scale automatically. Only `blur` (absolute pixels) needs to be scaled down proportionally:
+
+```tsx
+// blur: 12 at 1920px → blur: 6 at 960px → blur: 3 at 480px
+const blur = Math.round(12 * (targetWidth / 1920));
+```
+
+## Shared static background
+
+If multiple sections use the same scene and animation isn't required, export it once and use CSS `background-image` — zero per-frame cost, works for any number of instances.
+
+```tsx
+"use client";
 import { useEffect, useState } from "react";
-import { exportDataURL } from "godlights";
+import { buildSceneCssSnippet } from "godlights";
 import type { SceneConfig } from "godlights";
 
 function useSceneBackground(scene: SceneConfig) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+  const [css, setCss] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    exportDataURL(scene, "image/png").then(setDataUrl);
+    let cancelled = false;
+    buildSceneCssSnippet(scene)
+      .then((snippet) => { if (!cancelled) setCss(snippet); })
+      .catch((err) => { if (!cancelled) setError(err.message); });
+    return () => { cancelled = true; };
   }, [scene]);
 
-  return dataUrl;
+  return { css, error };
 }
 
 export function StaticSection({ scene }: { scene: SceneConfig }) {
-  const bg = useSceneBackground(scene);
+  const { css, error } = useSceneBackground(scene);
+
+  if (error) return <div style={{ background: "#06060f", height: 400 }} />;
 
   return (
     <div
       style={{
-        backgroundImage: bg ? `url(${bg})` : undefined,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
+        ...(css ? Object.fromEntries(
+          css.split(";").filter(Boolean).map((line) => {
+            const [k, ...v] = line.split(":");
+            return [k.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase()), v.join(":").trim()];
+          })
+        ) : { background: "#06060f" }),
         height: 400,
       }}
     />
@@ -137,11 +165,96 @@ export function StaticSection({ scene }: { scene: SceneConfig }) {
 }
 ```
 
-This renders the canvas once and paints it as a CSS image — zero per-frame cost, works for any number of instances.
+## Edge cases
+
+### Rapid scrolling
+
+When the user scrolls quickly, `IntersectionObserver` fires multiple times in rapid succession. Each callback toggles `animate`, which starts/stops the RAF loop. This is harmless but can create brief flickers on low-end devices. Add a short delay before stopping:
+
+```tsx
+function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (timerRef.current) clearTimeout(timerRef.current);
+          setVisible(true);
+        } else {
+          // Delay stopping so fast scroll-past doesn't flicker
+          timerRef.current = setTimeout(() => setVisible(false), 300);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => { observer.disconnect(); if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", height: 400 }}>
+      <GodLights
+        scene={scene}
+        animate={visible}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      />
+    </div>
+  );
+}
+```
+
+### Dynamic scene count
+
+When sections are added or removed from the DOM (e.g., a feed that loads more), each new `<GodLights animate>` starts a new RAF loop. The `IntersectionObserver` pattern handles this correctly because the observer is set up in `useEffect` — it runs on mount and cleans up on unmount automatically.
+
+If you're rendering a large dynamic list, consider a cap: only animate the first N visible instances and render the rest as static CSS exports.
+
+```tsx
+const MAX_ANIMATED = 3;
+
+export function DynamicSections({ scenes }: { scenes: SceneConfig[] }) {
+  const [visibleCount, setVisibleCount] = useState(0);
+
+  return (
+    <>
+      {scenes.map((scene, i) => (
+        <LazyAnimatedBackground
+          key={i}
+          scene={scene}
+          // Only animate if within the cap; render static otherwise
+          forceStatic={visibleCount >= MAX_ANIMATED}
+          onVisibilityChange={(v) => setVisibleCount((c) => v ? c + 1 : c - 1)}
+        />
+      ))}
+    </>
+  );
+}
+```
+
+## Memory profiling
+
+To measure canvas memory usage in Chrome DevTools:
+
+1. Open **Memory** tab → take a **Heap Snapshot**
+2. Filter by `HTMLCanvasElement` — each Godlights instance appears as one canvas
+3. Check `_pixelData` size: a 1920×1080 canvas is `1920 × 1080 × 4 bytes = ~8 MB`
+4. With `blur > 0`, an `OffscreenCanvas` of the same size is also allocated — so `blur > 0` doubles the canvas memory per instance
+
+For the **Performance** tab:
+1. Click **Record** → scroll through the page → stop
+2. Look for `requestAnimationFrame` callbacks in the flame chart — each animated instance shows as a recurring task
+3. Tasks over 4 ms indicate a heavy scene; reduce `blur`, `rayCount`, or canvas resolution
 
 ## Checklist
 
 - [ ] Hero/primary section: full `rayCount`, blur, grain, `animate={true}`
-- [ ] Secondary sections: `rayCount` ≤ 16, `blur: 0`, `noise: 0`
-- [ ] Decorative/background sections: `animate={false}` or CSS export
-- [ ] Multiple animated sections: wrap each in `LazyAnimatedBackground`
+- [ ] Secondary sections: `rayCount` ≤ 16, `blur: 0`, `noise: 0`, reduced canvas resolution
+- [ ] Decorative/background sections: `animate={false}` or CSS export via `buildSceneCssSnippet`
+- [ ] Multiple animated sections: wrap each in `LazyAnimatedBackground` with scroll debounce
+- [ ] Dynamic lists: cap animated instances at 3–4; render the rest as static
+- [ ] Memory check: each `blur > 0` instance = ~16 MB canvas memory at 1920×1080
