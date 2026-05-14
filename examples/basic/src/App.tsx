@@ -29,7 +29,6 @@ export function App() {
       grainSize: 1,
       layers: [
         {
-          id: "background",
           type: "background",
           bgType: "solid",
           bgColor,
@@ -37,8 +36,6 @@ export function App() {
           bgGradientAngle: 180,
         },
         {
-          id: "halo-1",
-          name: "Halo",
           type: "halo",
           originX: 50,
           originY: -5,
@@ -48,8 +45,6 @@ export function App() {
           blendMode: "lighter",
         },
         {
-          id: "rays-1",
-          name: "Rays",
           type: "rays",
           direction: 180,
           spread: 90,
@@ -79,7 +74,6 @@ export function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />

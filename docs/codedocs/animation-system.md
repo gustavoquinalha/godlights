@@ -68,7 +68,6 @@ export function AnimatedBackground({ scene }: { scene: SceneConfig }) {
   return (
     <GodLights
       scene={scene}
-      animate
       animParams={DEFAULT_ANIM_PARAMS}
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
     />

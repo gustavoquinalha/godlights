@@ -27,7 +27,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#050816",
@@ -35,8 +34,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "halo-1",
-      name: "Main Glow",
       type: "halo",
       originX: 20,
       originY: 4,
@@ -46,8 +43,6 @@ const scene: SceneConfig = {
       blendMode: "lighter",
     },
     {
-      id: "rays-1",
-      name: "Hero Rays",
       type: "rays",
       direction: 160,
       spread: 60,
@@ -76,7 +71,6 @@ export default function HeroBackground() {
     <div style={{ position: "relative", minHeight: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={{ speed: 1.2, angleAmp: 35, lengthAmp: 25, widthAmp: 10, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -135,7 +129,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#000000",
@@ -143,8 +136,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "rays-1",
-      name: "Rays",
       type: "rays",
       direction: 180,
       spread: 90,
@@ -166,8 +157,6 @@ const scene: SceneConfig = {
       seed: 1337,
     },
     {
-      id: "halo-1",
-      name: "Halo",
       type: "halo",
       originX: 50,
       originY: 0,

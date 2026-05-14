@@ -48,7 +48,7 @@ Default value:
 ### `DEFAULT_RAY_LAYER`
 
 ```ts
-export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name">
+export const DEFAULT_RAY_LAYER: RayLayer
 ```
 
 Use this as the safest starting point for a new ray layer.
@@ -56,7 +56,7 @@ Use this as the safest starting point for a new ray layer.
 ### `DEFAULT_HALO_LAYER`
 
 ```ts
-export const DEFAULT_HALO_LAYER: Omit<HaloLayer, "id" | "name">
+export const DEFAULT_HALO_LAYER: HaloLayer
 ```
 
 ### `DEFAULT_BACKGROUND_LAYER`
@@ -88,8 +88,8 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#050816", bgColor2: "#050816" },
-    { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Glow", color: "#ffffff" },
-    { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", direction: 180 },
+    { ...DEFAULT_HALO_LAYER, color: "#ffffff" },
+    { ...DEFAULT_RAY_LAYER, direction: 180 },
   ],
 };
 ```

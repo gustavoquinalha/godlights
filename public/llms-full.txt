@@ -33,9 +33,8 @@ import { GodLights } from "godlights";
 
 <GodLights
   scene={scene}           // SceneConfig — required
-  animate={false}         // boolean — enable RAF animation loop
-  animParams={params}     // AnimParams — only used when animate=true
-  showFps={false}         // boolean — dev FPS overlay (animate=true only)
+  animParams={params}     // AnimParams — when present, starts RAF loop; omit for static
+  showFps={false}         // boolean — dev FPS overlay (animParams only)
   className="..."         // string — CSS class on wrapper div
   style={{ ... }}         // CSSProperties — inline style on wrapper div
 />
@@ -81,7 +80,6 @@ interface SceneConfig {
 
 ```ts
 interface BackgroundLayer {
-  id: "background";        // must be the literal string "background"
   type: "background";
   bgType: "solid" | "gradient" | "transparent";
   bgColor: string;         // hex — primary / top color
@@ -93,7 +91,6 @@ interface BackgroundLayer {
 Example:
 ```ts
 {
-  id: "background",
   type: "background",
   bgType: "solid",
   bgColor: "#000000",
@@ -108,9 +105,7 @@ Use `bgType: "transparent"` to overlay rays on existing page content without pai
 
 ```ts
 interface RayLayer {
-  id: string;
   type: "rays";
-  name: string;
   direction: number;          // compass bearing rays point toward (0=up, 90=right, 180=down, 270=left)
   spread: number;             // angular width of the ray fan in degrees
   originX: number;            // origin X as % of canvas width (can be <0 or >100 for off-screen)
@@ -135,8 +130,6 @@ interface RayLayer {
 Example:
 ```ts
 {
-  id: "rays-1",
-  name: "Main Rays",
   type: "rays",
   direction: 180,
   spread: 100,
@@ -163,9 +156,7 @@ Example:
 
 ```ts
 interface HaloLayer {
-  id: string;
   type: "halo";
-  name: string;
   originX: number;       // center X as % of canvas width
   originY: number;       // center Y as % of canvas height
   color: string;         // hex color
@@ -178,8 +169,6 @@ interface HaloLayer {
 Example:
 ```ts
 {
-  id: "halo-1",
-  name: "Center Glow",
   type: "halo",
   originX: 50,
   originY: 0,
@@ -291,8 +280,8 @@ document.getElementById("hero").style.cssText = css;
 ```ts
 import {
   DEFAULT_SCENE,            // complete SceneConfig with bg + halo + rays
-  DEFAULT_RAY_LAYER,        // Omit<RayLayer, "id" | "name">
-  DEFAULT_HALO_LAYER,       // Omit<HaloLayer, "id" | "name">
+  DEFAULT_RAY_LAYER,        // RayLayer with sensible defaults
+  DEFAULT_HALO_LAYER,       // HaloLayer with sensible defaults
   DEFAULT_BACKGROUND_LAYER, // BackgroundLayer (solid black)
   DEFAULT_ANIM_PARAMS,      // { speed:1, angleAmp:50, lengthAmp:50, widthAmp:50, haloAmp:50 }
   BLEND_MODES,              // { value: BlendMode, label: string }[]
@@ -301,8 +290,6 @@ import {
 // Spread defaults and override only what you need
 const myLayer: RayLayer = {
   ...DEFAULT_RAY_LAYER,
-  id: "rays-1",
-  name: "My Rays",
   colorStart: "#ff6600",
   colorEnd: "#ff6600",
 };
@@ -326,7 +313,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#06060f",
@@ -334,8 +320,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "halo-1",
-      name: "Glow",
       type: "halo",
       originX: 50,
       originY: -5,
@@ -345,8 +329,6 @@ const scene: SceneConfig = {
       blendMode: "lighter",
     },
     {
-      id: "rays-1",
-      name: "Rays",
       type: "rays",
       direction: 180,
       spread: 90,
@@ -384,7 +366,6 @@ export function Hero() {
     <section style={{ position: "relative", minHeight: "100svh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -400,7 +381,7 @@ export function Hero() {
 
 ## Common mistakes checklist
 
-1. ❌ **No BackgroundLayer** → rays smear in animation → add `{ id: "background", type: "background", ... }` as `layers[0]`
+1. ❌ **No BackgroundLayer** → rays smear in animation → add `{ type: "background", ... }` as `layers[0]`
 2. ❌ **`opacityAmp` in animParams** → TypeScript error → remove it; valid keys: `speed angleAmp lengthAmp widthAmp haloAmp`
 3. ❌ **`className="absolute"` for positioning** → overridden by inline style → use `style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}`
 4. ❌ **`blendMode: "screen"` on white/light background** → invisible rays → use `"overlay"` or `"soft-light"`

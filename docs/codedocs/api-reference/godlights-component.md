@@ -11,7 +11,6 @@ Source file: `packages/godlights/src/GodLights.tsx`
 ```tsx
 export function GodLights({
   scene,
-  animate = false,
   animParams,
   showFps = false,
   className,
@@ -19,15 +18,14 @@ export function GodLights({
 }: GodLightsProps)
 ```
 
-`GodLights` renders a wrapper `<div>` plus one or two `<canvas>` elements. In animated mode it creates a second grain overlay canvas and drives rendering with `requestAnimationFrame`.
+`GodLights` renders a wrapper `<div>` plus one or two `<canvas>` elements. When `animParams` is provided it creates a second grain overlay canvas and drives rendering with `requestAnimationFrame`. Without `animParams` it draws a single static frame.
 
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `scene` | `SceneConfig` | — | Required layered scene description. |
-| `animate` | `boolean` | `false` | Starts the animation loop when `true`. |
-| `animParams` | `AnimParams` | `undefined` | Optional animation amplitudes and speed. |
+| `animParams` | `AnimParams` | `undefined` | When present, starts the animation loop. Omit for a static render. |
 | `showFps` | `boolean` | `false` | Renders a small FPS badge in animated mode. |
 | `className` | `string` | — | CSS class for the outer wrapper. |
 | `style` | `React.CSSProperties` | — | Inline style merged onto the outer wrapper. |
@@ -52,7 +50,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#000000",
@@ -63,7 +60,7 @@ const scene: SceneConfig = {
 };
 
 export function Background() {
-  return <GodLights scene={scene} className="w-full h-[360px]" ></GodLights>;
+  return <GodLights scene={scene} className="w-full h-[360px]" />;
 }
 ```
 
@@ -72,7 +69,6 @@ export function Background() {
 ```tsx
 <GodLights
   scene={scene}
-  animate
   animParams={{ speed: 1.2, angleAmp: 30, lengthAmp: 20, widthAmp: 8, haloAmp: 25 }}
   showFps
   style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
@@ -81,9 +77,9 @@ export function Background() {
 
 ## Behavioral Notes
 
-- Static mode schedules a single `requestAnimationFrame` to size the canvas and draw once.
+- Static mode (no `animParams`) schedules a single `requestAnimationFrame` to size the canvas and draw once.
 - Animated mode keeps the latest `scene` and `animParams` in refs so prop updates do not require rebuilding the loop.
-- Grain is rendered to a second canvas only when `animate` is enabled and `scene.noise > 0`.
+- Grain is rendered to a second canvas only when `animParams` is present and `scene.noise > 0`.
 - The wrapper starts with `position: "relative"` and `overflow: "hidden"`.
 
 ## Common Patterns
@@ -94,7 +90,7 @@ function FullBleedBackground({ scene }: { scene: SceneConfig }) {
     <div style={{ position: "relative", minHeight: 600 }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>Content</div>

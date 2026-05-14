@@ -6,8 +6,7 @@ export const PREVIEW_STORAGE_KEY = "rays-preview-scene";
 
 interface PreviewConfig {
   scene: SceneConfig;
-  animate: boolean;
-  animParams: AnimParams;
+  animParams?: AnimParams;
 }
 
 export default function PreviewPage() {
@@ -50,9 +49,8 @@ export default function PreviewPage() {
     <div className="h-screen w-screen overflow-hidden bg-background flex items-center justify-center">
       <GodLights
         scene={config.scene}
-        animate={config.animate}
         animParams={config.animParams}
-        showFps={config.animate}
+        showFps={config.animParams !== undefined}
         className="max-w-full max-h-full"
       />
     </div>

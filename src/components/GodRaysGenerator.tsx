@@ -142,18 +142,38 @@ const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3.0;
 const ZOOM_STEP = 0.1;
 
+// ── Editor-internal layer types (extend public types with id/name) ──────────
+
+type EditorRayLayer = RayLayer & { id: string; name: string };
+type EditorHaloLayer = HaloLayer & { id: string; name: string };
+type EditorBackgroundLayer = BackgroundLayer & { id: string };
+type EditorLayer = EditorRayLayer | EditorHaloLayer | EditorBackgroundLayer;
+type EditorScene = Omit<SceneConfig, "layers"> & { layers: EditorLayer[] };
+
+function withEditorIds(scene: SceneConfig): EditorScene {
+  let idx = 0;
+  return {
+    ...scene,
+    layers: scene.layers.map((l) => {
+      if (l.type === "background") return { ...l, id: "background" } as EditorBackgroundLayer;
+      if (l.type === "halo") return { ...l, id: (l as EditorHaloLayer).id ?? `halo-${++idx}`, name: (l as EditorHaloLayer).name ?? "Halo" } as EditorHaloLayer;
+      return { ...l, id: (l as EditorRayLayer).id ?? `rays-${++idx}`, name: (l as EditorRayLayer).name ?? "Rays" } as EditorRayLayer;
+    }),
+  };
+}
+
 // ── Preset helpers ─────────────────────────────────────────────────────────
 
 function applyRaysPreset(
-  scene: SceneConfig,
+  scene: EditorScene,
   layers: PresetLayer[]
-): SceneConfig {
+): EditorScene {
   // Extract current colors to preserve them, cross-referencing when one type is missing
   const existingRay = scene.layers.find(
-    (l): l is RayLayer => l.type === "rays"
+    (l): l is EditorRayLayer => l.type === "rays"
   );
   const existingHalo = scene.layers.find(
-    (l): l is HaloLayer => l.type === "halo"
+    (l): l is EditorHaloLayer => l.type === "halo"
   );
   const rayColorStart =
     existingRay?.colorStart ??
@@ -170,7 +190,7 @@ function applyRaysPreset(
   // Build new layers from preset, injecting current colors
   let raysIndex = 0;
   let halosIndex = 0;
-  const newLayers: Layer[] = layers.map((presetLayer) => {
+  const newLayers: EditorLayer[] = layers.map((presetLayer) => {
     if (presetLayer.type === "rays") {
       raysIndex++;
       return {
@@ -179,7 +199,7 @@ function applyRaysPreset(
         name: raysIndex === 1 ? "Rays" : `Rays ${raysIndex}`,
         colorStart: rayColorStart,
         colorEnd: rayColorEnd,
-      } as RayLayer;
+      } as EditorRayLayer;
     } else {
       halosIndex++;
       return {
@@ -187,7 +207,7 @@ function applyRaysPreset(
         id: `halo-${Date.now() + halosIndex}`,
         name: halosIndex === 1 ? "Halo" : `Halo ${halosIndex}`,
         color: haloColor,
-      } as HaloLayer;
+      } as EditorHaloLayer;
     }
   });
 
@@ -220,8 +240,8 @@ function scaleSceneForPreview(scene: SceneConfig): SceneConfig {
 
 // ── Scene migration (adds new fields to old saved data) ────────────────────
 
-function migrateScene(scene: SceneConfig): SceneConfig {
-  return {
+function migrateScene(scene: SceneConfig): EditorScene {
+  return withEditorIds({
     ...scene,
     layers: scene.layers.map((layer) => {
       if (layer.type === "rays") {
@@ -232,11 +252,11 @@ function migrateScene(scene: SceneConfig): SceneConfig {
           randomnessWidth: layer.randomnessWidth ?? fallback,
           randomnessLength: layer.randomnessLength ?? fallback,
           randomnessAngle: layer.randomnessAngle ?? fallback,
-        } as RayLayer;
+        };
       }
       return layer;
-    }) as Layer[],
-  };
+    }),
+  });
 }
 
 // ── Sidebar bridge helpers ─────────────────────────────────────────────────
@@ -300,7 +320,7 @@ export function GodRaysGenerator() {
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const toggleTheme = () => setTheme(dark ? "light" : "dark");
 
-  const [scene, setScene] = React.useState<SceneConfig>(() => {
+  const [scene, setScene] = React.useState<EditorScene>(() => {
     const params = new URLSearchParams(window.location.search);
 
     // ?scene=<encoded> — shared scene URL (highest priority)
@@ -315,10 +335,7 @@ export function GodRaysGenerator() {
     if (urlPresetKey) {
       const urlPreset = RAYS_PRESETS.find((p) => p.key === urlPresetKey);
       if (urlPreset) {
-        const s: SceneConfig = {
-          ...DEFAULT_SCENE,
-          layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
-        };
+        const s = withEditorIds(DEFAULT_SCENE);
         return applyRaysPreset(s, urlPreset.layers);
       }
     }
@@ -328,10 +345,7 @@ export function GodRaysGenerator() {
     } catch {
       /* ignore corrupt data */
     }
-    let s: SceneConfig = {
-      ...DEFAULT_SCENE,
-      layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
-    };
+    let s = withEditorIds(DEFAULT_SCENE);
     if (RAYS_PRESETS[0]) s = applyRaysPreset(s, RAYS_PRESETS[0].layers);
     return s;
   });
@@ -565,16 +579,16 @@ export function GodRaysGenerator() {
   const selectedLayer =
     scene.layers.find((l) => l.id === selectedLayerId) ?? null;
   const selectedRayLayer =
-    selectedLayer?.type === "rays" ? (selectedLayer as RayLayer) : null;
+    selectedLayer?.type === "rays" ? (selectedLayer as EditorRayLayer) : null;
   const selectedHaloLayer =
-    selectedLayer?.type === "halo" ? (selectedLayer as HaloLayer) : null;
+    selectedLayer?.type === "halo" ? (selectedLayer as EditorHaloLayer) : null;
 
   const bgLayer = scene.layers.find(
     (l) => l.type === "background"
-  ) as BackgroundLayer;
+  ) as EditorBackgroundLayer;
   const nonBgLayers = scene.layers.filter((l) => l.type !== "background") as (
-    | RayLayer
-    | HaloLayer
+    | EditorRayLayer
+    | EditorHaloLayer
   )[];
 
   // ── Layer management ─────────────────────────────────────────────────────
@@ -584,7 +598,7 @@ export function GodRaysGenerator() {
       setScene((s) => ({
         ...s,
         layers: s.layers.map((l) =>
-          l.id === id ? ({ ...l, ...changes } as Layer) : l
+          l.id === id ? ({ ...l, ...changes } as EditorLayer) : l
         ),
       }));
     },
@@ -608,17 +622,17 @@ export function GodRaysGenerator() {
       const count = s.layers.filter((l) => l.type === type).length;
       const name = type === "rays" ? `Rays ${count + 1}` : `Halo ${count + 1}`;
       const firstOfType = s.layers.find((l) => l.type === type);
-      const newLayer: Layer =
+      const newLayer: EditorLayer =
         type === "rays"
           ? {
               id,
               name,
               ...DEFAULT_RAY_LAYER,
               colorStart:
-                (firstOfType as RayLayer | undefined)?.colorStart ??
+                (firstOfType as EditorRayLayer | undefined)?.colorStart ??
                 DEFAULT_RAY_LAYER.colorStart,
               colorEnd:
-                (firstOfType as RayLayer | undefined)?.colorEnd ??
+                (firstOfType as EditorRayLayer | undefined)?.colorEnd ??
                 DEFAULT_RAY_LAYER.colorEnd,
               seed: Math.floor(Math.random() * 1_000_000),
             }
@@ -627,7 +641,7 @@ export function GodRaysGenerator() {
               name,
               ...DEFAULT_HALO_LAYER,
               color:
-                (firstOfType as HaloLayer | undefined)?.color ??
+                (firstOfType as EditorHaloLayer | undefined)?.color ??
                 DEFAULT_HALO_LAYER.color,
             };
       return { ...s, layers: [...s.layers, newLayer] };
@@ -661,14 +675,14 @@ export function GodRaysGenerator() {
       let num = 2;
       while (takenNumbers.has(num)) num++;
 
-      const copy: Layer = {
+      const copy: EditorLayer = {
         ...original,
         id: newId,
         name: `${baseName} ${num}`,
         ...(original.type === "rays" && {
           seed: Math.floor(Math.random() * 1_000_000),
         }),
-      } as Layer;
+      } as EditorLayer;
       const layers = [...s.layers];
       layers.splice(idx + 1, 0, copy);
       return { ...s, layers };
@@ -1075,7 +1089,7 @@ export function GodRaysGenerator() {
 
   const handleCopyPresetJson = async () => {
     const payload = isAnimating
-      ? { scene, animate: true, animParams }
+      ? { scene, animParams }
       : { scene };
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     setCopiedJson(true);
@@ -1083,7 +1097,16 @@ export function GodRaysGenerator() {
   };
 
   const buildUsageSnippet = () => {
-    const sceneJson = JSON.stringify(scene, null, 2).split("\n").join("\n  ");
+    const exportScene: SceneConfig = {
+      ...scene,
+      layers: scene.layers.map((l) => {
+        if (l.type === "background") return { type: l.type, bgType: l.bgType, bgColor: l.bgColor, bgColor2: l.bgColor2, bgGradientAngle: l.bgGradientAngle };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id: _id, name: _name, ...rest } = l as EditorRayLayer | EditorHaloLayer;
+        return rest as RayLayer | HaloLayer;
+      }),
+    };
+    const sceneJson = JSON.stringify(exportScene, null, 2).split("\n").join("\n  ");
     const lines = [
       `import { GodLights } from "godlights";`,
       ``,
@@ -1099,7 +1122,7 @@ export function GodRaysGenerator() {
       ``,
       `export default function MyComponent() {`,
       isAnimating
-        ? `  return <GodLights scene={scene} animate animParams={animParams} className="w-full h-full" />;`
+        ? `  return <GodLights scene={scene} animParams={animParams} className="w-full h-full" />;`
         : `  return <GodLights scene={scene} className="w-full h-full" />;`,
       `}`
     );
@@ -1141,7 +1164,7 @@ export function GodRaysGenerator() {
           l.type === "rays"
             ? { ...l, seed: Math.floor(Math.random() * 1_000_000) }
             : l
-        ) as Layer[],
+        ) as EditorLayer[],
       }));
     }
     setActiveRaysPreset(null);
@@ -1206,10 +1229,7 @@ export function GodRaysGenerator() {
 
   const handleReset = () => {
     const raysPreset = RAYS_PRESETS.find((p) => p.key === "r_corner_flare");
-    let s: SceneConfig = {
-      ...DEFAULT_SCENE,
-      layers: DEFAULT_SCENE.layers.map((l) => ({ ...l })) as Layer[],
-    };
+    let s: EditorScene = withEditorIds(DEFAULT_SCENE);
     if (raysPreset) s = applyRaysPreset(s, raysPreset.layers);
     setScene(s);
     setSelectedLayerId(null);
@@ -2320,9 +2340,9 @@ export function GodRaysGenerator() {
                     <div className="min-w-0">
                       <h2 className="text-sm font-bold tracking-tight truncate">
                         {selectedLayer?.type === "rays" &&
-                          (selectedLayer as RayLayer).name}
+                          (selectedLayer as EditorRayLayer).name}
                         {selectedLayer?.type === "halo" &&
-                          (selectedLayer as HaloLayer).name}
+                          (selectedLayer as EditorHaloLayer).name}
                         {selectedLayer?.type === "background" && "Background"}
                       </h2>
                     </div>
@@ -2380,7 +2400,7 @@ export function GodRaysGenerator() {
 
                       return (
                         <div
-                          key={layer.id}
+                          key={layer.id!}
                           className="group rounded-xl border border-sidebar-border bg-sidebar-accent/30 transition-all hover:border-sidebar-border/80 hover:bg-sidebar-accent/50 hover:shadow-sm overflow-hidden"
                           onMouseEnter={() => setHoveredLayerId(layer.id)}
                           onMouseLeave={() => setHoveredLayerId(null)}

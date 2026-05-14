@@ -27,7 +27,6 @@ export const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "gradient",
       bgColor: "#0b1024",
@@ -35,8 +34,6 @@ export const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "halo-og",
-      name: "Glow",
       type: "halo",
       originX: 22,
       originY: 12,
@@ -46,8 +43,6 @@ export const scene: SceneConfig = {
       blendMode: "lighter",
     },
     {
-      id: "rays-og",
-      name: "Rays",
       type: "rays",
       direction: 165,
       spread: 58,
@@ -120,7 +115,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "gradient",
       bgColor: "#0b1024",
@@ -128,8 +122,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "halo-og",
-      name: "Glow",
       type: "halo",
       originX: 22,
       originY: 12,
@@ -139,8 +131,6 @@ const scene: SceneConfig = {
       blendMode: "lighter",
     },
     {
-      id: "rays-og",
-      name: "Rays",
       type: "rays",
       direction: 165,
       spread: 58,
@@ -186,29 +176,5 @@ async function run() {
 
 run();
 ```
-
-" "CSS snippet"]}>
-  <Tab value="PNG export">
-
-```ts
-const blob = await exportScene(scene, "image/png");
-```
-
-  </Tab>
-  <Tab value="JPEG export">
-
-```ts
-const blob = await exportScene(scene, "image/jpeg", 0.92);
-```
-
-  </Tab>
-  <Tab value="CSS snippet">
-
-```ts
-const css = await buildSceneCssSnippet(scene);
-```
-
-  </Tab>
-</Tabs>
 
 <Callout type="warn">`drawScene` does not resize the canvas for you. The source explicitly reads `const { width, height } = canvas` and uses those dimensions for rendering, so set `canvas.width` and `canvas.height` to match the scene before drawing.</Callout>

@@ -76,9 +76,7 @@ export type BackgroundType = "transparent" | "solid" | "gradient";
  *
  * @example
  * const rays: RayLayer = {
- *   id: "rays-1",
  *   type: "rays",
- *   name: "Sun rays",
  *   direction: 200,       // pointing downward-left (compass degrees)
  *   spread: 60,           // 60° fan
  *   originX: 50,          // centered horizontally
@@ -100,12 +98,8 @@ export type BackgroundType = "transparent" | "solid" | "gradient";
  * };
  */
 export interface RayLayer {
-  /** Unique identifier. Must be distinct from all other layer ids. */
-  id: string;
   /** Discriminator — always `"rays"` for this layer type. */
   type: "rays";
-  /** Human-readable label shown in the editor UI. */
-  name: string;
   /**
    * Compass bearing the rays point toward, in degrees. 0 = North (up),
    * 90 = East (right), 180 = South (down), 270 = West (left).
@@ -217,9 +211,7 @@ export interface RayLayer {
  *
  * @example
  * const halo: HaloLayer = {
- *   id: "halo-1",
  *   type: "halo",
- *   name: "Sun glow",
  *   originX: 50,       // center of canvas
  *   originY: 0,        // top edge
  *   intensity: 0.5,    // 0–1 peak opacity at center
@@ -229,12 +221,8 @@ export interface RayLayer {
  * };
  */
 export interface HaloLayer {
-  /** Unique identifier. Must be distinct from all other layer ids. */
-  id: string;
   /** Discriminator — always `"halo"` for this layer type. */
   type: "halo";
-  /** Human-readable label shown in the editor UI. */
-  name: string;
   /**
    * Horizontal center of the halo as a percentage of canvas width.
    * Range: 0–100. 50 = horizontally centered.
@@ -278,7 +266,6 @@ export interface HaloLayer {
  *
  * @example
  * const bg: BackgroundLayer = {
- *   id: "background",       // must be the literal string "background"
  *   type: "background",
  *   bgType: "gradient",
  *   bgColor: "#0b1024",     // gradient start (top by default)
@@ -287,11 +274,6 @@ export interface HaloLayer {
  * };
  */
 export interface BackgroundLayer {
-  /**
-   * Fixed identifier — must always be the string literal `"background"`.
-   * Only one BackgroundLayer per scene is supported.
-   */
-  id: "background";
   /** Discriminator — always `"background"` for this layer type. */
   type: "background";
   /**
@@ -338,10 +320,10 @@ export type Layer = RayLayer | HaloLayer | BackgroundLayer;
  *   grainSize: 1,    // pixel size of grain
  *   layers: [
  *     // index 0: BackgroundLayer — REQUIRED, must come first
- *     { id: "background", type: "background", bgType: "solid", bgColor: "#000011", bgColor2: "#000011", bgGradientAngle: 180 },
+ *     { type: "background", bgType: "solid", bgColor: "#000011", bgColor2: "#000011", bgGradientAngle: 180 },
  *     // index 1+: halos and rays in any order
- *     { id: "halo-1", name: "Glow", type: "halo", originX: 50, originY: 0, intensity: 0.5, size: 0.25, color: "#ffffff", blendMode: "lighter" },
- *     { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays" },
+ *     { type: "halo", originX: 50, originY: 0, intensity: 0.5, size: 0.25, color: "#ffffff", blendMode: "lighter" },
+ *     { ...DEFAULT_RAY_LAYER },
  *   ],
  * };
  */
@@ -445,9 +427,9 @@ export const DEFAULT_ANIM_PARAMS: AnimParams = {
  * additive `"lighter"` blending (dark backgrounds only), and a soft 8 px blur.
  *
  * @example
- * const myRays: RayLayer = { ...DEFAULT_RAY_LAYER, id: "rays-2", name: "Accent rays" };
+ * const myRays: RayLayer = { ...DEFAULT_RAY_LAYER };
  */
-export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
+export const DEFAULT_RAY_LAYER: RayLayer = {
   type: "rays",
   direction: 200,
   spread: 60,
@@ -470,15 +452,15 @@ export const DEFAULT_RAY_LAYER: Omit<RayLayer, "id" | "name"> = {
 };
 
 /**
- * Ready-to-use base values for a `HaloLayer`. Spread and add `id` / `name`.
+ * Ready-to-use base values for a `HaloLayer`.
  *
  * Produces a white glow at the top-center of the canvas, with radius = 25% of
  * the canvas diagonal, peak intensity 0.5, and additive `"lighter"` blending.
  *
  * @example
- * const myHalo: HaloLayer = { ...DEFAULT_HALO_LAYER, id: "halo-2", name: "Secondary glow" };
+ * const myHalo: HaloLayer = { ...DEFAULT_HALO_LAYER };
  */
-export const DEFAULT_HALO_LAYER: Omit<HaloLayer, "id" | "name"> = {
+export const DEFAULT_HALO_LAYER: HaloLayer = {
   type: "halo",
   originX: 50,
   originY: 0,
@@ -497,12 +479,11 @@ export const DEFAULT_HALO_LAYER: Omit<HaloLayer, "id" | "name"> = {
  *   width: 1920, height: 1080, noise: 8, grainSize: 1,
  *   layers: [
  *     { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#0b1024" },
- *     { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo" },
+ *     { ...DEFAULT_HALO_LAYER },
  *   ],
  * };
  */
 export const DEFAULT_BACKGROUND_LAYER: BackgroundLayer = {
-  id: "background",
   type: "background",
   bgType: "solid",
   bgColor: "#000000",
@@ -534,8 +515,8 @@ export const DEFAULT_SCENE: SceneConfig = {
   grainSize: 1,
   layers: [
     { ...DEFAULT_BACKGROUND_LAYER },
-    { id: "halo-1", name: "Halo", ...DEFAULT_HALO_LAYER },
-    { id: "rays-1", name: "Rays", ...DEFAULT_RAY_LAYER },
+    { ...DEFAULT_HALO_LAYER },
+    { ...DEFAULT_RAY_LAYER },
   ],
 };
 
@@ -890,7 +871,6 @@ export function drawGodRays(canvas: HTMLCanvasElement, config: GodRaysConfig): v
     grainSize: config.grainSize,
     layers: [
       {
-        id: "background",
         type: "background",
         bgType: config.bgType,
         bgColor: config.bgColor,
@@ -898,9 +878,7 @@ export function drawGodRays(canvas: HTMLCanvasElement, config: GodRaysConfig): v
         bgGradientAngle: config.bgGradientAngle,
       },
       {
-        id: "halo-legacy",
         type: "halo",
-        name: "Halo",
         originX: config.haloOriginX,
         originY: config.haloOriginY,
         intensity: config.halo,
@@ -909,9 +887,7 @@ export function drawGodRays(canvas: HTMLCanvasElement, config: GodRaysConfig): v
         blendMode: config.haloBlendMode,
       },
       {
-        id: "rays-legacy",
         type: "rays",
-        name: "Rays",
         direction: config.direction,
         spread: config.spread,
         originX: config.originX,

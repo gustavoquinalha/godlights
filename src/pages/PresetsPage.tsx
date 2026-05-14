@@ -37,7 +37,6 @@ const ALL_TAGS: PresetTag[] = [
 
 function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
   const bgLayer: BackgroundLayer = {
-    id: "background",
     type: "background",
     bgType: "solid",
     bgColor,
@@ -45,13 +44,11 @@ function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
     bgGradientAngle: 180,
   };
 
-  const layers = preset.layers.map((l, i) => {
+  const layers = preset.layers.map((l) => {
     if (l.type === "rays") {
       return {
         ...DEFAULT_RAY_LAYER,
         ...l,
-        id: `rays-${i}`,
-        name: `Rays ${i + 1}`,
         colorStart: "#ffffff",
         colorEnd: "#ffffff",
       } as RayLayer;
@@ -59,8 +56,6 @@ function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
       return {
         ...DEFAULT_HALO_LAYER,
         ...l,
-        id: `halo-${i}`,
-        name: `Halo ${i + 1}`,
         color: "#ffffff",
       } as HaloLayer;
     }

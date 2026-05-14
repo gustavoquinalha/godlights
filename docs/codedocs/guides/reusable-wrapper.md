@@ -25,10 +25,8 @@ interface GodLightsBackgroundProps {
   spread?: number;
   /** Ray opacity 0–1. Default: 0.18 */
   opacity?: number;
-  /** Animation speed multiplier. Default: 1 */
-  speed?: number;
-  /** Enable animation loop. Default: true */
-  animate?: boolean;
+  /** Animation speed multiplier. Omit to render static. */
+  animParams?: AnimParams;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -40,8 +38,7 @@ export function GodLightsBackground({
   direction = 180,
   spread = 80,
   opacity = 0.18,
-  speed = 1,
-  animate = true,
+  animParams,
   className,
   style,
 }: GodLightsBackgroundProps) {
@@ -54,8 +51,6 @@ export function GodLightsBackground({
       { ...DEFAULT_BACKGROUND_LAYER },
       {
         ...DEFAULT_HALO_LAYER,
-        id: "halo-1",
-        name: "Halo",
         originX,
         originY,
         color,
@@ -64,8 +59,6 @@ export function GodLightsBackground({
       },
       {
         ...DEFAULT_RAY_LAYER,
-        id: "rays-1",
-        name: "Rays",
         originX,
         originY,
         direction,
@@ -77,18 +70,9 @@ export function GodLightsBackground({
     ],
   }), [color, originX, originY, direction, spread, opacity]);
 
-  const animParams: AnimParams = useMemo(() => ({
-    speed,
-    angleAmp: 40,
-    lengthAmp: 25,
-    widthAmp: 15,
-    haloAmp: 40,
-  }), [speed]);
-
   return (
     <GodLights
       scene={scene}
-      animate={animate}
       animParams={animParams}
       className={className}
       style={style}
@@ -100,12 +84,15 @@ export function GodLightsBackground({
 ## Usage across multiple sections
 
 ```tsx
-// Purple — top-left origin, default speed
+const defaultAnimParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
+
+// Purple — top-left origin, animated
 <div style={{ position: "relative", minHeight: "100vh" }}>
   <GodLightsBackground
     color="#a78bfa"
     originX={20}
     originY={5}
+    animParams={defaultAnimParams}
     style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
   />
   <div style={{ position: "relative", zIndex: 1 }}>Hero content</div>
@@ -118,16 +105,15 @@ export function GodLightsBackground({
     originX={80}
     originY={0}
     direction={200}
-    speed={0.5}
+    animParams={{ speed: 0.5, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
     style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
   />
 </div>
 
-// Teal — static, no animation loop
+// Teal — static, no animation
 <div style={{ position: "relative", height: 400 }}>
   <GodLightsBackground
     color="#34d399"
-    animate={false}
     style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
   />
 </div>
@@ -161,8 +147,8 @@ const scene: SceneConfig = useMemo(() => ({
   grainSize: 1,
   layers: [
     { ...DEFAULT_BACKGROUND_LAYER, bgColor },
-    { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX, originY, color, intensity: opacity * 1.5, size: 0.45 },
-    { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX, originY, direction, spread, colorStart: color, colorEnd: color, opacity, rayCount, blur },
+    { ...DEFAULT_HALO_LAYER, originX, originY, color, intensity: opacity * 1.5, size: 0.45 },
+    { ...DEFAULT_RAY_LAYER, originX, originY, direction, spread, colorStart: color, colorEnd: color, opacity, rayCount, blur },
   ],
 }), [color, originX, originY, direction, spread, opacity, rayCount, blur, noise, bgColor]);
 ```
@@ -171,4 +157,4 @@ const scene: SceneConfig = useMemo(() => ({
 
 - Always wrap `SceneConfig` and `AnimParams` in `useMemo` — constructing them inline causes unnecessary canvas redraws on every parent render.
 - The `DEFAULT_*` exports contain safe baseline values for all required fields, so you only need to override what your props control.
-- For performance across multiple instances on the same page, pass `animate={false}` to static sections and keep `rayCount` low (8–16) for decorative use. See the [performance guide](./performance-optimization.md).
+- For performance across multiple instances on the same page, omit `animParams` for static sections and keep `rayCount` low (8–16) for decorative use. See the [performance guide](./performance-optimization.md).

@@ -17,20 +17,22 @@ const presets: SceneConfig[] = [
   {
     width: 1920, height: 1080, noise: 8, grainSize: 1,
     layers: [
-      { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
-      { id: "halo-1", name: "Halo", type: "halo", originX: 20, originY: 5, color: "#a78bfa", intensity: 0.3, size: 0.5, blendMode: "lighter" },
-      { id: "rays-1", name: "Rays", type: "rays", direction: 160, spread: 70, originX: 20, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1 },
+      { type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+      { type: "halo", originX: 20, originY: 5, color: "#a78bfa", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { type: "rays", direction: 160, spread: 70, originX: 20, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1 },
     ],
   },
   {
     width: 1920, height: 1080, noise: 8, grainSize: 1,
     layers: [
-      { id: "background", type: "background", bgType: "solid", bgColor: "#060f08", bgColor2: "#060f08", bgGradientAngle: 180 },
-      { id: "halo-1", name: "Halo", type: "halo", originX: 80, originY: 5, color: "#34d399", intensity: 0.3, size: 0.5, blendMode: "lighter" },
-      { id: "rays-1", name: "Rays", type: "rays", direction: 200, spread: 70, originX: 80, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#34d399", colorEnd: "#34d399", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 2 },
+      { type: "background", bgType: "solid", bgColor: "#060f08", bgColor2: "#060f08", bgGradientAngle: 180 },
+      { type: "halo", originX: 80, originY: 5, color: "#34d399", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { type: "rays", direction: 200, spread: 70, originX: 80, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#34d399", colorEnd: "#34d399", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 2 },
     ],
   },
 ];
+
+const animParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
 
 export function PresetSwitcher() {
   const [index, setIndex] = useState(0);
@@ -39,7 +41,7 @@ export function PresetSwitcher() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={presets[index]}
-        animate
+        animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -59,7 +61,7 @@ Layer two `<GodLights>` instances. The top one fades in over the bottom one, the
 ```tsx
 "use client";
 import { useState, useEffect } from "react";
-import { GodLights } from "godlights";
+import { GodLights, DEFAULT_ANIM_PARAMS } from "godlights";
 import type { SceneConfig } from "godlights";
 
 // ... (same presets array as above)
@@ -89,16 +91,16 @@ export function CyclingPresets() {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
-      {/* bottom layer — current preset */}
+      {/* bottom layer — current preset, always animating */}
       <GodLights
         scene={presets[current]}
-        animate
+        animParams={DEFAULT_ANIM_PARAMS}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
-      {/* top layer — next preset, fades in */}
+      {/* top layer — next preset, RAF only runs during the fade window */}
       <GodLights
         scene={presets[next]}
-        animate
+        animParams={fading ? DEFAULT_ANIM_PARAMS : undefined}
         style={{
           position: "absolute",
           inset: 0,
@@ -122,6 +124,8 @@ export function CyclingPresets() {
 import { useState, useEffect, useRef, useMemo } from "react";
 import { GodLights } from "godlights";
 import type { SceneConfig } from "godlights";
+
+const animParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
 
 export function ResponsivePresets({ presets }: { presets: SceneConfig[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -150,7 +154,7 @@ export function ResponsivePresets({ presets }: { presets: SceneConfig[] }) {
     <div ref={containerRef} style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <button
@@ -168,19 +172,19 @@ export function ResponsivePresets({ presets }: { presets: SceneConfig[] }) {
 
 ## Performance note for production
 
-Two simultaneous `<GodLights animate>` instances run two independent RAF loops. For long-running pages, disable animation on the hidden layer to halve the per-frame cost:
+Two simultaneous animated `<GodLights>` instances run two independent RAF loops. Pass `animParams={undefined}` to the hidden instance to pause its loop and halve the per-frame cost:
 
 ```tsx
-<GodLights scene={presets[current]} animate style={fillStyle} />
+<GodLights scene={presets[current]} animParams={DEFAULT_ANIM_PARAMS} style={fillStyle} />
 <GodLights
   scene={presets[next]}
-  animate={fading}   // RAF only runs during the fade window
+  animParams={fading ? DEFAULT_ANIM_PARAMS : undefined}
   style={{ ...fillStyle, opacity: fading ? 1 : 0, transition: "opacity 0.8s ease" }}
 />
 ```
 
 ## Notes
 
-- Both instances run independent `requestAnimationFrame` loops. For performance, keep `rayCount` low on secondary/decorative presets.
-- The `animate` prop can be set to `false` on the hidden instance to save resources — enable it only while it's fading in.
+- Both instances run independent `requestAnimationFrame` loops when `animParams` is set. For performance, keep `rayCount` low on secondary/decorative presets.
+- Omit `animParams` on the hidden instance to save resources — pass it only while it's fading in.
 - Use the [visual editor](https://www.godlights.io) to design each preset and export as JSX, then drop the configs into your `presets` array.

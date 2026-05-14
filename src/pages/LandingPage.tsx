@@ -38,7 +38,6 @@ function presetToScene(
   dark: boolean
 ): SceneConfig {
   const bgLayer: BackgroundLayer = {
-    id: "background",
     type: "background",
     bgType: "solid",
     bgColor,
@@ -46,13 +45,11 @@ function presetToScene(
     bgGradientAngle: 180,
   };
 
-  const layers = preset.layers.map((l, i) => {
+  const layers = preset.layers.map((l) => {
     if (l.type === "rays") {
       return {
         ...DEFAULT_RAY_LAYER,
         ...l,
-        id: `rays-${i}`,
-        name: `Rays ${i + 1}`,
         colorStart: color,
         colorEnd: color,
         // screen/lighter are additive — invisible on white; swap to multiply in light mode
@@ -62,8 +59,6 @@ function presetToScene(
       return {
         ...DEFAULT_HALO_LAYER,
         ...l,
-        id: `halo-${i}`,
-        name: `Halo ${i + 1}`,
         color,
         blendMode: dark ? l.blendMode : "multiply",
       } as HaloLayer;
@@ -131,7 +126,6 @@ export default function LandingPage() {
         <GodLights
           key={activeIndex}
           scene={scene}
-          animate
           animParams={HERO_ANIM}
           style={{
             position: "absolute",

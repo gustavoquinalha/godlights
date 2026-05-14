@@ -3,7 +3,7 @@ title: "Performance Optimization"
 description: "Tips for rendering multiple Godlights scenes simultaneously without frame drops."
 ---
 
-Each `<GodLights animate>` runs its own `requestAnimationFrame` loop. The heaviest operations per frame are:
+Each animated `<GodLights animParams={...}>` runs its own `requestAnimationFrame` loop. The heaviest operations per frame are:
 
 1. **Gaussian blur** — implemented via `OffscreenCanvas` + `ctx.filter`. At 1920×1080, `blur: 20` adds roughly 4–8 ms per frame depending on GPU/browser. Setting `blur: 0` skips the OffscreenCanvas entirely and saves the most time of any single change.
 2. **Film grain** — scans every pixel in the canvas buffer each frame. At 1920×1080 with `noise: 10`, this costs ~2–4 ms. In animated mode `<GodLights>` moves grain to a static overlay canvas drawn once, so this cost is already avoided — but at `scene.width × scene.height` values much larger than 1920×1080, it can still be significant.
@@ -18,7 +18,7 @@ Each `<GodLights animate>` runs its own `requestAnimationFrame` loop. The heavie
 | `rayCount` | `8–16` (~0.5–1.5 ms) | `60+` (~6–20 ms) |
 | `noise` | `0` (disabled) | `> 0` (~2–4 ms at 1080p, static overlay in animated mode) |
 | `scene.width/height` | `960×540` | `3840×2160` (4× blur/grain cost) |
-| `animate` | `false` (no RAF) | `true` (60fps loop) |
+| animated | no `animParams` (static) | `animParams={...}` (60fps loop) |
 
 ## Reduce cost per instance
 
@@ -29,10 +29,10 @@ const lightweightScene: SceneConfig = {
   noise: 0,          // disable grain — saves a full pixel-buffer pass per frame
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
-    { id: "halo-1", name: "Halo", type: "halo", originX: 50, originY: 0, color: "#a78bfa", intensity: 0.2, size: 0.4, blendMode: "lighter" },
+    { type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+    { type: "halo", originX: 50, originY: 0, color: "#a78bfa", intensity: 0.2, size: 0.4, blendMode: "lighter" },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 180, spread: 80,
       originX: 50, originY: 0,
       rayCount: 12,   // ← 12–16 is plenty for decorative use; avoid 30+ in secondary sections
@@ -53,7 +53,7 @@ const lightweightScene: SceneConfig = {
 | `blur` | > 0 (OffscreenCanvas pass) | `blur: 0` |
 | `rayCount` | > 30 | 8–16 for decorative |
 | `noise` | > 0 (pixel buffer scan) | `noise: 0` |
-| `animate` | Always on | `animate={false}` for static sections |
+| animated | `animParams={...}` always on | omit `animParams` for static sections |
 
 ## Pause off-screen instances
 
@@ -62,7 +62,7 @@ Use `IntersectionObserver` to stop the RAF loop when the element scrolls out of 
 ```tsx
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { GodLights } from "godlights";
+import { GodLights, DEFAULT_ANIM_PARAMS } from "godlights";
 import type { SceneConfig } from "godlights";
 
 function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
@@ -84,7 +84,7 @@ function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
     <div ref={ref} style={{ position: "relative", height: 400 }}>
       <GodLights
         scene={scene}
-        animate={visible}   // RAF loop only runs while the element is on screen
+        animParams={visible ? DEFAULT_ANIM_PARAMS : undefined}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
@@ -143,33 +143,13 @@ function useSceneBackground(scene: SceneConfig) {
 
   return { css, error };
 }
-
-export function StaticSection({ scene }: { scene: SceneConfig }) {
-  const { css, error } = useSceneBackground(scene);
-
-  if (error) return <div style={{ background: "#06060f", height: 400 }} />;
-
-  return (
-    <div
-      style={{
-        ...(css ? Object.fromEntries(
-          css.split(";").filter(Boolean).map((line) => {
-            const [k, ...v] = line.split(":");
-            return [k.trim().replace(/-([a-z])/g, (_, c) => c.toUpperCase()), v.join(":").trim()];
-          })
-        ) : { background: "#06060f" }),
-        height: 400,
-      }}
-    />
-  );
-}
 ```
 
 ## Edge cases
 
 ### Rapid scrolling
 
-When the user scrolls quickly, `IntersectionObserver` fires multiple times in rapid succession. Each callback toggles `animate`, which starts/stops the RAF loop. This is harmless but can create brief flickers on low-end devices. Add a short delay before stopping:
+When the user scrolls quickly, `IntersectionObserver` fires multiple times in rapid succession. Add a short delay before stopping to avoid flickering:
 
 ```tsx
 function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
@@ -186,7 +166,6 @@ function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
           if (timerRef.current) clearTimeout(timerRef.current);
           setVisible(true);
         } else {
-          // Delay stopping so fast scroll-past doesn't flicker
           timerRef.current = setTimeout(() => setVisible(false), 300);
         }
       },
@@ -200,38 +179,10 @@ function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
     <div ref={ref} style={{ position: "relative", height: 400 }}>
       <GodLights
         scene={scene}
-        animate={visible}
+        animParams={visible ? DEFAULT_ANIM_PARAMS : undefined}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
-  );
-}
-```
-
-### Dynamic scene count
-
-When sections are added or removed from the DOM (e.g., a feed that loads more), each new `<GodLights animate>` starts a new RAF loop. The `IntersectionObserver` pattern handles this correctly because the observer is set up in `useEffect` — it runs on mount and cleans up on unmount automatically.
-
-If you're rendering a large dynamic list, consider a cap: only animate the first N visible instances and render the rest as static CSS exports.
-
-```tsx
-const MAX_ANIMATED = 3;
-
-export function DynamicSections({ scenes }: { scenes: SceneConfig[] }) {
-  const [visibleCount, setVisibleCount] = useState(0);
-
-  return (
-    <>
-      {scenes.map((scene, i) => (
-        <LazyAnimatedBackground
-          key={i}
-          scene={scene}
-          // Only animate if within the cap; render static otherwise
-          forceStatic={visibleCount >= MAX_ANIMATED}
-          onVisibilityChange={(v) => setVisibleCount((c) => v ? c + 1 : c - 1)}
-        />
-      ))}
-    </>
   );
 }
 ```
@@ -245,16 +196,11 @@ To measure canvas memory usage in Chrome DevTools:
 3. Check `_pixelData` size: a 1920×1080 canvas is `1920 × 1080 × 4 bytes = ~8 MB`
 4. With `blur > 0`, an `OffscreenCanvas` of the same size is also allocated — so `blur > 0` doubles the canvas memory per instance
 
-For the **Performance** tab:
-1. Click **Record** → scroll through the page → stop
-2. Look for `requestAnimationFrame` callbacks in the flame chart — each animated instance shows as a recurring task
-3. Tasks over 4 ms indicate a heavy scene; reduce `blur`, `rayCount`, or canvas resolution
-
 ## Checklist
 
-- [ ] Hero/primary section: full `rayCount`, blur, grain, `animate={true}`
+- [ ] Hero/primary section: full `rayCount`, blur, grain, `animParams={...}`
 - [ ] Secondary sections: `rayCount` ≤ 16, `blur: 0`, `noise: 0`, reduced canvas resolution
-- [ ] Decorative/background sections: `animate={false}` or CSS export via `buildSceneCssSnippet`
+- [ ] Decorative/background sections: no `animParams` (static) or CSS export via `buildSceneCssSnippet`
 - [ ] Multiple animated sections: wrap each in `LazyAnimatedBackground` with scroll debounce
 - [ ] Dynamic lists: cap animated instances at 3–4; render the rest as static
 - [ ] Memory check: each `blur > 0` instance = ~16 MB canvas memory at 1920×1080

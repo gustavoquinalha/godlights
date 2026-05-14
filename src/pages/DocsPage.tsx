@@ -82,28 +82,23 @@ const PREVIEW_ANIM = {
 
 function presetToScene(preset: RaysPreset, bgColor = "#000000"): SceneConfig {
   const bg: BackgroundLayer = {
-    id: "background",
     type: "background",
     bgType: "solid",
     bgColor,
     bgColor2: bgColor,
     bgGradientAngle: 180,
   };
-  const layers = preset.layers.map((l, i) =>
+  const layers = preset.layers.map((l) =>
     l.type === "rays"
       ? ({
           ...DEFAULT_RAY_LAYER,
           ...l,
-          id: `rays-${i + 1}`,
-          name: `Rays ${i + 1}`,
           colorStart: "#ffffff",
           colorEnd: "#ffffff",
         } as RayLayer)
       : ({
           ...DEFAULT_HALO_LAYER,
           ...l,
-          id: `halo-${i + 1}`,
-          name: `Halo ${i + 1}`,
           color: "#ffffff",
         } as HaloLayer)
   );
@@ -151,7 +146,6 @@ export default function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -171,7 +165,6 @@ function LivePreview() {
       <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-background">
         <GodLights
           scene={scene}
-          animate
           animParams={PREVIEW_ANIM}
           style={{
             position: "absolute",
@@ -349,24 +342,18 @@ export default function DocsPage() {
                         "Full scene configuration. Use the editor to build this.",
                     },
                     {
-                      name: "animate",
-                      type: "boolean",
-                      defaultVal: "false",
-                      description: "Enable animation loop.",
-                    },
-                    {
                       name: "animParams",
                       type: "AnimParams",
-                      defaultVal: "DEFAULT_ANIM_PARAMS",
+                      defaultVal: "undefined",
                       description:
-                        "Animation speed and amplitudes. Only used when animate=true.",
+                        "Animation settings. When present, starts the RAF loop. When omitted, renders statically.",
                     },
                     {
                       name: "showFps",
                       type: "boolean",
                       defaultVal: "false",
                       description:
-                        "Show FPS counter overlay. Only visible when animate=true.",
+                        "Show FPS counter overlay. Only visible when animParams is set.",
                     },
                     {
                       name: "className",
@@ -504,7 +491,6 @@ export default function DocsPage() {
 }`}</CodeBlock>
             <CodeBlock filename="example">{`<GodLights
   scene={scene}
-  animate
   animParams={{ speed: 2, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
 />`}</CodeBlock>
           </Section>
@@ -524,8 +510,6 @@ export default function DocsPage() {
 
 const myRayLayer = {
   ...DEFAULT_RAY_LAYER,
-  id: "rays-1",
-  name: "My rays",
   colorStart: "#ff6600",
   colorEnd: "#ff6600",
 };`}</CodeBlock>

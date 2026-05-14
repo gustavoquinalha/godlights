@@ -22,7 +22,7 @@ export function HeroBackground() {
     <div style={{ position: "relative", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
@@ -64,7 +64,7 @@ export default function HomePage() {
     <div style={{ position: "relative", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
@@ -95,7 +95,7 @@ export function HeroBackground() {
     <div style={{ position: "relative", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>

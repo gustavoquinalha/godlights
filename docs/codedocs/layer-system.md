@@ -50,7 +50,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "gradient",
       bgColor: "#0b1024",
@@ -58,8 +57,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "halo-main",
-      name: "Glow",
       type: "halo",
       originX: 50,
       originY: 0,
@@ -69,8 +66,6 @@ const scene: SceneConfig = {
       blendMode: "lighter",
     },
     {
-      id: "rays-main",
-      name: "Rays",
       type: "rays",
       direction: 180,
       spread: 80,
@@ -107,7 +102,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#000000",
@@ -115,8 +109,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "left-rays",
-      name: "Left Rays",
       type: "rays",
       direction: 155,
       spread: 55,
@@ -138,8 +130,6 @@ const scene: SceneConfig = {
       seed: 11,
     },
     {
-      id: "right-rays",
-      name: "Right Accent",
       type: "rays",
       direction: 205,
       spread: 18,
@@ -164,15 +154,12 @@ const scene: SceneConfig = {
 };
 ```
 
-This mirrors how the repository’s preset data in [`src/lib/presets.ts`](../../../../godlights/src/lib/presets.ts) composes more cinematic scenes: a single background plus several coordinated halo and ray layers.
+This mirrors how the repository's preset data in [`src/lib/presets.ts`](../../../../godlights/src/lib/presets.ts) composes more cinematic scenes: a single background plus several coordinated halo and ray layers.
 
 <Callout type="warn">The comments in the source repeatedly say light backgrounds should use `"multiply"`, but `BlendMode` currently allows only `"source-over"`, `"lighter"`, `"screen"`, `"overlay"`, `"soft-light"`, and `"hard-light"`. If you are staying type-safe, favor `"overlay"` or `"soft-light"` on light backgrounds until the exported union changes.</Callout>
 
 <Accordions>
-  <Accordion title="Why does `BackgroundLayer` have a fixed `id: &quot;background&quot;`?">
-    The source defines `BackgroundLayer.id` as the string literal `"background"` rather than a generic `string`. That is a strong signal that Godlights expects exactly one canonical background layer and does not treat it like a repeatable decorative layer. This removes ambiguity in the editor and makes generated scenes easier to validate or migrate. The trade-off is reduced flexibility, but multiple backgrounds would not make much sense in a renderer where the first one is also responsible for resetting the frame.
-  </Accordion>
   <Accordion title="Why use `OffscreenCanvas` for blurred rays?">
-    In `renderRays`, a nonzero blur value triggers an intermediate draw into `OffscreenCanvas`, followed by a blurred `drawImage` onto the main context. That keeps the blur operation focused on the ray geometry instead of blurring everything already painted behind it. It also preserves cleaner control over each layer’s composite mode. The trade-off is reliance on `OffscreenCanvas` support in the runtime environment, so browser support matters if you target older platforms.
+    In `renderRays`, a nonzero blur value triggers an intermediate draw into `OffscreenCanvas`, followed by a blurred `drawImage` onto the main context. That keeps the blur operation focused on the ray geometry instead of blurring everything already painted behind it. It also preserves cleaner control over each layer's composite mode. The trade-off is reliance on `OffscreenCanvas` support in the runtime environment, so browser support matters if you target older platforms.
   </Accordion>
 </Accordions>

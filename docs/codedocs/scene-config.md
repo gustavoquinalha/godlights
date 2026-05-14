@@ -57,7 +57,6 @@ export const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "gradient",
       bgColor: "#081122",
@@ -84,8 +83,6 @@ import {
 
 const halo: HaloLayer = {
   ...DEFAULT_HALO_LAYER,
-  id: "halo-hero",
-  name: "Hero Halo",
   originX: 18,
   originY: 6,
   color: "#f8fafc",
@@ -95,8 +92,6 @@ const halo: HaloLayer = {
 
 const rays: RayLayer = {
   ...DEFAULT_RAY_LAYER,
-  id: "rays-hero",
-  name: "Hero Rays",
   originX: 16,
   originY: -10,
   direction: 165,
@@ -118,7 +113,7 @@ export const scene: SceneConfig = {
 };
 ```
 
-This pattern is safer than hand-writing every field because the defaults already follow the engine’s expectations. It also makes future refactors easier when the package adds new required fields.
+This pattern is safer than hand-writing every field because the defaults already follow the engine's expectations. It also makes future refactors easier when the package adds new required fields.
 
 <Callout type="warn">Do not treat `DEFAULT_SCENE` as a mutable singleton. In `godrays.ts`, it is exported as a plain object with a nested `layers` array. Clone it before editing so two components do not accidentally share and mutate the same layer objects.</Callout>
 

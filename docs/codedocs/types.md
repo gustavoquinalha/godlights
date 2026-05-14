@@ -32,7 +32,6 @@ Defined in `packages/godlights/src/GodLights.tsx`.
 ```ts
 export interface GodLightsProps {
   scene: SceneConfig;
-  animate?: boolean;
   animParams?: AnimParams;
   showFps?: boolean;
   className?: string;
@@ -40,7 +39,7 @@ export interface GodLightsProps {
 }
 ```
 
-Use this interface when you want to wrap or re-export the component from your own design system. `scene` is the only required field. `style` is especially important because the component's wrapper starts with `position: "relative"`, so full-bleed usage is typically done through inline styles.
+`scene` is the only required field. Animation is activated by passing `animParams` — when present, the RAF loop starts; when absent, a single static frame is drawn. `style` is especially important because the component's wrapper starts with `position: "relative"`, so full-bleed usage is typically done through inline styles.
 
 ## Scene and Layer Types
 
@@ -70,9 +69,7 @@ export type BackgroundType = "transparent" | "solid" | "gradient";
 
 ```ts
 export interface RayLayer {
-  id: string;
   type: "rays";
-  name: string;
   direction: number;
   spread: number;
   originX: number;
@@ -98,9 +95,7 @@ export interface RayLayer {
 
 ```ts
 export interface HaloLayer {
-  id: string;
   type: "halo";
-  name: string;
   originX: number;
   originY: number;
   intensity: number;
@@ -116,7 +111,6 @@ Halo layers render radial gradients centered at a percentage-based origin. `size
 
 ```ts
 export interface BackgroundLayer {
-  id: "background";
   type: "background";
   bgType: BackgroundType;
   bgColor: string;
@@ -124,8 +118,6 @@ export interface BackgroundLayer {
   bgGradientAngle: number;
 }
 ```
-
-The literal `id: "background"` is part of the type. This is not decorative; it reflects the package's assumption that one canonical background layer sits at index `0`.
 
 ### `Layer`
 

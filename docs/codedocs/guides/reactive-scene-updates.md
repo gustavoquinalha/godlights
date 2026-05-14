@@ -26,6 +26,8 @@ import { useState, useCallback, useMemo } from "react";
 import { GodLights, DEFAULT_BACKGROUND_LAYER, DEFAULT_HALO_LAYER, DEFAULT_RAY_LAYER } from "godlights";
 import type { SceneConfig } from "godlights";
 
+const animParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
+
 export function MouseTrackingBackground() {
   const [mouse, setMouse] = useState({ x: 50, y: 10 });
 
@@ -46,8 +48,6 @@ export function MouseTrackingBackground() {
       { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f" },
       {
         ...DEFAULT_HALO_LAYER,
-        id: "halo-1",
-        name: "Halo",
         originX: mouse.x,
         originY: mouse.y,
         color: "#a78bfa",
@@ -56,8 +56,6 @@ export function MouseTrackingBackground() {
       },
       {
         ...DEFAULT_RAY_LAYER,
-        id: "rays-1",
-        name: "Rays",
         originX: mouse.x,
         originY: mouse.y,
         direction: 180,
@@ -76,6 +74,7 @@ export function MouseTrackingBackground() {
     >
       <GodLights
         scene={scene}
+        animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -93,6 +92,8 @@ export function MouseTrackingBackground() {
 import { useState, useEffect, useMemo } from "react";
 import { GodLights, DEFAULT_BACKGROUND_LAYER, DEFAULT_RAY_LAYER } from "godlights";
 import type { SceneConfig } from "godlights";
+
+const animParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
 
 export function ScrollReactiveBackground() {
   const [scrollY, setScrollY] = useState(0);
@@ -115,8 +116,6 @@ export function ScrollReactiveBackground() {
       { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f" },
       {
         ...DEFAULT_RAY_LAYER,
-        id: "rays-1",
-        name: "Rays",
         direction,
         colorStart: "#ffd28a",
         colorEnd: "#ffd28a",
@@ -128,6 +127,7 @@ export function ScrollReactiveBackground() {
   return (
     <GodLights
       scene={scene}
+      animParams={animParams}
       style={{ position: "fixed", inset: 0, width: "100%", height: "100%", zIndex: -1 }}
     />
   );
@@ -149,6 +149,8 @@ function toCompassDeg(fromX: number, fromY: number, toX: number, toY: number) {
   const rad = Math.atan2(toY - fromY, toX - fromX);
   return ((rad * 180) / Math.PI + 90 + 360) % 360;
 }
+
+const animParams = { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 };
 
 export function DirectionTrackingBackground() {
   const originX = 50;
@@ -173,8 +175,8 @@ export function DirectionTrackingBackground() {
     grainSize: 1,
     layers: [
       { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f" },
-      { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX, originY, color: "#a78bfa", intensity: 0.28, size: 0.4 },
-      { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX, originY, direction, spread: 60, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.2 },
+      { ...DEFAULT_HALO_LAYER, originX, originY, color: "#a78bfa", intensity: 0.28, size: 0.4 },
+      { ...DEFAULT_RAY_LAYER, originX, originY, direction, spread: 60, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.2 },
     ],
   }), [direction]);
 
@@ -185,6 +187,7 @@ export function DirectionTrackingBackground() {
     >
       <GodLights
         scene={scene}
+        animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>{/* content */}</div>
@@ -228,7 +231,6 @@ export function ActivityDrivenBackground() {
   return (
     <GodLights
       scene={DEFAULT_SCENE}
-      animate
       animParams={animParams}
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
     />
@@ -251,7 +253,6 @@ function toCompassDeg(fromX: number, fromY: number, toX: number, toY: number) {
   return ((rad * 180) / Math.PI + 90 + 360) % 360;
 }
 
-// Clamp mouse to [0, 100] so off-container events don't break originX/Y
 function clamp(value: number, min = 0, max = 100) {
   return Math.max(min, Math.min(max, value));
 }
@@ -266,7 +267,6 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
   const [mouse, setMouse] = useState({ x: 50, y: 10 });
   const [size, setSize] = useState({ width: 1920, height: 1080 });
 
-  // Keep canvas resolution in sync with container — important for blur accuracy
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -289,14 +289,11 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    // Reset to top-center when cursor leaves
     setMouse({ x: 50, y: 0 });
   }, []);
 
-  // Rays point from center toward the cursor
   const direction = toCompassDeg(50, 50, mouse.x, mouse.y);
 
-  // scene drives layout: origin follows mouse, direction tracks cursor
   const scene: SceneConfig = useMemo(() => ({
     width: size.width,
     height: size.height,
@@ -306,23 +303,18 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
       { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f", bgColor2: "#06060f" },
       {
         ...DEFAULT_HALO_LAYER,
-        id: "halo-1",
-        name: "Halo",
         originX: mouse.x,
         originY: mouse.y,
         color: "#a78bfa",
-        // Intensity scales with activity — busier = brighter halo
         intensity: 0.15 + (activityLevel / 100) * 0.3,
         size: 0.35 + (activityLevel / 100) * 0.2,
       },
       {
         ...DEFAULT_RAY_LAYER,
-        id: "rays-1",
-        name: "Rays",
         originX: mouse.x,
         originY: mouse.y,
         direction,
-        spread: 60 + (activityLevel / 100) * 40, // wider fan when busy
+        spread: 60 + (activityLevel / 100) * 40,
         colorStart: "#a78bfa",
         colorEnd: "#a78bfa",
         opacity: 0.12 + (activityLevel / 100) * 0.12,
@@ -331,7 +323,6 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
     ],
   }), [mouse, direction, size, activityLevel]);
 
-  // animParams drives animation intensity — updates every frame, no remount
   const animParams: AnimParams = useMemo(() => ({
     speed: 0.5 + (activityLevel / 100) * 2,
     angleAmp: 15 + (activityLevel / 100) * 55,
@@ -349,7 +340,6 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
     >
       <GodLights
         scene={scene}
-        animate
         animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -361,48 +351,10 @@ export function ReactiveDashboard({ activityLevel }: ReactiveDashboardProps) {
 }
 ```
 
-**Usage with a live data source:**
-
-```tsx
-function Dashboard() {
-  const [cpu, setCpu] = useState(0);
-
-  useEffect(() => {
-    // Replace with your real data source: WebSocket, polling, etc.
-    const id = setInterval(async () => {
-      const res = await fetch("/api/metrics");
-      const { cpuPercent } = await res.json();
-      setCpu(cpuPercent);
-    }, 2000);
-    return () => clearInterval(id);
-  }, []);
-
-  return <ReactiveDashboard activityLevel={cpu} />;
-}
-```
-
-**How the two update paths work together:**
-
-| Input | Updates | Effect |
-|-------|---------|--------|
-| Mouse move | `scene` (via `useMemo`) | Origin and direction shift instantly |
-| Activity metric | `scene` + `animParams` | Opacity/spread/intensity + animation speed |
-| Container resize | `scene.width/height` | Canvas resolution matches container |
-
-`scene` and `animParams` are independent props — changing one does not trigger a recompute of the other. This means mouse moves never reset the animation clock, and metric updates never interrupt cursor tracking.
-
-## Edge cases
-
-**Mouse leaves the container** — reset `originX`/`originY` to a safe default in `onMouseLeave`, otherwise the halo stays frozen at the last position.
-
-**Container resizes** — `originX`/`originY` are percentages so they scale automatically. Only `blur` (absolute pixels) may need adjustment; scale it proportionally if you observe a large resolution change.
-
-**Metric out of range** — clamp incoming values to `[0, 100]` before passing as `activityLevel` to prevent `animParams` fields from going negative or exceeding their effective range.
-
 ## Notes
 
 - `originX` / `originY` are percentages of `scene.width` / `scene.height` (0–100), not pixel coordinates.
 - `direction` is a compass bearing: 0 = up, 90 = right, 180 = down, 270 = left. Use `Math.atan2` to calculate it from coordinates.
 - `animParams` changes take effect on the next animation frame — no remount, no flicker.
 - Throttle high-frequency events (mousemove, scroll) with `requestAnimationFrame` or a debounce if you notice frame drops.
-- Combine reactive `scene` updates with `animate={true}` for layered motion — the scene prop drives the base values while `animParams` adds organic oscillation on top.
+- Combine reactive `scene` updates with `animParams` for layered motion — the scene prop drives the base values while `animParams` adds organic oscillation on top.

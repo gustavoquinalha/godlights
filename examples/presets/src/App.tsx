@@ -63,7 +63,6 @@ export function App() {
         <GodLights
           key={preset.key}
           scene={preset.scene}
-          animate
           animParams={animParams}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         />

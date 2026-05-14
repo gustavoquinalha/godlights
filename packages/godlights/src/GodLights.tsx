@@ -28,14 +28,8 @@ export interface GodLightsProps {
    */
   scene: SceneConfig;
   /**
-   * When `true`, starts a `requestAnimationFrame` loop that continuously
-   * redraws the scene with an incrementing time clock, producing smooth
-   * animation. When `false` (default), the scene is drawn once statically.
-   */
-  animate?: boolean;
-  /**
-   * Amplitude and speed settings for the animation loop. Only consulted when
-   * `animate={true}`.
+   * Animation settings. When present, starts a `requestAnimationFrame` loop.
+   * When omitted, the scene is drawn once statically.
    *
    * **Common mistake:** there is NO `opacityAmp` field. The valid keys are:
    * - `speed` — global time multiplier (default `1`)
@@ -43,13 +37,11 @@ export interface GodLightsProps {
    * - `lengthAmp` — ray length pulsation 0–100 (default `50`)
    * - `widthAmp` — ray width breathing 0–100 (default `50`)
    * - `haloAmp` — halo size pulse 0–100 (default `50`)
-   *
-   * Omit this prop to use the defaults from `DEFAULT_ANIM_PARAMS`.
    */
   animParams?: AnimParams;
   /**
    * When `true`, a small FPS counter badge is rendered in the top-right corner
-   * of the canvas. Only visible when `animate={true}`. Useful during
+   * of the canvas. Only visible when `animParams` is set. Useful during
    * development to check rendering performance. Default: `false`.
    */
   showFps?: boolean;
@@ -127,42 +119,29 @@ const fillAbsolute: React.CSSProperties = {
  * }
  *
  * @example
- * // Animated render — continuous RAF loop with custom amplitudes
- * import { GodLights, DEFAULT_SCENE, AnimParams } from "@your-org/godlights";
- * import { useMemo } from "react";
+ * // Animated render — pass animParams to start the RAF loop
+ * import { GodLights, DEFAULT_SCENE } from "godlights";
  *
  * export function AnimatedBackground() {
- *   const animParams: AnimParams = useMemo(() => ({
- *     speed: 1,
- *     angleAmp: 60,   // moderate swing
- *     lengthAmp: 40,  // subtle length pulsation
- *     widthAmp: 20,   // gentle width breathing
- *     haloAmp: 50,    // standard halo pulse
- *     // ⚠️ opacityAmp does NOT exist — omit it
- *   }), []);
- *
  *   return (
  *     <div style={{ position: "relative", height: 480 }}>
  *       <GodLights
  *         scene={DEFAULT_SCENE}
- *         animate
- *         animParams={animParams}
- *         showFps   // optional FPS badge for dev
+ *         animParams={{ speed: 1, angleAmp: 60, lengthAmp: 40, widthAmp: 20, haloAmp: 50 }}
  *         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
  *       />
- *       <h1 style={{ position: "relative", color: "#fff" }}>Hello</h1>
  *     </div>
  *   );
  * }
  */
 export function GodLights({
   scene,
-  animate = false,
   animParams,
   showFps = false,
   className,
   style,
 }: GodLightsProps) {
+  const shouldAnimate = animParams !== undefined;
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const grainCanvasRef = React.useRef<HTMLCanvasElement>(null);
   const sceneRef = React.useRef(scene);
@@ -175,7 +154,7 @@ export function GodLights({
 
   // Static render
   React.useEffect(() => {
-    if (animate) return;
+    if (shouldAnimate) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const raf = requestAnimationFrame(() => {
@@ -184,13 +163,13 @@ export function GodLights({
       drawScene(canvas, scene);
     });
     return () => cancelAnimationFrame(raf);
-  }, [scene, animate]);
+  }, [scene, shouldAnimate]);
 
   // Grain overlay — rendered once, stays fixed (static texture over moving rays)
   // Re-renders only when noise amount, grain size or dimensions change
   const { noise, grainSize, width: sceneWidth, height: sceneHeight } = scene;
   React.useEffect(() => {
-    if (!animate) return;
+    if (!shouldAnimate) return;
     const gc = grainCanvasRef.current;
     if (!gc || noise <= 0) return;
     const ctx = gc.getContext("2d");
@@ -221,11 +200,11 @@ export function GodLights({
       }
     }
     ctx.putImageData(img, 0, 0);
-  }, [animate, noise, grainSize, sceneWidth, sceneHeight]);
+  }, [shouldAnimate, noise, grainSize, sceneWidth, sceneHeight]);
 
   // Animation loop
   React.useEffect(() => {
-    if (!animate) {
+    if (!shouldAnimate) {
       fpsFramesRef.current = [];
       setFps(0);
       return;
@@ -267,9 +246,9 @@ export function GodLights({
 
     rafId = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafId);
-  }, [animate, showFps]);
+  }, [shouldAnimate, showFps]);
 
-  const grainOpacity = animate && noise > 0 ? (noise / 100) * 0.35 : 0;
+  const grainOpacity = shouldAnimate && noise > 0 ? (noise / 100) * 0.35 : 0;
 
   return (
     <div
@@ -285,7 +264,7 @@ export function GodLights({
       />
 
       {/* Grain overlay — same size as main canvas, fixed texture */}
-      {animate && (
+      {shouldAnimate && (
         <canvas
           ref={grainCanvasRef}
           width={sceneWidth}
@@ -301,7 +280,7 @@ export function GodLights({
       )}
 
       {/* FPS counter */}
-      {showFps && animate && (
+      {showFps && shouldAnimate && (
         <span
           style={{
             position: "absolute",

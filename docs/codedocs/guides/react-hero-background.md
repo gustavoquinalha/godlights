@@ -30,7 +30,6 @@ export function useHeroScene(): SceneConfig {
       grainSize: 1,
       layers: [
         {
-          id: "background",
           type: "background",
           bgType: "gradient",
           bgColor: "#050816",
@@ -38,8 +37,6 @@ export function useHeroScene(): SceneConfig {
           bgGradientAngle: 180,
         },
         {
-          id: "halo-main",
-          name: "Main Halo",
           type: "halo",
           originX: 18,
           originY: 5,
@@ -49,8 +46,6 @@ export function useHeroScene(): SceneConfig {
           blendMode: "lighter",
         },
         {
-          id: "rays-main",
-          name: "Main Rays",
           type: "rays",
           direction: 160,
           spread: 65,
@@ -101,7 +96,6 @@ export function HeroSection() {
     <section style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -162,7 +156,6 @@ export default function HeroSection() {
       grainSize: 1,
       layers: [
         {
-          id: "background",
           type: "background",
           bgType: "gradient",
           bgColor: "#050816",
@@ -170,8 +163,6 @@ export default function HeroSection() {
           bgGradientAngle: 180,
         },
         {
-          id: "halo-main",
-          name: "Main Halo",
           type: "halo",
           originX: 18,
           originY: 5,
@@ -181,8 +172,6 @@ export default function HeroSection() {
           blendMode: "lighter",
         },
         {
-          id: "rays-main",
-          name: "Main Rays",
           type: "rays",
           direction: 160,
           spread: 65,
@@ -212,7 +201,6 @@ export default function HeroSection() {
     <section style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={animParams}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
