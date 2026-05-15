@@ -48,7 +48,6 @@ const scene: SceneConfig = {
   layers: [
     // ⚠️ layers[0] MUST be a BackgroundLayer — it clears the canvas each frame
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#000000",
@@ -56,8 +55,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "rays-1",
-      name: "Rays 1",
       type: "rays",
       direction: 158,
       spread: 70,
@@ -79,8 +76,6 @@ const scene: SceneConfig = {
       seed: 554433,
     },
     {
-      id: "halo-1",
-      name: "Halo 1",
       type: "halo",
       originX: 16,
       originY: 2,
@@ -97,7 +92,6 @@ export default function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -115,8 +109,7 @@ export default function App() {
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `scene` | `SceneConfig` | **required** | Full scene configuration |
-| `animate` | `boolean` | `false` | Enable the animation loop |
-| `animParams` | `AnimParams` | `DEFAULT_ANIM_PARAMS` | Animation speed and amplitudes |
+| `animParams` | `AnimParams` | — | Pass to enable the animation loop; omit for a static render |
 | `showFps` | `boolean` | `false` | Show FPS counter overlay |
 | `className` | `string` | — | CSS class on the wrapper `<div>` |
 | `style` | `CSSProperties` | — | Inline style on the wrapper `<div>` |
@@ -147,7 +140,6 @@ The first layer in every scene. Responsible for clearing the canvas each frame �
 
 ```ts
 {
-  id: string;
   type: "background";
   bgType: "solid" | "gradient" | "transparent";
   bgColor: string;           // Primary color (hex, e.g. "#0b1024")
@@ -162,8 +154,6 @@ A fan of volumetric light beams emanating from a single origin point.
 
 ```ts
 {
-  id: string;
-  name: string;
   type: "rays";
   direction: number;          // Direction rays point (degrees, 0 = right, 180 = down)
   spread: number;             // Angular spread of the fan (degrees, 0–360)
@@ -192,8 +182,6 @@ A soft radial glow, typically placed at the ray origin to simulate a light sourc
 
 ```ts
 {
-  id: string;
-  name: string;
   type: "halo";
   originX: number;      // Center X as % of canvas width
   originY: number;      // Center Y as % of canvas height
@@ -254,8 +242,6 @@ import {
 // Example: spread defaults then override only what you need
 const myRay: RayLayer = {
   ...DEFAULT_RAY_LAYER,
-  id: "my-rays",
-  name: "My Rays",
   direction: 270,
   colorStart: "#a855f7",
   colorEnd: "#a855f7",
@@ -334,10 +320,10 @@ const scene: SceneConfig = {
   noise: 6,
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
-    { id: "halo-1", name: "Glow", type: "halo", originX: 50, originY: -5, color: "#a78bfa", intensity: 0.3, size: 0.6, blendMode: "lighter" },
+    { type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+    { type: "halo", originX: 50, originY: -5, color: "#a78bfa", intensity: 0.3, size: 0.6, blendMode: "lighter" },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 180, spread: 90,
       originX: 50, originY: -5,
       rayCount: 30, rayWidth: 80, divergence: 2, rayLength: 1.2,
@@ -353,7 +339,6 @@ export default function HeroSection() {
     <section style={{ position: "relative", minHeight: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={{ speed: 0.8, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
@@ -383,10 +368,10 @@ const scene: SceneConfig = {
   noise: 8,
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "gradient", bgColor: "#0b1024", bgColor2: "#1a1340", bgGradientAngle: 180 },
-    { id: "halo-1", name: "Halo", type: "halo", originX: 20, originY: 10, color: "#ffd28a", intensity: 0.25, size: 0.4, blendMode: "lighter" },
+    { type: "background", bgType: "gradient", bgColor: "#0b1024", bgColor2: "#1a1340", bgGradientAngle: 180 },
+    { type: "halo", originX: 20, originY: 10, color: "#ffd28a", intensity: 0.25, size: 0.4, blendMode: "lighter" },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 160, spread: 70,
       originX: 20, originY: 10,
       rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0,
@@ -402,7 +387,7 @@ export default function Page() {
     <main style={{ position: "relative", minHeight: "100svh" }}>
       <GodLights
         scene={scene}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -426,9 +411,9 @@ const scene: SceneConfig = {
   noise: 4,
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "solid", bgColor: "#ffffff", bgColor2: "#ffffff", bgGradientAngle: 180 },
+    { type: "background", bgType: "solid", bgColor: "#ffffff", bgColor2: "#ffffff", bgGradientAngle: 180 },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 200, spread: 80,
       originX: 70, originY: -10,
       rayCount: 20, rayWidth: 100, divergence: 2, rayLength: 1.1,
@@ -455,11 +440,11 @@ const scene: SceneConfig = {
   noise: 10,
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "solid", bgColor: "#050510", bgColor2: "#050510", bgGradientAngle: 180 },
+    { type: "background", bgType: "solid", bgColor: "#050510", bgColor2: "#050510", bgGradientAngle: 180 },
     // warm glow — top-left
-    { id: "halo-warm", name: "Warm glow", type: "halo", originX: 15, originY: 5, color: "#ff9a3c", intensity: 0.2, size: 0.5, blendMode: "lighter" },
+    { type: "halo", originX: 15, originY: 5, color: "#ff9a3c", intensity: 0.2, size: 0.5, blendMode: "lighter" },
     {
-      id: "rays-warm", name: "Warm rays", type: "rays",
+      type: "rays",
       direction: 155, spread: 60,
       originX: 15, originY: 5,
       rayCount: 22, rayWidth: 60, divergence: 1.6, rayLength: 1.0,
@@ -468,9 +453,9 @@ const scene: SceneConfig = {
       randomnessWidth: 70, randomnessLength: 20, randomnessAngle: 15, seed: 11,
     },
     // cool accent — top-right
-    { id: "halo-cool", name: "Cool glow", type: "halo", originX: 85, originY: 0, color: "#60a5fa", intensity: 0.18, size: 0.4, blendMode: "lighter" },
+    { type: "halo", originX: 85, originY: 0, color: "#60a5fa", intensity: 0.18, size: 0.4, blendMode: "lighter" },
     {
-      id: "rays-cool", name: "Cool rays", type: "rays",
+      type: "rays",
       direction: 205, spread: 55,
       originX: 85, originY: 0,
       rayCount: 18, rayWidth: 50, divergence: 1.5, rayLength: 0.9,
@@ -496,10 +481,10 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     // transparent — does not clear the canvas, just composites the lights on top
-    { id: "background", type: "background", bgType: "transparent", bgColor: "#000000", bgColor2: "#000000", bgGradientAngle: 180 },
-    { id: "halo-1", name: "Halo", type: "halo", originX: 50, originY: 0, color: "#ffffff", intensity: 0.15, size: 0.5, blendMode: "lighter" },
+    { type: "background", bgType: "transparent", bgColor: "#000000", bgColor2: "#000000", bgGradientAngle: 180 },
+    { type: "halo", originX: 50, originY: 0, color: "#ffffff", intensity: 0.15, size: 0.5, blendMode: "lighter" },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 180, spread: 100,
       originX: 50, originY: 0,
       rayCount: 20, rayWidth: 60, divergence: 2, rayLength: 1.2,
@@ -514,7 +499,7 @@ export default function Overlay() {
   return (
     <GodLights
       scene={scene}
-      animate
+      animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
       style={{
         position: "fixed",
         inset: 0,
@@ -545,7 +530,7 @@ interface GodLightsBackgroundProps {
   spread?: number;
   opacity?: number;
   speed?: number;
-  animate?: boolean;
+  animated?: boolean;
   className?: string;
   style?: React.CSSProperties;
 }
@@ -558,7 +543,7 @@ export function GodLightsBackground({
   spread = 80,
   opacity = 0.18,
   speed = 1,
-  animate = true,
+  animated = true,
   className,
   style,
 }: GodLightsBackgroundProps) {
@@ -569,8 +554,8 @@ export function GodLightsBackground({
     grainSize: 1,
     layers: [
       { ...DEFAULT_BACKGROUND_LAYER },
-      { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX, originY, color, intensity: opacity * 1.5, size: 0.45 },
-      { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX, originY, direction, spread, colorStart: color, colorEnd: color, opacity },
+      { ...DEFAULT_HALO_LAYER, originX, originY, color, intensity: opacity * 1.5, size: 0.45 },
+      { ...DEFAULT_RAY_LAYER, originX, originY, direction, spread, colorStart: color, colorEnd: color, opacity },
     ],
   }), [color, originX, originY, direction, spread, opacity]);
 
@@ -585,8 +570,7 @@ export function GodLightsBackground({
   return (
     <GodLights
       scene={scene}
-      animate={animate}
-      animParams={animParams}
+      animParams={animated ? animParams : undefined}
       className={className}
       style={style}
     />
@@ -604,7 +588,7 @@ Usage across multiple sections:
 <GodLightsBackground color="#ffd28a" originX={80} direction={200} speed={0.5} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
 
 // teal, static
-<GodLightsBackground color="#34d399" animate={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+<GodLightsBackground color="#34d399" animated={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
 ```
 
 ---
@@ -637,8 +621,8 @@ export function MouseTrackingBackground() {
     grainSize: 1,
     layers: [
       { ...DEFAULT_BACKGROUND_LAYER, bgColor: "#06060f" },
-      { ...DEFAULT_HALO_LAYER, id: "halo-1", name: "Halo", originX: mouse.x, originY: mouse.y, color: "#a78bfa", intensity: 0.28, size: 0.45 },
-      { ...DEFAULT_RAY_LAYER, id: "rays-1", name: "Rays", originX: mouse.x, originY: mouse.y, direction: 180, spread: 80, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18 },
+      { ...DEFAULT_HALO_LAYER, originX: mouse.x, originY: mouse.y, color: "#a78bfa", intensity: 0.28, size: 0.45 },
+      { ...DEFAULT_RAY_LAYER, originX: mouse.x, originY: mouse.y, direction: 180, spread: 80, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18 },
     ],
   }), [mouse]);
 
@@ -673,17 +657,17 @@ const presets: SceneConfig[] = [
   {
     width: 1920, height: 1080, noise: 8, grainSize: 1,
     layers: [
-      { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
-      { id: "halo-1", name: "Halo", type: "halo", originX: 20, originY: 5, color: "#a78bfa", intensity: 0.3, size: 0.5, blendMode: "lighter" },
-      { id: "rays-1", name: "Rays", type: "rays", direction: 160, spread: 70, originX: 20, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1 },
+      { type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+      { type: "halo", originX: 20, originY: 5, color: "#a78bfa", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { type: "rays", direction: 160, spread: 70, originX: 20, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#a78bfa", colorEnd: "#a78bfa", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 1 },
     ],
   },
   {
     width: 1920, height: 1080, noise: 8, grainSize: 1,
     layers: [
-      { id: "background", type: "background", bgType: "solid", bgColor: "#060f08", bgColor2: "#060f08", bgGradientAngle: 180 },
-      { id: "halo-1", name: "Halo", type: "halo", originX: 80, originY: 5, color: "#34d399", intensity: 0.3, size: 0.5, blendMode: "lighter" },
-      { id: "rays-1", name: "Rays", type: "rays", direction: 200, spread: 70, originX: 80, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#34d399", colorEnd: "#34d399", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 2 },
+      { type: "background", bgType: "solid", bgColor: "#060f08", bgColor2: "#060f08", bgGradientAngle: 180 },
+      { type: "halo", originX: 80, originY: 5, color: "#34d399", intensity: 0.3, size: 0.5, blendMode: "lighter" },
+      { type: "rays", direction: 200, spread: 70, originX: 80, originY: 5, rayCount: 24, rayWidth: 70, divergence: 1.8, rayLength: 1.0, colorStart: "#34d399", colorEnd: "#34d399", opacity: 0.18, blendMode: "screen", fadeToTransparent: true, blur: 12, randomnessWidth: 60, randomnessLength: 20, randomnessAngle: 15, seed: 2 },
     ],
   },
 ];
@@ -707,10 +691,10 @@ export function CyclingPresets() {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
-      <GodLights scene={presets[current]} animate style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+      <GodLights scene={presets[current]} animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }} style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       <GodLights
         scene={presets[next]}
-        animate
+        animParams={{ speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 }}
         style={{
           position: "absolute", inset: 0, width: "100%", height: "100%",
           opacity: fading ? 1 : 0,
@@ -726,7 +710,7 @@ export function CyclingPresets() {
 
 ### Performance optimization
 
-Each `<GodLights animate>` runs its own `requestAnimationFrame` loop. For multiple instances on the same page:
+Each animated `<GodLights animParams={...}>` runs its own `requestAnimationFrame` loop. For multiple instances on the same page:
 
 ```tsx
 "use client";
@@ -741,10 +725,10 @@ const lightweightScene: SceneConfig = {
   noise: 4,
   grainSize: 1,
   layers: [
-    { id: "background", type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
-    { id: "halo-1", name: "Halo", type: "halo", originX: 50, originY: 0, color: "#a78bfa", intensity: 0.2, size: 0.4, blendMode: "lighter" },
+    { type: "background", bgType: "solid", bgColor: "#06060f", bgColor2: "#06060f", bgGradientAngle: 180 },
+    { type: "halo", originX: 50, originY: 0, color: "#a78bfa", intensity: 0.2, size: 0.4, blendMode: "lighter" },
     {
-      id: "rays-1", name: "Rays", type: "rays",
+      type: "rays",
       direction: 180, spread: 80,
       originX: 50, originY: 0,
       rayCount: 12,        // ← keep low for secondary instances
@@ -777,7 +761,7 @@ function LazyAnimatedBackground({ scene }: { scene: SceneConfig }) {
     <div ref={ref} style={{ position: "relative", height: 400 }}>
       <GodLights
         scene={scene}
-        animate={visible}   // ← RAF loop only runs while visible
+        animParams={visible ? { speed: 1, angleAmp: 40, lengthAmp: 25, widthAmp: 15, haloAmp: 40 } : undefined}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
@@ -798,7 +782,7 @@ export function MultiSectionPage() {
 **Quick checklist for multiple instances:**
 - Keep `rayCount` ≤ 16 for non-hero sections
 - Set `blur: 0` or keep it under 8 — Gaussian blur via `OffscreenCanvas` is the heaviest operation
-- Use `animate={false}` for purely decorative static instances
+- Omit `animParams` for purely decorative static instances
 - Pause off-screen instances with `IntersectionObserver` as shown above
 
 ---
