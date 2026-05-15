@@ -30,7 +30,6 @@ const scene: SceneConfig = {
   grainSize: 1,
   layers: [
     {
-      id: "background",
       type: "background",
       bgType: "solid",
       bgColor: "#000000",
@@ -38,8 +37,6 @@ const scene: SceneConfig = {
       bgGradientAngle: 180,
     },
     {
-      id: "rays-1",
-      name: "Rays 1",
       type: "rays",
       direction: 158,
       spread: 70,
@@ -61,8 +58,6 @@ const scene: SceneConfig = {
       seed: 554433,
     },
     {
-      id: "halo-1",
-      name: "Halo 1",
       type: "halo",
       originX: 16,
       originY: 2,
@@ -79,7 +74,6 @@ export default function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animate
         animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />

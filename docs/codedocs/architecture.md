@@ -51,10 +51,10 @@ sequenceDiagram
 
   App->>GL: Pass scene and optional animParams
   GL->>GL: Store refs to latest scene and anim params
-  alt animate = false
+  alt animParams is undefined
     GL->>Canvas: Set canvas size once
     GL->>Engine: drawScene(canvas, scene)
-  else animate = true
+  else animParams is defined
     GL->>GL: Start requestAnimationFrame loop
     GL->>Canvas: Resize when scene dimensions change
     GL->>Engine: drawScene(canvas, scene, time, animParams, true)

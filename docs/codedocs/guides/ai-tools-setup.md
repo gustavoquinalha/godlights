@@ -39,7 +39,7 @@ Install a ready-made component directly into your project — no manual configur
 # Hero section with animated rays and color prop
 npx shadcn@latest add "https://www.godlights.io/r/god-lights-hero.json"
 
-# Minimal background wrapper (color, bgColor, animate props)
+# Minimal background wrapper (color, bgColor, animParams props)
 npx shadcn@latest add "https://www.godlights.io/r/god-lights-background.json"
 
 # Auto-cycling presets with smooth cross-fade
