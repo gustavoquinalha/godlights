@@ -149,9 +149,9 @@ export default function LandingPage() {
               >
                 <img
                   alt="Godlights - Generate animated, fully customizable god ray effects. | Product Hunt"
-                  width="250"
-                  height="54"
-                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1144888&amp;theme=dark&amp;t=1778687167023"
+                  width="190"
+                  height="41"
+                  src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1144888&amp;t=1778687167023"
                 />
               </a>
 

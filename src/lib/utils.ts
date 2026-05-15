@@ -10,6 +10,6 @@ export const LINKS = [
   { label: "Editor", href: "/editor" },
   { label: "Presets", href: "/presets" },
   { label: "Docs", href: "/docs" },
-  { label: "npm", href: "https://www.npmjs.com/package/godlights", external: true },
+  { label: "Npm", href: "https://www.npmjs.com/package/godlights", external: true },
   { label: "GitHub", href: "https://github.com/gustavoquinalha/rays-generator", external: true },
 ];
