@@ -73,7 +73,7 @@ function CodeBlock({
 // ── Live preview helpers ──────────────────────────────────────────────────────
 
 const PREVIEW_ANIM = {
-  speed: 1.5,
+  speed: 3,
   angleAmp: 40,
   lengthAmp: 30,
   widthAmp: 20,
@@ -146,7 +146,7 @@ export default function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
+        animParams={{ speed: 3, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
@@ -279,7 +279,7 @@ export default function DocsPage() {
               <span className="text-xs font-mono bg-muted px-2 py-1 rounded text-muted-foreground">
                 godlights
               </span>
-              <span className="text-xs text-muted-foreground">v0.1.2</span>
+              <span className="text-xs text-muted-foreground">v1.0.0</span>
             </div>
             <h1 className="text-4xl font-bold tracking-tight">Documentation</h1>
             <p className="text-muted-foreground text-lg max-w-2xl">

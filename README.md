@@ -77,7 +77,7 @@ export default function App() {
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       <GodLights
         scene={scene}
-        animParams={{ speed: 1.5, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
+        animParams={{ speed: 3, angleAmp: 40, lengthAmp: 30, widthAmp: 20, haloAmp: 50 }}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
       />
     </div>
